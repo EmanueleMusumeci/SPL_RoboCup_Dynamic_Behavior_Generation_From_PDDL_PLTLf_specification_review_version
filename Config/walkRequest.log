@@ -1,0 +1,20 @@
+mode = targetMode;
+speed = {
+  rotation = 57.2958deg;
+  translation = {
+    x = 1;
+    y = 1;
+  };
+};
+target = {
+  rotation = -nandeg;
+  translation = {
+    x = 438.37;
+    y = 301.015;
+  };
+};
+walkKickRequest = {
+  kickType = none;
+  kickLeg = left;
+};
+"BehaviorControl/playing, GameControlCard, GameplayCard/opponentFreeKick, ApproachAndKickCard/walkToBall, Activity, LookForward, WalkToApproach"
