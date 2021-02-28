@@ -36,7 +36,7 @@ CARD(ApproachAndPassCard,
   CALLS(Kick),
   CALLS(WalkToTargetPathPlanner),
   CALLS(WalkToTargetPathPlannerStraight),
-  
+
   CALLS(WalkToApproach),
 
   CALLS(Stand),
@@ -80,17 +80,18 @@ class ApproachAndPassCard : public ApproachAndPassCardBase
   // These two variables are used in order to let the robot say through PlaySound what is the distance from the target.
   double distanceConfirmed = 0.0;
   bool alreadyEnqueued = false;
-  
-  //This boolean condition check whether there is a pass available (see PassShareProvider.cpp)
-  //This ensures that, as soon as there is a good pass available, the robot will run this behavior with top priority
+
+  // Because the Pass card was made lower-priority wrt the Kick card,
+  // the dealer now only reaches this card if the Kick preconditions were not met.
+  // Therefore any passing conditions are best checked in negative over there.
   bool preconditions() const override
   {
-    return thePassShare.readyPass == 1;
+    return true;
   }
 
-  //These ones instead check when there is no good pass available anymore (or, indirectly, when the pass has been performed already)
+  //These conditions check when there is no good pass available anymore (or, indirectly, when the pass has been performed already)
   //or if the shootingTo target (where the ball is being kicked at) has been changed (for any reason).
-  //NOTICE: the only code that sets thePassShare.readyPass to 0 is contained in PassShareProvider 
+  //NOTICE: the only code that sets thePassShare.readyPass to 0 is contained in PassShareProvider
   bool postconditions() const override
   {
     return thePassShare.readyPass == 0 ||
@@ -138,7 +139,7 @@ class ApproachAndPassCard : public ApproachAndPassCardBase
     state(turnToBall)
     {
       transition
-      { 
+      {
         if(!theFieldBall.ballWasSeen(ballNotSeenTimeout))
         {
           goto searchForBall;
@@ -146,7 +147,7 @@ class ApproachAndPassCard : public ApproachAndPassCardBase
         if(std::abs(theFieldBall.positionRelative.angle()) < alignThreshold)
         {
           goto walkToBall_far;
-        }          
+        }
       }
 
       action
@@ -178,20 +179,20 @@ class ApproachAndPassCard : public ApproachAndPassCardBase
       {
         theLookAtPointSkill(Vector3f(theFieldBall.positionRelative.x(), theFieldBall.positionRelative.y(), 0.f));
         theWalkToTargetPathPlannerSkill(Pose2f(1.f,1.f,1.f), Pose2f(theFieldBall.positionOnField - Vector2f( ballOffsetX, 0.f)));
-        
+
       }
     }
 
     //Approach the ball if near (only the transition conditions change wrt to walkToBall_far)
     state(walkToBall_near){
       transition
-      {  
+      {
         if(!theFieldBall.ballWasSeen(ballNotSeenTimeout))
         {
           goto searchForBall;
         }
-        
-        if(smallApproachXRange.isInside(theFieldBall.positionRelative.x()) 
+
+        if(smallApproachXRange.isInside(theFieldBall.positionRelative.x())
             && smallApproachYRange.isInside(theFieldBall.positionRelative.y())){
                 goto approachToPass;
               }
@@ -212,21 +213,21 @@ class ApproachAndPassCard : public ApproachAndPassCardBase
         {
           goto searchForBall;
         }
-        
+
         if(theFieldBall.positionRelative.norm() < 0 ){
           goto turnToBall;
         }
-        
+
         if(!smallApproachXRange.isInside(theFieldBall.positionRelative.x())){
           goto walkToBall_far;
         }
 
-        if(std::abs(angleToTarget) < angle_target_treshold && ballOffsetXRange.isInside(theFieldBall.positionRelative.x()) 
+        if(std::abs(angleToTarget) < angle_target_treshold && ballOffsetXRange.isInside(theFieldBall.positionRelative.x())
             && ballOffsetYRange.isInside(theFieldBall.positionRelative.y())){
                 goto kick;
         }
       }
-      
+
       action
       {
         //Set the BehaviorStatus to the current PassShare
