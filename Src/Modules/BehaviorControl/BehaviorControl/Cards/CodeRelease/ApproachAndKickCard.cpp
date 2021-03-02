@@ -6,6 +6,16 @@
  * @author Emanuele Antonioni
  */
 
+//disabling warnings while importing so I don't see irrelevant messages when compiling
+//these are only meant to be here while I work
+//TODO remove asap
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-copy"
+#pragma GCC diagnostic ignored "-Wint-in-bool-context"
+#pragma GCC diagnostic ignored "-Wimplicit-int-float-conversion"
+#pragma GCC diagnostic ignored "-Wreorder-ctor"
+#pragma GCC diagnostic ignored "-Wmisleading-indentation"
+
 #include "Representations/BehaviorControl/FieldBall.h"
 #include "Representations/BehaviorControl/Skills.h"
 #include "Representations/BehaviorControl/BehaviorStatus.h"
@@ -20,6 +30,10 @@
 #include "Tools/Math/BHMath.h"
 #include "Platform/SystemCall.h"
 #include <string>
+
+//see above
+#pragma GCC diagnostic pop
+
 CARD(ApproachAndKickCard,
 {,
   CALLS(Activity),
@@ -90,17 +104,22 @@ class ApproachAndKickCard : public ApproachAndKickCardBase
       //there is a clear scoring opportunity (striker close enough to the goal with no opponents in sight)
       cleanShot(goal_target, theRobotPose, theTeamPlayersModel.obstacles)
     ) {
+      if (thePassShare.readyPass == 0) std::cout << "No pass avaliable, kicking" << '\n';
+      else std::cout << "Clean shot, kicking" << '\n';
       return true;
     }
     //otherwise, the conditions branch depending on whether the striker
     //is under immediate pressure to send the ball *somewhere*.
     //This is true if the striker is close to the ball
-    //and an opponent is immediately adjacent to the striker.
-    //in these conditions, the striker can't afford to take too much time
+    //and either an opponent is immediately adjacent to the striker,
+    //    or the striker is close to the goal.
+    //in these conditions, we don't want the striker to take too much time
     //walking around the ball.
     bool act_asap = (
-      theFieldBall.positionRelative.squaredNorm()<sqr(300.f) &&
-      sqrDistanceOfClosestOpponentToPoint(theRobotPose.translation)<sqr(500.0f)
+      theFieldBall.positionRelative.squaredNorm()<sqr(300.f) && (
+        theRobotPose.translation.x() > theFieldDimensions.xPosOpponentPenaltyMark ||
+        sqrDistanceOfClosestOpponentToPoint(theRobotPose.translation)<sqr(500.0f)
+      )
     );
     if (act_asap) {
       //if the striker is pressed to act, then the choice between kick or pass
@@ -119,6 +138,8 @@ class ApproachAndKickCard : public ApproachAndKickCardBase
       ));
       Angle angDistToKick = theRobotPose.rotation.diffAbs(kickAngle);
       Angle angDistToPass = theRobotPose.rotation.diffAbs(passAngle);
+      if (angDistToKick <= angDistToPass) std::cout << "Act ASAP: kick" << '\n';
+      else std::cout << "Act ASAP: pass" << '\n';
       return angDistToKick <= angDistToPass;
     }
     else {
@@ -126,10 +147,13 @@ class ApproachAndKickCard : public ApproachAndKickCardBase
       //it can actually reason and choose whether to kick or pass.
       // (TODO if we ever do a "walk with ball" card, it might be better to have these conditions in another card, lower in the hierarchy)
       //for now, the only discriminating condition in this case is:
-      //refuse to pass if opponents are too close to target
+      //refuse to pass if opponents are too close to the passtarget
       //(the pass routines only find the target w/ highest opp distance, but don't set a minimum threshold)
       //TODO tune this threshold
-      return sqrDistanceOfClosestOpponentToPoint(thePassShare.passTarget.translation) < sqr(500.0f);
+      bool shouldKick = (sqrDistanceOfClosestOpponentToPoint(thePassShare.passTarget.translation) < sqr(500.0f));
+      if (shouldKick) std::cout << "Act normal: kick" << '\n';
+      else std::cout << "Act normal: pass" << '\n';
+      return shouldKick;
     }
   }
 
@@ -289,7 +313,7 @@ class ApproachAndKickCard : public ApproachAndKickCardBase
         theLookAtPointSkill(Vector3f(theFieldBall.positionRelative.x(), theFieldBall.positionRelative.y(), 0.f));
         //theInWalkKickSkill(WalkKickVariant(WalkKicks::forward, Legs::left), Pose2f(Angle::fromDegrees(0.f), theFieldBall.positionRelative.x() - ballOffsetX, theFieldBall.positionRelative.y() - ballOffsetY));
 
-        theKickSkill(false, distanceConfirmed, false);
+        theKickSkill(false, (float)distanceConfirmed, false);
       }
     }
 
@@ -379,18 +403,20 @@ class ApproachAndKickCard : public ApproachAndKickCardBase
 
   //a simple auxiliary that gives the squared distance of the closest opponent to any given point
   float sqrDistanceOfClosestOpponentToPoint(Vector2f p) const {
-    std::vector<Obstacle, Eigen::aligned_allocator<Obstacle>> obstacles = theTeamPlayersModel.obstacles;
     //initializing the minimum distance to a value greater than the diagonal of the field
     //(therefore greater than any distance possible in the game)
-    float minSqrDist = 2*theFieldDimensions.xPosOpponentFieldBorder + 2*theFieldDimensions.yPosLeftFieldBorder;
-    for (Obstacle opp : obstacles) {
+    float minSqrDist = sqr(2*theFieldDimensions.xPosOpponentFieldBorder + 2*theFieldDimensions.yPosLeftFieldBorder);
+    //simply loop over all opponents...
+    for(const Obstacle& opp : theTeamPlayersModel.obstacles) {
       if (opp.type == Obstacle::opponent) {
         float sqrdist = (p - opp.center).squaredNorm();
+        //...and update the minimum distance, that's it
         if (sqrdist < minSqrDist) {
           minSqrDist = sqrdist;
         }
       }
     }
+    return minSqrDist;
   }
 };
 
