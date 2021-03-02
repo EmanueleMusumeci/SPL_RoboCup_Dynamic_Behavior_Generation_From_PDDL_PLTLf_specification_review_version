@@ -1,0 +1,7 @@
+call Includes/Fast
+
+dr debugDrawing3d:representation:OpponentGoalModel
+dr debugDrawing3d:module:BallPathProvider
+dr debugDrawing3d:representation:StrikerPFModel
+#gc playing
+#gc finished
