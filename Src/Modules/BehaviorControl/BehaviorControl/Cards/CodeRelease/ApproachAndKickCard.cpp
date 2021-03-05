@@ -6,16 +6,6 @@
  * @author Emanuele Antonioni
  */
 
-//disabling warnings while importing so I don't see irrelevant messages when compiling
-//these are only meant to be here while I work
-//TODO remove asap
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-copy"
-#pragma GCC diagnostic ignored "-Wint-in-bool-context"
-#pragma GCC diagnostic ignored "-Wimplicit-int-float-conversion"
-#pragma GCC diagnostic ignored "-Wreorder-ctor"
-#pragma GCC diagnostic ignored "-Wmisleading-indentation"
-
 #include "Representations/BehaviorControl/FieldBall.h"
 #include "Representations/BehaviorControl/Skills.h"
 #include "Representations/BehaviorControl/BehaviorStatus.h"
@@ -30,9 +20,6 @@
 #include "Tools/Math/BHMath.h"
 #include "Platform/SystemCall.h"
 #include <string>
-
-//see above
-#pragma GCC diagnostic pop
 
 CARD(ApproachAndKickCard,
 {,
@@ -94,74 +81,35 @@ class ApproachAndKickCard : public ApproachAndKickCardBase
   // it checks ApproachAndPassCard next.
   bool preconditions() const override
   {
-    //store a couple parameters so they're computed only once
-    Pose2f goal_target = theLibCheck.goalTarget(false);
+    std::cout << "pre " << theRobotPose.translation.norm() << '\n';
 
     //always choose to kick if one of the following conditions applies:
     if (
       //there is no pass available
       thePassShare.readyPass == 0 ||
       //there is a clear scoring opportunity (striker close enough to the goal with no opponents in sight)
-      cleanShot(goal_target, theRobotPose, theTeamPlayersModel.obstacles)
+      cleanShot(theLibCheck.goalTarget(false), theRobotPose, theTeamPlayersModel.obstacles)
     ) {
       if (thePassShare.readyPass == 0) std::cout << "No pass avaliable, kicking" << '\n';
       else std::cout << "Clean shot, kicking" << '\n';
       return true;
     }
-    //otherwise, the conditions branch depending on whether the striker
-    //is under immediate pressure to send the ball *somewhere*.
-    //This is true if the striker is close to the ball
-    //and either an opponent is immediately adjacent to the striker,
-    //    or the striker is close to the goal.
-    //in these conditions, we don't want the striker to take too much time
-    //walking around the ball.
-    bool act_asap = (
-      theFieldBall.positionRelative.squaredNorm()<sqr(300.f) && (
-        theRobotPose.translation.x() > theFieldDimensions.xPosOpponentPenaltyMark ||
-        sqrDistanceOfClosestOpponentToPoint(theRobotPose.translation)<sqr(500.0f)
-      )
-    );
-    if (act_asap) {
-      //if the striker is pressed to act, then the choice between kick or pass
-      //depends solely on which action is faster to execute in the immediate future
-      //(remember that if the control flow gets here, there *is* an available pass).
-      //Thus, choose to kick if it's easier than passing,
-      //measured in terms of how much walk-around-the-ball the striker needs
-      //(because we've already assume the striker is close to the ball)
-      Angle kickAngle = Angle(atan2f(
-        theRobotPose.translation.y()-goal_target.translation.y(),
-        theRobotPose.translation.x()-goal_target.translation.x()
-      ));
-      Angle passAngle = Angle(atan2f(
-        theRobotPose.translation.y()-thePassShare.passTarget.translation.y(),
-        theRobotPose.translation.x()-thePassShare.passTarget.translation.x()
-      ));
-      Angle angDistToKick = theRobotPose.rotation.diffAbs(kickAngle);
-      Angle angDistToPass = theRobotPose.rotation.diffAbs(passAngle);
-      if (angDistToKick <= angDistToPass) std::cout << "Act ASAP: kick" << '\n';
-      else std::cout << "Act ASAP: pass" << '\n';
-      return angDistToKick <= angDistToPass;
-    }
-    else {
-      //if the striker is not under immediate pressure,
-      //it can actually reason and choose whether to kick or pass.
-      // (TODO if we ever do a "walk with ball" card, it might be better to have these conditions in another card, lower in the hierarchy)
-      //for now, the only discriminating condition in this case is:
-      //refuse to pass if opponents are too close to the passtarget
-      //(the pass routines only find the target w/ highest opp distance, but don't set a minimum threshold)
-      //TODO tune this threshold
-      bool shouldKick = (sqrDistanceOfClosestOpponentToPoint(thePassShare.passTarget.translation) < sqr(500.0f));
-      if (shouldKick) std::cout << "Act normal: kick" << '\n';
-      else std::cout << "Act normal: pass" << '\n';
-      return shouldKick;
-    }
+
+    return theLibCheck.strikerKickCommonConditions(0);
   }
 
+
+  //exit when the preconditions don't hold true anymore.
+  //this also includes some hysteresis to make sure the striker sticks with a decision.
   bool postconditions() const override
   {
-    //consider exiting if a pass is available, but because the striker deck is sticky
-    //this is not a sufficient condition to pass: it can always return here if the preconditons still hold
-    return thePassShare.readyPass == 1;
+    //never exit if there's no pass available
+    if (thePassShare.readyPass == 0) {
+      std::cout << "Still no pass, kicking" << '\n';
+      return false;
+    }
+
+    return theLibCheck.strikerKickCommonConditions(1);
   }
 
   option
@@ -399,24 +347,6 @@ class ApproachAndKickCard : public ApproachAndKickCardBase
       }
     }
     return true;
-  }
-
-  //a simple auxiliary that gives the squared distance of the closest opponent to any given point
-  float sqrDistanceOfClosestOpponentToPoint(Vector2f p) const {
-    //initializing the minimum distance to a value greater than the diagonal of the field
-    //(therefore greater than any distance possible in the game)
-    float minSqrDist = sqr(2*theFieldDimensions.xPosOpponentFieldBorder + 2*theFieldDimensions.yPosLeftFieldBorder);
-    //simply loop over all opponents...
-    for(const Obstacle& opp : theTeamPlayersModel.obstacles) {
-      if (opp.type == Obstacle::opponent) {
-        float sqrdist = (p - opp.center).squaredNorm();
-        //...and update the minimum distance, that's it
-        if (sqrdist < minSqrDist) {
-          minSqrDist = sqrdist;
-        }
-      }
-    }
-    return minSqrDist;
   }
 };
 

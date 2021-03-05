@@ -54,32 +54,32 @@ void LibCheckProvider::update(LibCheck& libCheck)
   {
     setArmsInThisFrame[arm] = true;
   };
-  
+
   libCheck.wasSetArm = [this](Arms::Arm arm) -> bool
   {
     return setArmsInThisFrame[arm];
   };
-  
+
   libCheck.performCheck = [this](const MotionRequest& theMotionRequest)
   {
     checkOutputs(theActivationGraph, static_cast<LibCheck::CheckedOutput>(0), LibCheck::firstTeamCheckedOutput);
     checkMotionRequest(theActivationGraph, theMotionRequest);
   };
-  
+
   libCheck.performTeamCheck = [this]()
   {
     checkOutputs(theTeamActivationGraph, LibCheck::firstTeamCheckedOutput, LibCheck::numOfCheckedOutputs);
   };
-  
+
   libCheck.myReadyPosition = [this]() -> Pose2f{
-    
+
     Pose2f strikerPose = Pose2f(0.f, -1000.f, 0.f);
     if(theGameInfo.kickingTeam == theOwnTeamInfo.teamNumber){
       strikerPose = Pose2f(0.f, -500.f, 0.f);
     }else{
       strikerPose = Pose2f(0.f, -1000.f, 0.f);
     }
-    
+
     Pose2f goaliePose = Pose2f(0.f, theFieldDimensions.xPosOwnGroundline + 200.f, 0.f);
     Pose2f defenderPose = Pose2f(0.f, theFieldDimensions.xPosOwnGroundline + 1000.f, -1000.f);
     Pose2f jollyPose = Pose2f(0.f, -500.f, -1500.f);
@@ -110,7 +110,7 @@ void LibCheckProvider::update(LibCheck& libCheck)
                 return defenderPose;
               }else{
                 return strikerPose;
-              } 
+              }
               break;
 
       case 3: if(lowerNumbers == 2){
@@ -162,7 +162,7 @@ libCheck.defenderDynamicDistance = [&]() -> float
         return nearest;
     };
   libCheck.distance = [this](const Pose2f p1, const Pose2f p2) -> float{
-    return static_cast<float>( std::sqrt( std::pow(p2.translation.x() - p1.translation.x(), 2) + 
+    return static_cast<float>( std::sqrt( std::pow(p2.translation.x() - p1.translation.x(), 2) +
       std::pow(p2.translation.y() - p1.translation.y(), 2) ) );
   };
 
@@ -198,15 +198,15 @@ libCheck.defenderDynamicDistance = [&]() -> float
 
     // Y = mX + q
     float m = diffY/diffX;
-    float q = -theRobotPose.translation.y() -theRobotPose.translation.x()*m;  
+    float q = -theRobotPose.translation.y() -theRobotPose.translation.x()*m;
     // just for readability
     float x1 = theRobotPose.translation.x();
     float y1 = theRobotPose.translation.y();
-    
+
     float a = SQ(m) + 1;
     float b = 2*m -2*y1*m -2*x1;
     float c = SQ(q) -2*y1*q +SQ(y1) +SQ(x1) -SQ(d);
-    
+
     //Use the delta formula
     float X = (-b + std::sqrt(SQ(b) - 4*a*c))/(2*a);
     //classical line equation
@@ -237,7 +237,7 @@ libCheck.defenderDynamicDistance = [&]() -> float
 
   /*
   @author Emanuele Musumeci
-  Determine the distance between the projection of the obstacle obs and of my line of sight 
+  Determine the distance between the projection of the obstacle obs and of my line of sight
   (the direction I'm looking at) on the opponent groundline
   */
   libCheck.gazeToObstacleProjectionDistanceOntoOpponentGroundLine = [this](Obstacle obs) -> float {
@@ -256,27 +256,27 @@ libCheck.defenderDynamicDistance = [&]() -> float
     else
     {
       return abs(my_gaze-obs_left_proj);
-    } 
+    }
   };
 
   /*
   @author Graziano Specchi
   Provide a utility value for a certain targetable segment on the opponent goal line
   */
-libCheck.areaValueHeuristic = [this](const float leftLimit, const float rightLimit)  -> float 
+libCheck.areaValueHeuristic = [this](const float leftLimit, const float rightLimit)  -> float
 {
   // Useful notes for the reader:
-  //       leftLimit is the left limit of THIS free area, rightLimit is the right one. 
+  //       leftLimit is the left limit of THIS free area, rightLimit is the right one.
   //       Note that the axis is directed to the left, then leftLimit > righLimit.
 
     std::vector<float> opponents_distances;
     std::vector<float> teammates_distances;
-    
+
     Pose2f freeAreaPoseleftLimit= Pose2f(theFieldDimensions.xPosOpponentGroundline,leftLimit);
     Pose2f freeAreaPoserightLimit= Pose2f(theFieldDimensions.xPosOpponentGroundline,rightLimit);
 
     for(auto obs : theTeamPlayersModel.obstacles){
-        
+
         if ((obs.center.x()==theFieldDimensions.xPosOpponentGoalPost) && (obs.center.y()==theFieldDimensions.yPosLeftGoal || obs.center.y()==theFieldDimensions.yPosRightGoal)){
           continue;  // don't consider the poles
         }
@@ -289,9 +289,9 @@ libCheck.areaValueHeuristic = [this](const float leftLimit, const float rightLim
 
         float final_distance=0;
 
-        //###########     Considering projection wrt my eyes 
+        //###########     Considering projection wrt my eyes
 
-   
+
         float obs_center_proj = projectPointOntoOpponentGroundline(obs.center.x(),obs.center.y());
         float obs_left_proj = projectPointOntoOpponentGroundline(obs.left.x(),obs.left.y());
         float obs_right_proj = projectPointOntoOpponentGroundline(obs.right.x(),obs.right.y());
@@ -314,12 +314,12 @@ libCheck.areaValueHeuristic = [this](const float leftLimit, const float rightLim
         }
         if(obs.isTeammate()){
           teammates_distances.push_back(final_distance);
-        }      
-       
+        }
+
 
     }
 
-    // Although they are in two different vectors, they are treated in the same way. 
+    // Although they are in two different vectors, they are treated in the same way.
     // However if one in the future wants to use this feature, it is ready to be exploited.
     // Let's consider just the closest opponent
     float minimo_opponents=0;
@@ -368,7 +368,7 @@ libCheck.areaValueHeuristic = [this](const float leftLimit, const float rightLim
   /*
   @author Emanuele Musumeci
   @author Graziano Specchi
-  Return a vector of FreeGoalTargetableAreas (structures that represent a segment free from obstacles, 
+  Return a vector of FreeGoalTargetableAreas (structures that represent a segment free from obstacles,
   hence targetable, on the opponent goal line)
   */
   libCheck.computeFreeAreas = [this](float minimumDiscretizedAreaSize) -> std::vector<FreeGoalTargetableArea>
@@ -378,7 +378,7 @@ libCheck.areaValueHeuristic = [this](const float leftLimit, const float rightLim
     begin = leftLimit
     end = rightLimit
     */
-  
+
     Pose2f myPose = Pose2f(theRobotPose.translation);
 
     float GOAL_TARGET_OBSTACLE_INFLATION = theOpponentGoalModel.goalTargetObstacleInflation;
@@ -420,37 +420,37 @@ libCheck.areaValueHeuristic = [this](const float leftLimit, const float rightLim
     {
       leftPole.translation.x() = (float)theFieldDimensions.xPosOpponentGroundline;
       leftPole.translation.y() = projectPointOntoOpponentGroundline(leftPole.translation.x(),730.);
-      if(leftPole.translation.y()>730) leftPole.translation.y()=730; 
+      if(leftPole.translation.y()>730) leftPole.translation.y()=730;
       rightPole.translation.x() = (float)theFieldDimensions.xPosOpponentGroundline;
       rightPole.translation.y() = projectPointOntoOpponentGroundline(rightPole.translation.x(),-730.);
-      if(rightPole.translation.y()<-730) leftPole.translation.y()=-730; 
+      if(rightPole.translation.y()<-730) leftPole.translation.y()=-730;
     }
     else
     {
-      
+
       leftPole.translation.x() = poles.at(0).right.x();
-      if(leftPole.translation.x()>(float)theFieldDimensions.xPosOpponentGroundline) leftPole.translation.x()=(float)theFieldDimensions.xPosOpponentGroundline; 
+      if(leftPole.translation.x()>(float)theFieldDimensions.xPosOpponentGroundline) leftPole.translation.x()=(float)theFieldDimensions.xPosOpponentGroundline;
 
       leftPole.translation.y() = projectPointOntoOpponentGroundline(leftPole.translation.x(),poles.at(0).right.y());
-      if(leftPole.translation.y()>730) leftPole.translation.y()=730; 
+      if(leftPole.translation.y()>730) leftPole.translation.y()=730;
 
       rightPole.translation.x() = poles.at(1).left.x();
-      if(rightPole.translation.x()>(float)theFieldDimensions.xPosOpponentGroundline) rightPole.translation.x()=(float)theFieldDimensions.xPosOpponentGroundline; 
+      if(rightPole.translation.x()>(float)theFieldDimensions.xPosOpponentGroundline) rightPole.translation.x()=(float)theFieldDimensions.xPosOpponentGroundline;
 
       rightPole.translation.y() = projectPointOntoOpponentGroundline(rightPole.translation.x(),poles.at(1).left.y());
-      if(rightPole.translation.y()<-730) rightPole.translation.y()=-730; 
-      
+      if(rightPole.translation.y()<-730) rightPole.translation.y()=-730;
+
       /*
       WORK IN PROGRESS - Trying to use the projection of the poles on the groundline as left/right limit of the
       goal line (useful in case the player is particularly angled wrt the opponent goal)
-      
+
       Vector2f leftPoleRightLimit(
         1/tan(theRobotPose.rotation+asin(POLE_RADIUS/distance(theRobotPose,poles.at(0).center))),
         poles.at(0).center.y() - tan(theRobotPose.rotation+asin(POLE_RADIUS/distance(theRobotPose,poles.at(0).center)))
       );
       leftPole.translation.x() = (float)theFieldDimensions.xPosOpponentGroundline;
       leftPole.translation.y() = projectPointOntoOpponentGroundline(leftPole.translation.x(),leftPoleRightLimit.y());
-      
+
       Vector2f rightPoleLeftLimit(
         1/tan(theRobotPose.rotation-asin(POLE_RADIUS/distance(theRobotPose,poles.at(1).center))),
         poles.at(1).center.y() - tan(theRobotPose.rotation-asin(POLE_RADIUS/distance(theRobotPose,poles.at(1).center)))
@@ -462,17 +462,17 @@ libCheck.areaValueHeuristic = [this](const float leftLimit, const float rightLim
       //std::cout<<"Left goal pole projection: ("<<leftPole.translation.x()<<","<<leftPole.translation.y()<<")\n";
       //std::cout<<"Right goal pole projection:"<<rightPole.translation.x()<<","<<rightPole.translation.y()<<")\n";
     }
-    
+
     //FREE AREAS COMPUTATION
 
     std::vector<float> leftPoints;
     std::vector<float> rightPoints;
     std::vector<FreeGoalTargetableArea> freeAreas;
 
-    
+
     Obstacle swapper;
 
-    /*1) Sort the opponents in vector based on the y coordinate of their left points 
+    /*1) Sort the opponents in vector based on the y coordinate of their left points
     (for each obstacle, the leftmost point I see)*/
     for(int i = 0; i < opponents.size(); i++){
         for(int k = 0; k < opponents.size(); k++){
@@ -502,7 +502,7 @@ libCheck.areaValueHeuristic = [this](const float leftLimit, const float rightLim
         to enlarge obstacles (as the visualization system makes the opponent robots smaller than their
         feet width
     */
-    
+
     if(opponents.size()>0)
     {
       float leftPointY = projectPointOntoOpponentGroundline(opponents.at(0).left.x(),opponents.at(0).left.y())+GOAL_TARGET_OBSTACLE_INFLATION*1000/distance(theRobotPose,opponents.at(0).left);
@@ -512,7 +512,7 @@ libCheck.areaValueHeuristic = [this](const float leftLimit, const float rightLim
         //If the obstacle projection is at least partially inside the goal line add it
         if(areOverlappingSegmentsOnYAxis(leftPointY,rightPointY,leftPole.translation.y(),rightPole.translation.y()))
         {
-          //std::cout<<"1 Adding single obstacle: ("+std::to_string(leftPointY)+","+std::to_string(rightPointY)+")\n";  
+          //std::cout<<"1 Adding single obstacle: ("+std::to_string(leftPointY)+","+std::to_string(rightPointY)+")\n";
           leftPoints.push_back(leftPointY);
           rightPoints.push_back(rightPointY);
         }
@@ -532,7 +532,7 @@ libCheck.areaValueHeuristic = [this](const float leftLimit, const float rightLim
           if(i==opponents.size())
           {
             /*
-              If leftPoint and rightPoint identify the last obstacle in the opponents list, use 
+              If leftPoint and rightPoint identify the last obstacle in the opponents list, use
               the right pole as the next obstacle to compare for overlapping
             */
             nextLeftPointY = projectPointOntoOpponentGroundline(poles.at(1).left.x(),poles.at(1).left.y());
@@ -548,7 +548,7 @@ libCheck.areaValueHeuristic = [this](const float leftLimit, const float rightLim
           }
           //std::cout<<"Iteration #"<<i<<": LeftPointY: "+std::to_string(leftPointY)+", RightPointY: "+std::to_string(rightPointY)+"\n";
           //std::cout<<"Iteration #"<<i<<": nextLeftPointY: "+std::to_string(nextLeftPointY)+", nextRightPointY: "+std::to_string(nextRightPointY)+"\n";
-          
+
           /*
             Check for overlapping: there are three cases to manage
             1) One obstacle is inside the other: do nothing
@@ -558,7 +558,7 @@ libCheck.areaValueHeuristic = [this](const float leftLimit, const float rightLim
           if(areOverlappingSegmentsOnYAxis(leftPointY, rightPointY, nextLeftPointY, nextRightPointY))
           {
             //std::cout<<"Overlapping: ("+std::to_string(leftPointY)+","+std::to_string(rightPointY)+") with ("+std::to_string(nextLeftPointY)+","+std::to_string(nextRightPointY)+")\n";
-            
+
             if(leftPointY>nextLeftPointY && rightPointY<nextRightPointY)
             {
               //1) One obstacle is inside the other: do nothing
@@ -572,19 +572,19 @@ libCheck.areaValueHeuristic = [this](const float leftLimit, const float rightLim
 
               //std::cout<<"CASE 2\n";
               rightPointY = nextRightPointY;
-              
-              //std::cout<<"Current obstacle: ("+std::to_string(leftPointY)+","+std::to_string(rightPointY)+")\n";  
+
+              //std::cout<<"Current obstacle: ("+std::to_string(leftPointY)+","+std::to_string(rightPointY)+")\n";
 
             }
             wereOverlapping=true;
           }
           else
-          {  
+          {
             //3) No overlap: add the first obstacle and pass to the second one
             if(areOverlappingSegmentsOnYAxis(leftPointY,rightPointY,leftPole.translation.y(),rightPole.translation.y()))
             {
               //Add the obstacle projection only if it falls (even only partially) inside the goal line
-              //std::cout<<"2 Adding obstacle: ("+std::to_string(leftPointY)+","+std::to_string(rightPointY)+")\n";  
+              //std::cout<<"2 Adding obstacle: ("+std::to_string(leftPointY)+","+std::to_string(rightPointY)+")\n";
               leftPoints.push_back(leftPointY);
               rightPoints.push_back(rightPointY);
             }
@@ -598,22 +598,22 @@ libCheck.areaValueHeuristic = [this](const float leftLimit, const float rightLim
 
         //Add last remaining obstacle points (only in case where it overlaps right pole)
         if(wereOverlapping)
-        {  
+        {
           if(areOverlappingSegmentsOnYAxis(leftPointY,rightPointY,leftPole.translation.y(),rightPole.translation.y()))
           {
             //Add the obstacle projection only if it falls (even only partially) inside the goal line
-            //std::cout<<"3 Adding obstacle: ("+std::to_string(leftPointY)+","+std::to_string(rightPointY)+")\n";  
+            //std::cout<<"3 Adding obstacle: ("+std::to_string(leftPointY)+","+std::to_string(rightPointY)+")\n";
             leftPoints.push_back(leftPointY);
             rightPoints.push_back(rightPointY);
           }
-        }      
+        }
       }
     }
 
     //std::cout<<"End of overlap check\n\n";
-    
+
     /*3) Now that we have left and right points of the obstacles
-      3.1) We first determine if there is any free area (or if a single obstacle 
+      3.1) We first determine if there is any free area (or if a single obstacle
            projection overlaps the whole goal line)
       3.2) We shrink the left and right limit (begin/end) of the goal line if there are
            obstacles overlapping the left/right poles
@@ -629,8 +629,8 @@ libCheck.areaValueHeuristic = [this](const float leftLimit, const float rightLim
 
         //3.1)
         //at least one point inside goal
-        if(leftPoints.at(i)<leftPole.translation.y() && rightPoints.at(i)>rightPole.translation.y() || 
-        leftPoints.at(i)>leftPole.translation.y() && rightPoints.at(i)<leftPole.translation.y() || 
+        if(leftPoints.at(i)<leftPole.translation.y() && rightPoints.at(i)>rightPole.translation.y() ||
+        leftPoints.at(i)>leftPole.translation.y() && rightPoints.at(i)<leftPole.translation.y() ||
         leftPoints.at(i)>rightPole.translation.y() && rightPoints.at(i)<rightPole.translation.y())
         {
           noneInside = false;
@@ -716,7 +716,7 @@ libCheck.areaValueHeuristic = [this](const float leftLimit, const float rightLim
         {
           continue;
         }
-        
+
       }
 
       /*
@@ -743,7 +743,7 @@ libCheck.areaValueHeuristic = [this](const float leftLimit, const float rightLim
       }
       sort(freeAreas.begin(),freeAreas.end(), [](const FreeGoalTargetableArea &x, const FreeGoalTargetableArea &y){ return (x.value > y.value);});
     }
-    
+
     /*std::cout<<"Discretized FreeAreas: [";
     for(int i=0; i<freeAreas.size(); i++)
     {
@@ -759,8 +759,8 @@ libCheck.areaValueHeuristic = [this](const float leftLimit, const float rightLim
 /*
 @author Emanuele Musumeci
 Return a Vector2f containing the chosen target based on the selected mode. There are two modes:
-1) the default mode (shootASAP=false) decides wether 
-    A) to shoot to the nearest possible target (this happens if the robot 
+1) the default mode (shootASAP=false) decides wether
+    A) to shoot to the nearest possible target (this happens if the robot
     has a distance from the opponent goal less or equal than GOAL_TARGET_DISTANCE_THRESHOLD)
     B) to choose the best target based on its utility value
 2) the shootASAP mode (shootASAP=true) instead forces shooting to the nearest possible target
@@ -769,7 +769,7 @@ Return a Vector2f containing the chosen target based on the selected mode. There
 libCheck.goalTarget = [this](bool shootASAP) -> Vector2f {
     //float GOAL_TARGET_AREA_MIN_SIZE = theBallSpecification.radius*AREA_SIZE_MULTIPLICATOR;
     float GOAL_TARGET_AREA_MIN_SIZE = theOpponentGoalModel.goalTargetAreaMinSize;
-    
+
     float GOAL_TARGET_MIN_OFFSET_FROM_SIDE = theOpponentGoalModel.goalTargetMinOffsetFromSide;
     float GOAL_TARGET_DISTANCE_THRESHOLD = theOpponentGoalModel.goalTargetDistanceThreshold;
 
@@ -778,14 +778,14 @@ libCheck.goalTarget = [this](bool shootASAP) -> Vector2f {
     //std::cout<<"GOAL_TARGETABLE_AREA_MIN_SIZE="<<GOAL_TARGETABLE_AREA_MIN_SIZE<<"\n";
 
     std::vector<FreeGoalTargetableArea> freeAreas = computeFreeAreas(GOAL_TARGET_AREA_MIN_SIZE);
-    
+
     /*std::cout<<"FreeAreas: [";
     for(int i=0; i<freeAreas.size(); i++)
     {
       std::cout<<"("<<std::to_string(freeAreas.at(i).end)<<","<<std::to_string(freeAreas.at(i).begin)<<"),";
     }
     std::cout<<"]\n";*/
-  
+
     /*
       1) Filter free areas, ignoring the smaller ones
     */
@@ -806,11 +806,11 @@ libCheck.goalTarget = [this](bool shootASAP) -> Vector2f {
     if(filteredFreeAreas.size()==0)
     {
       //std::cout<<"No free area\n";
-      
+
       //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       //return Vector2f(0,0);
       return Vector2f(theFieldDimensions.xPosOpponentGroundline,0);
-    } 
+    }
 
     //project my line of view onto the goal line
     //float myGazeProjection = theOpponentGoalModel.myGazeProjection;
@@ -833,7 +833,7 @@ libCheck.goalTarget = [this](bool shootASAP) -> Vector2f {
           //std::cout<<"Looking at free area ("+std::to_string(currentArea.begin)+","+std::to_string(currentArea.end)+")\n";
           if(myGazeProjection>currentArea.begin-GOAL_TARGET_MIN_OFFSET_FROM_SIDE) targetPoint = currentArea.begin-GOAL_TARGET_MIN_OFFSET_FROM_SIDE;
           else if(myGazeProjection<currentArea.end+GOAL_TARGET_MIN_OFFSET_FROM_SIDE) targetPoint = currentArea.end+GOAL_TARGET_MIN_OFFSET_FROM_SIDE;
-          else targetPoint = myGazeProjection; 
+          else targetPoint = myGazeProjection;
           break;
         }
         //CASE 1.2: Looking away from free area
@@ -841,7 +841,7 @@ libCheck.goalTarget = [this](bool shootASAP) -> Vector2f {
         {
           //if freeArea is on the left
           if(currentArea.begin<myGazeProjection)
-          { 
+          {
             float currentFreeAreaDistance=myGazeProjection-currentArea.begin;
             if(minTargetableAreaDistance>currentFreeAreaDistance)
             {
@@ -871,7 +871,7 @@ libCheck.goalTarget = [this](bool shootASAP) -> Vector2f {
 
       //The freeAreas vector is sorted in a decreasing order of utility values, so I select the first area
       targetPoint = filteredFreeAreas.at(0).midpoint;
-      
+
     }
     //std::cout<<"targetPoint y coordinate: "<<targetPoint<<"\n";
 
@@ -897,7 +897,7 @@ libCheck.goalTarget = [this](bool shootASAP) -> Vector2f {
 
       return Pose2f(theta , result.x(),result.y());
   };
-  
+
   libCheck.defenderDynamicY = [&]() -> float
   {
         float x2 = theTeamBallModel.position.x();
@@ -908,7 +908,7 @@ libCheck.goalTarget = [this](bool shootASAP) -> Vector2f {
 
         return defenderBallY-(y2/(std::abs(y2)+1))*100.f;
   };
-    
+
   libCheck.rel2Glob = [&](float x, float y) -> Pose2f
   {
       Vector2f result;
@@ -930,7 +930,7 @@ libCheck.goalTarget = [this](bool shootASAP) -> Vector2f {
     else
         return false;
   };
-  
+
   libCheck.angleToTarget = [&](float x, float y) -> float
   {
     //gets the relative position of the point to go for the robot
@@ -1211,7 +1211,7 @@ libCheck.goalTarget = [this](bool shootASAP) -> Vector2f {
     return thePosition;
   };
 
-  
+
     libCheck.radiansToDegree = [&](float x) -> float
   {
     return (float)((x*180)/3.14159265358979323846);
@@ -1292,7 +1292,7 @@ libCheck.goalTarget = [this](bool shootASAP) -> Vector2f {
     }
     return false;
   };
-  
+
   libCheck.distanceToLine = [&] (Vector2f objectToCheck, Vector2f linePoint1, Vector2f linePoint2) -> float
   {
     return std::abs(((linePoint2.y()-linePoint1.y())*objectToCheck.x()) - ((linePoint2.x() - linePoint1.x()) * objectToCheck.y())
@@ -1570,7 +1570,7 @@ libCheck.strikerPassShare = [&] () -> std::tuple<int,int,Pose2f>
 
   };
 
-  
+
   libCheck.defenderPosition = updateDefender();
   libCheck.supporterPosition = updateSupporter();
   libCheck.goaliePosition = updateGoalie();
@@ -1596,8 +1596,8 @@ libCheck.strikerPassShare = [&] () -> std::tuple<int,int,Pose2f>
     return potential_field;
   };
 
-  libCheck.compute_striker_attractive_PF = [&] (Vector2f goal, float RO = 1000.f, 
-                                                    float Kap = 0.1f, float Kbp = 100.f, float Kr = 100.f, 
+  libCheck.compute_striker_attractive_PF = [&] (Vector2f goal, float RO = 1000.f,
+                                                    float Kap = 0.1f, float Kbp = 100.f, float Kr = 100.f,
                                                     float TEAMMATE_CO = 500.f, float ETA = 1000.f, float GAMMA = 2.f) -> std::vector<NodePF>
   {
 
@@ -1625,14 +1625,14 @@ libCheck.strikerPassShare = [&] () -> std::tuple<int,int,Pose2f>
       return attractive_field;
   };
 
-  libCheck.compute_striker_repulsive_PF = [&](float RO = 1000.f, float Kap = 0.1f, float Kbp = 100.f, float Kr = 100.f, 
+  libCheck.compute_striker_repulsive_PF = [&](float RO = 1000.f, float Kap = 0.1f, float Kbp = 100.f, float Kr = 100.f,
                                                     float TEAMMATE_CO = 500.f, float ETA = 1000.f, float GAMMA = 2.f) -> std::vector<NodePF>
   {
 
     Vector2f my_pos = theRobotPose.translation;
 
     //Build a vector out of all obstacles, including OPPONENTS and TEAMMATES, excluding POLES
-    std::vector<Vector2f> repulsive_obstacles;    
+    std::vector<Vector2f> repulsive_obstacles;
     for(auto obs : theTeamPlayersModel.obstacles)
     {
       /*NOTICE: poles are added statically (a priori) by the vision system
@@ -1657,7 +1657,7 @@ libCheck.strikerPassShare = [&] () -> std::tuple<int,int,Pose2f>
     for(unsigned int i=0; i<repulsive_field.size(); ++i)
     {
         Vector2f current_cell_pos = theStrikerPFModel.potential_field.at(i).position;
-      
+
         repulsive_field.at(i) = NodePF(Vector2f(current_cell_pos.x(),current_cell_pos.y()), Vector2f(0,0));
 
         for(unsigned int r=0; r<repulsive_obstacles.size(); ++r)
@@ -1713,6 +1713,67 @@ libCheck.strikerPassShare = [&] () -> std::tuple<int,int,Pose2f>
   libCheck.angleForSupporter = angleToTarget(libCheck.supporterPosition.x(), libCheck.supporterPosition.y());
   //libCheck.angleForJolly = angleToTarget(libCheck.jollyPosition.x(), libCheck.jollyPosition.y());
   libCheck.angleForJolly = angleToTarget(theFieldDimensions.yPosLeftGoal, theFieldDimensions.yPosRightGoal);//check this part the values of YposleftGoal and soon
+
+  //@author Francesco Petri
+  //Common computations for the pre/post-conditions of ApproachAnd<Kick/Pass>Card
+  // RETURNS true if the striker should kick, false otherwise.
+  libCheck.strikerKickCommonConditions = [&](int hysteresisSign) -> bool {       // 0 = no hysteresis ; +1 = kick ; -1 = pass
+    //the conditions branch depending on whether the striker
+    //is under immediate pressure to send the ball *somewhere*.
+    //This is true if the striker is close to the ball
+    //and either an opponent is immediately adjacent to the striker,
+    //    or the striker is close to the goal.
+    //in these conditions, we don't want the striker to take too much time
+    //walking around the ball.
+    bool act_asap = (
+      theFieldBall.positionRelative.squaredNorm()<sqr(300.f) && (
+        theRobotPose.translation.x() > theFieldDimensions.xPosOpponentPenaltyMark ||
+        sqrDistanceOfClosestOpponentToPoint(theRobotPose.translation)<sqr(500.0f)
+      )
+    );
+    if (act_asap) {
+      //if the striker is pressed to act, then the choice between kick or pass
+      //depends solely on which action is faster to execute in the immediate future
+      //(remember that if the control flow gets here, there *is* an available pass).
+      //Thus, choose to kick if it's easier than passing,
+      //measured in terms of how much walk-around-the-ball the striker needs
+      //(because we've already assume the striker is close to the ball)
+      Pose2f goal_target = goalTarget(act_asap);
+      Angle kickAngle = Angle(atan2f(
+        theRobotPose.translation.y()-goal_target.translation.y(),
+        theRobotPose.translation.x()-goal_target.translation.x()
+      ));
+      Angle passAngle = Angle(atan2f(
+        theRobotPose.translation.y()-thePassShare.passTarget.translation.y(),
+        theRobotPose.translation.x()-thePassShare.passTarget.translation.x()
+      ));
+      Angle angDistToKick = theRobotPose.rotation.diffAbs(kickAngle);
+      Angle angDistToPass = theRobotPose.rotation.diffAbs(passAngle);
+      bool shouldKick = angDistToKick <= angDistToPass + hysteresisSign*pi/10;
+      if (shouldKick) {
+        std::cout << "Act ASAP: kick" << '\n';
+      }
+      else {
+        std::cout << "Act ASAP: pass" << '\n';
+      }
+      return shouldKick;
+    }
+    else {
+      //if the striker is not under immediate pressure,
+      //it can actually reason and choose whether to kick or pass.
+      //for now, the only discriminating condition in this case is:
+      //refuse to pass if opponents are too close to the passtarget
+      //(the pass routines only find the target w/ highest opp distance, but don't set a minimum threshold)
+      bool shouldKick = (sqrDistanceOfClosestOpponentToPoint(thePassShare.passTarget.translation) < sqr(500.0f + hysteresisSign*100.0f));
+      if (shouldKick) {
+        std::cout << "Act normal: kick" << '\n';
+      }
+      else {
+        std::cout << "Act normal: pass" << '\n';
+      }
+      return shouldKick;
+    }
+  };
 
 }
 
@@ -1808,7 +1869,7 @@ Pose2f LibCheckProvider::myReadyPosition() const{
   }else{
     strikerPose = Pose2f(0.f, -1000.f, 0.f);
   }
-  
+
   Pose2f goaliePose = Pose2f(0.f, theFieldDimensions.xPosOwnGroundline + 200.f, 0.f);
   Pose2f defenderPose = Pose2f(0.f, theFieldDimensions.xPosOwnGroundline + 1000.f, -1000.f);
   Pose2f jollyPose = Pose2f(0.f, -500.f, -1500.f);
@@ -1839,7 +1900,7 @@ Pose2f LibCheckProvider::myReadyPosition() const{
               return defenderPose;
             }else{
               return strikerPose;
-            } 
+            }
             break;
 
     case 3: if(lowerNumbers == 2){
@@ -1874,7 +1935,7 @@ float LibCheckProvider::distance(float x1, float y1, float x2, float y2) const{
 
 float LibCheckProvider::distance(Pose2f p1, Pose2f p2) const{
 
-  return static_cast<float>( std::sqrt( std::pow(p2.translation.x() - p1.translation.x(), 2) + 
+  return static_cast<float>( std::sqrt( std::pow(p2.translation.x() - p1.translation.x(), 2) +
     std::pow(p2.translation.y() - p1.translation.y(), 2) ) );
 
 }
@@ -1888,7 +1949,7 @@ std::string LibCheckProvider::getActivationGraphString(const ActivationGraph& ac
 }
 
 Pose2f LibCheckProvider::refineTarget(Pose2f t, float d){
-  
+
   Rangef zeroTreshold = Rangef({-0.1f, 0.1f});
   float diffX = t.translation.x() - theRobotPose.translation.x();
   float diffY = t.translation.y() - theRobotPose.translation.y();
@@ -1920,15 +1981,15 @@ Pose2f LibCheckProvider::refineTarget(Pose2f t, float d){
 
   // Y = mX + q
   float m = diffY/diffX;
-  float q = -theRobotPose.translation.y() -theRobotPose.translation.x()*m;  
+  float q = -theRobotPose.translation.y() -theRobotPose.translation.x()*m;
   // just for readability
   float x1 = theRobotPose.translation.x();
   float y1 = theRobotPose.translation.y();
-  
+
   float a = SQ(m) + 1;
   float b = 2*m -2*y1*m -2*x1;
   float c = SQ(q) -2*y1*q +SQ(y1) +SQ(x1) -SQ(d);
-  
+
   //Use the delta formula
   float X = (-b + std::sqrt(SQ(b) - 4*a*c))/(2*a);
   //classical line equation
@@ -1953,22 +2014,22 @@ float LibCheckProvider::projectPointOntoOpponentGroundline(float x, float y)
 };
 
 //Questa è quella eseguita veramente
-// 1) Note: We are considering only the closest obstacle to the freeArea. 
-float LibCheckProvider::areaValueHeuristic(const float leftLimit, const float rightLimit) 
+// 1) Note: We are considering only the closest obstacle to the freeArea.
+float LibCheckProvider::areaValueHeuristic(const float leftLimit, const float rightLimit)
 {
   // Useful notes for the reader:
-  //       leftLimit is the left limit of THIS free area, rightLimit is the right one. 
+  //       leftLimit is the left limit of THIS free area, rightLimit is the right one.
   //       Note that the axis is directed to the left, then leftLimit > righLimit.
 
     float BASE_UTILITY = theOpponentGoalModel.baseUtility;
     std::vector<float> opponents_distances;
     std::vector<float> teammates_distances;
-    
+
     Pose2f freeAreaPoseleftLimit= Pose2f(theFieldDimensions.xPosOpponentGroundline,leftLimit);
     Pose2f freeAreaPoserightLimit= Pose2f(theFieldDimensions.xPosOpponentGroundline,rightLimit);
 
     for(auto obs : theTeamPlayersModel.obstacles){
-        
+
         if ((obs.center.x()==theFieldDimensions.xPosOpponentGoalPost) && (obs.center.y()==theFieldDimensions.yPosLeftGoal || obs.center.y()==theFieldDimensions.yPosRightGoal)){
           continue;  // i pali non li conto
         }
@@ -1981,9 +2042,9 @@ float LibCheckProvider::areaValueHeuristic(const float leftLimit, const float ri
 
         float final_distance=0;
 
-        //###########     Considering projection wrt my eyes 
+        //###########     Considering projection wrt my eyes
 
-   
+
         float obs_center_proj = projectPointOntoOpponentGroundline(obs.center.x(),obs.center.y());
         float obs_left_proj = projectPointOntoOpponentGroundline(obs.left.x(),obs.left.y());
         float obs_right_proj = projectPointOntoOpponentGroundline(obs.right.x(),obs.right.y());
@@ -2006,12 +2067,12 @@ float LibCheckProvider::areaValueHeuristic(const float leftLimit, const float ri
         }
         if(obs.isTeammate()){
           teammates_distances.push_back(final_distance);
-        }      
-       
+        }
+
 
     }
 
-    // Although they are in two different vectors, they are treated in the same way. 
+    // Although they are in two different vectors, they are treated in the same way.
     // However if one in the future wants to use this feature, it is ready to be exploited.
     // Let's consider just the closest opponent
     float minimo_opponents=0;
@@ -2066,7 +2127,7 @@ float LibCheckProvider::areaValueHeuristic(const float leftLimit, const float ri
     begin = leftLimit
     end = rightLimit
     */
-  
+
     Pose2f myPose = Pose2f(theRobotPose.translation);
 
     float GOAL_TARGET_OBSTACLE_INFLATION = theOpponentGoalModel.goalTargetObstacleInflation;
@@ -2108,37 +2169,37 @@ float LibCheckProvider::areaValueHeuristic(const float leftLimit, const float ri
     {
       leftPole.translation.x() = (float)theFieldDimensions.xPosOpponentGroundline;
       leftPole.translation.y() = projectPointOntoOpponentGroundline(leftPole.translation.x(),730.);
-      if(leftPole.translation.y()>730) leftPole.translation.y()=730; 
+      if(leftPole.translation.y()>730) leftPole.translation.y()=730;
       rightPole.translation.x() = (float)theFieldDimensions.xPosOpponentGroundline;
       rightPole.translation.y() = projectPointOntoOpponentGroundline(rightPole.translation.x(),-730.);
-      if(rightPole.translation.y()<-730) leftPole.translation.y()=-730; 
+      if(rightPole.translation.y()<-730) leftPole.translation.y()=-730;
     }
     else
     {
-      
+
       leftPole.translation.x() = poles.at(0).right.x();
-      if(leftPole.translation.x()>(float)theFieldDimensions.xPosOpponentGroundline) leftPole.translation.x()=(float)theFieldDimensions.xPosOpponentGroundline; 
+      if(leftPole.translation.x()>(float)theFieldDimensions.xPosOpponentGroundline) leftPole.translation.x()=(float)theFieldDimensions.xPosOpponentGroundline;
 
       leftPole.translation.y() = projectPointOntoOpponentGroundline(leftPole.translation.x(),poles.at(0).right.y());
-      if(leftPole.translation.y()>730) leftPole.translation.y()=730; 
+      if(leftPole.translation.y()>730) leftPole.translation.y()=730;
 
       rightPole.translation.x() = poles.at(1).left.x();
-      if(rightPole.translation.x()>(float)theFieldDimensions.xPosOpponentGroundline) rightPole.translation.x()=(float)theFieldDimensions.xPosOpponentGroundline; 
+      if(rightPole.translation.x()>(float)theFieldDimensions.xPosOpponentGroundline) rightPole.translation.x()=(float)theFieldDimensions.xPosOpponentGroundline;
 
       rightPole.translation.y() = projectPointOntoOpponentGroundline(rightPole.translation.x(),poles.at(1).left.y());
-      if(rightPole.translation.y()<-730) rightPole.translation.y()=-730; 
-      
+      if(rightPole.translation.y()<-730) rightPole.translation.y()=-730;
+
       /*
       WORK IN PROGRESS - Trying to use the projection of the poles on the groundline as left/right limit of the
       goal line (useful in case the player is particularly angled wrt the opponent goal)
-      
+
       Vector2f leftPoleRightLimit(
         1/tan(theRobotPose.rotation+asin(POLE_RADIUS/distance(theRobotPose,poles.at(0).center))),
         poles.at(0).center.y() - tan(theRobotPose.rotation+asin(POLE_RADIUS/distance(theRobotPose,poles.at(0).center)))
       );
       leftPole.translation.x() = (float)theFieldDimensions.xPosOpponentGroundline;
       leftPole.translation.y() = projectPointOntoOpponentGroundline(leftPole.translation.x(),leftPoleRightLimit.y());
-      
+
       Vector2f rightPoleLeftLimit(
         1/tan(theRobotPose.rotation-asin(POLE_RADIUS/distance(theRobotPose,poles.at(1).center))),
         poles.at(1).center.y() - tan(theRobotPose.rotation-asin(POLE_RADIUS/distance(theRobotPose,poles.at(1).center)))
@@ -2150,17 +2211,17 @@ float LibCheckProvider::areaValueHeuristic(const float leftLimit, const float ri
       //std::cout<<"Left goal pole projection: ("<<leftPole.translation.x()<<","<<leftPole.translation.y()<<")\n";
       //std::cout<<"Right goal pole projection:"<<rightPole.translation.x()<<","<<rightPole.translation.y()<<")\n";
     }
-    
+
     //FREE AREAS COMPUTATION
 
     std::vector<float> leftPoints;
     std::vector<float> rightPoints;
     std::vector<FreeGoalTargetableArea> freeAreas;
 
-    
+
     Obstacle swapper;
 
-    /*1) Sort the opponents in vector based on the y coordinate of their left points 
+    /*1) Sort the opponents in vector based on the y coordinate of their left points
     (for each obstacle, the leftmost point I see)*/
     for(int i = 0; i < opponents.size(); i++){
         for(int k = 0; k < opponents.size(); k++){
@@ -2190,7 +2251,7 @@ float LibCheckProvider::areaValueHeuristic(const float leftLimit, const float ri
         to enlarge obstacles (as the visualization system makes the opponent robots smaller than their
         feet width
     */
-    
+
     if(opponents.size()>0)
     {
       float leftPointY = projectPointOntoOpponentGroundline(opponents.at(0).left.x(),opponents.at(0).left.y())+GOAL_TARGET_OBSTACLE_INFLATION*1000/distance(theRobotPose,opponents.at(0).left);
@@ -2200,7 +2261,7 @@ float LibCheckProvider::areaValueHeuristic(const float leftLimit, const float ri
         //If the obstacle projection is at least partially inside the goal line add it
         if(areOverlappingSegmentsOnYAxis(leftPointY,rightPointY,leftPole.translation.y(),rightPole.translation.y()))
         {
-          //std::cout<<"1 Adding single obstacle: ("+std::to_string(leftPointY)+","+std::to_string(rightPointY)+")\n";  
+          //std::cout<<"1 Adding single obstacle: ("+std::to_string(leftPointY)+","+std::to_string(rightPointY)+")\n";
           leftPoints.push_back(leftPointY);
           rightPoints.push_back(rightPointY);
         }
@@ -2220,7 +2281,7 @@ float LibCheckProvider::areaValueHeuristic(const float leftLimit, const float ri
           if(i==opponents.size())
           {
             /*
-              If leftPoint and rightPoint identify the last obstacle in the opponents list, use 
+              If leftPoint and rightPoint identify the last obstacle in the opponents list, use
               the right pole as the next obstacle to compare for overlapping
             */
             nextLeftPointY = projectPointOntoOpponentGroundline(poles.at(1).left.x(),poles.at(1).left.y());
@@ -2236,7 +2297,7 @@ float LibCheckProvider::areaValueHeuristic(const float leftLimit, const float ri
           }
           //std::cout<<"Iteration #"<<i<<": LeftPointY: "+std::to_string(leftPointY)+", RightPointY: "+std::to_string(rightPointY)+"\n";
           //std::cout<<"Iteration #"<<i<<": nextLeftPointY: "+std::to_string(nextLeftPointY)+", nextRightPointY: "+std::to_string(nextRightPointY)+"\n";
-          
+
           /*
             Check for overlapping: there are three cases to manage
             1) One obstacle is inside the other: do nothing
@@ -2246,7 +2307,7 @@ float LibCheckProvider::areaValueHeuristic(const float leftLimit, const float ri
           if(areOverlappingSegmentsOnYAxis(leftPointY, rightPointY, nextLeftPointY, nextRightPointY))
           {
             //std::cout<<"Overlapping: ("+std::to_string(leftPointY)+","+std::to_string(rightPointY)+") with ("+std::to_string(nextLeftPointY)+","+std::to_string(nextRightPointY)+")\n";
-            
+
             if(leftPointY>nextLeftPointY && rightPointY<nextRightPointY)
             {
               //1) One obstacle is inside the other: do nothing
@@ -2260,19 +2321,19 @@ float LibCheckProvider::areaValueHeuristic(const float leftLimit, const float ri
 
               //std::cout<<"CASE 2\n";
               rightPointY = nextRightPointY;
-              
-              //std::cout<<"Current obstacle: ("+std::to_string(leftPointY)+","+std::to_string(rightPointY)+")\n";  
+
+              //std::cout<<"Current obstacle: ("+std::to_string(leftPointY)+","+std::to_string(rightPointY)+")\n";
 
             }
             wereOverlapping=true;
           }
           else
-          {  
+          {
             //3) No overlap: add the first obstacle and pass to the second one
             if(areOverlappingSegmentsOnYAxis(leftPointY,rightPointY,leftPole.translation.y(),rightPole.translation.y()))
             {
               //Add the obstacle projection only if it falls (even only partially) inside the goal line
-              //std::cout<<"2 Adding obstacle: ("+std::to_string(leftPointY)+","+std::to_string(rightPointY)+")\n";  
+              //std::cout<<"2 Adding obstacle: ("+std::to_string(leftPointY)+","+std::to_string(rightPointY)+")\n";
               leftPoints.push_back(leftPointY);
               rightPoints.push_back(rightPointY);
             }
@@ -2286,22 +2347,22 @@ float LibCheckProvider::areaValueHeuristic(const float leftLimit, const float ri
 
         //Add last remaining obstacle points (only in case where it overlaps right pole)
         if(wereOverlapping)
-        {  
+        {
           if(areOverlappingSegmentsOnYAxis(leftPointY,rightPointY,leftPole.translation.y(),rightPole.translation.y()))
           {
             //Add the obstacle projection only if it falls (even only partially) inside the goal line
-            //std::cout<<"3 Adding obstacle: ("+std::to_string(leftPointY)+","+std::to_string(rightPointY)+")\n";  
+            //std::cout<<"3 Adding obstacle: ("+std::to_string(leftPointY)+","+std::to_string(rightPointY)+")\n";
             leftPoints.push_back(leftPointY);
             rightPoints.push_back(rightPointY);
           }
-        }      
+        }
       }
     }
 
     //std::cout<<"End of overlap check\n\n";
-    
+
     /*3) Now that we have left and right points of the obstacles
-      3.1) We first determine if there is any free area (or if a single obstacle 
+      3.1) We first determine if there is any free area (or if a single obstacle
            projection overlaps the whole goal line)
       3.2) We shrink the left and right limit (begin/end) of the goal line if there are
            obstacles overlapping the left/right poles
@@ -2317,8 +2378,8 @@ float LibCheckProvider::areaValueHeuristic(const float leftLimit, const float ri
 
         //3.1)
         //at least one point inside goal
-        if(leftPoints.at(i)<leftPole.translation.y() && rightPoints.at(i)>rightPole.translation.y() || 
-        leftPoints.at(i)>leftPole.translation.y() && rightPoints.at(i)<leftPole.translation.y() || 
+        if(leftPoints.at(i)<leftPole.translation.y() && rightPoints.at(i)>rightPole.translation.y() ||
+        leftPoints.at(i)>leftPole.translation.y() && rightPoints.at(i)<leftPole.translation.y() ||
         leftPoints.at(i)>rightPole.translation.y() && rightPoints.at(i)<rightPole.translation.y())
         {
           noneInside = false;
@@ -2404,7 +2465,7 @@ float LibCheckProvider::areaValueHeuristic(const float leftLimit, const float ri
         {
           continue;
         }
-        
+
       }
 
       /*
@@ -2431,7 +2492,7 @@ float LibCheckProvider::areaValueHeuristic(const float leftLimit, const float ri
       }
       sort(freeAreas.begin(),freeAreas.end(), [](const FreeGoalTargetableArea &x, const FreeGoalTargetableArea &y){ return (x.value > y.value);});
     }
-    
+
     /*std::cout<<"Discretized FreeAreas: [";
     for(int i=0; i<freeAreas.size(); i++)
     {
@@ -2450,7 +2511,7 @@ Vector2f LibCheckProvider::goalTarget(bool shootASAP)
 {
     //float GOAL_TARGET_AREA_MIN_SIZE = theBallSpecification.radius*AREA_SIZE_MULTIPLICATOR;
     float GOAL_TARGET_AREA_MIN_SIZE = theOpponentGoalModel.goalTargetAreaMinSize;
-    
+
     float GOAL_TARGET_MIN_OFFSET_FROM_SIDE = theOpponentGoalModel.goalTargetMinOffsetFromSide;
     float GOAL_TARGET_DISTANCE_THRESHOLD = theOpponentGoalModel.goalTargetDistanceThreshold;
 
@@ -2459,14 +2520,14 @@ Vector2f LibCheckProvider::goalTarget(bool shootASAP)
     //std::cout<<"GOAL_TARGETABLE_AREA_MIN_SIZE="<<GOAL_TARGETABLE_AREA_MIN_SIZE<<"\n";
 
     std::vector<FreeGoalTargetableArea> freeAreas = computeFreeAreas(GOAL_TARGET_AREA_MIN_SIZE);
-    
+
     /*std::cout<<"FreeAreas: [";
     for(int i=0; i<freeAreas.size(); i++)
     {
       std::cout<<"("<<std::to_string(freeAreas.at(i).end)<<","<<std::to_string(freeAreas.at(i).begin)<<"),";
     }
     std::cout<<"]\n";*/
-  
+
     /*
       1) Filter free areas, ignoring the smaller ones
     */
@@ -2487,11 +2548,11 @@ Vector2f LibCheckProvider::goalTarget(bool shootASAP)
     if(filteredFreeAreas.size()==0)
     {
       //std::cout<<"No free area\n";
-      
+
       //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       //return Vector2f(0,0);
       return Vector2f(theFieldDimensions.xPosOpponentGroundline,0);
-    } 
+    }
 
     //project my line of view onto the goal line
     float myGazeProjection = projectGazeOntoOpponentGroundline();
@@ -2513,7 +2574,7 @@ Vector2f LibCheckProvider::goalTarget(bool shootASAP)
           //std::cout<<"Looking at free area ("+std::to_string(currentArea.begin)+","+std::to_string(currentArea.end)+")\n";
           if(myGazeProjection>currentArea.begin-GOAL_TARGET_MIN_OFFSET_FROM_SIDE) targetPoint = currentArea.begin-GOAL_TARGET_MIN_OFFSET_FROM_SIDE;
           else if(myGazeProjection<currentArea.end+GOAL_TARGET_MIN_OFFSET_FROM_SIDE) targetPoint = currentArea.end+GOAL_TARGET_MIN_OFFSET_FROM_SIDE;
-          else targetPoint = myGazeProjection; 
+          else targetPoint = myGazeProjection;
           break;
         }
         //CASE 1.2: Looking away from free area
@@ -2521,7 +2582,7 @@ Vector2f LibCheckProvider::goalTarget(bool shootASAP)
         {
           //if freeArea is on the left
           if(currentArea.begin<myGazeProjection)
-          { 
+          {
             float currentFreeAreaDistance=myGazeProjection-currentArea.begin;
             if(minTargetableAreaDistance>currentFreeAreaDistance)
             {
@@ -2551,7 +2612,7 @@ Vector2f LibCheckProvider::goalTarget(bool shootASAP)
 
       //The freeAreas vector is sorted in a decreasing order of utility values, so I select the first area
       targetPoint = filteredFreeAreas.at(0).midpoint;
-      
+
     }
     //std::cout<<"targetPoint y coordinate: "<<targetPoint<<"\n";
 
@@ -2564,7 +2625,7 @@ Vector2f LibCheckProvider::goalTarget(bool shootASAP)
         target = Vector2f(theFieldDimensions.xPosOpponentGroundline, targetPoint);
       return target;
   }
- 
+
 
 Pose2f LibCheckProvider::glob2Rel(float x, float y)
 {
@@ -2759,11 +2820,11 @@ std::vector<NodePF> LibCheckProvider::compute_striker_attractive_PF(Vector2f goa
 }
 
 std::vector<NodePF> LibCheckProvider::compute_striker_repulsive_PF(float RO, float Kap, float Kbp, float Kr, float TEAMMATE_CO, float ETA, float GAMMA) {
-  
+
   Vector2f my_pos = theRobotPose.translation;
 
   //Build a vector out of all obstacles, including OPPONENTS and TEAMMATES, excluding POLES
-  std::vector<Vector2f> repulsive_obstacles;    
+  std::vector<Vector2f> repulsive_obstacles;
   for(auto obs : theTeamPlayersModel.obstacles)
   {
     /*NOTICE: poles are added statically (a priori) by the vision system
@@ -2788,7 +2849,7 @@ std::vector<NodePF> LibCheckProvider::compute_striker_repulsive_PF(float RO, flo
   for(unsigned int i=0; i<repulsive_field.size(); ++i)
   {
       Vector2f current_cell_pos = theStrikerPFModel.potential_field.at(i).position;
-    
+
       repulsive_field.at(i) = NodePF(Vector2f(current_cell_pos.x(),current_cell_pos.y()), Vector2f(0,0));
 
       for(unsigned int r=0; r<repulsive_obstacles.size(); ++r)
@@ -2839,4 +2900,22 @@ std::vector<NodePF> LibCheckProvider::computePF(std::vector<NodePF> attractive_f
   //potential_field.clear();
 
   return potential_field;
+}
+
+//a simple auxiliary for strikerKickCommonConditions that gives the squared distance of the closest opponent to any given point
+float LibCheckProvider::sqrDistanceOfClosestOpponentToPoint(Vector2f p) {
+  //initializing the minimum distance to a value greater than the diagonal of the field
+  //(therefore greater than any distance possible in the game)
+  float minSqrDist = sqr(2*theFieldDimensions.xPosOpponentFieldBorder + 2*theFieldDimensions.yPosLeftFieldBorder);
+  //simply loop over all opponents...
+  for(const Obstacle& opp : theTeamPlayersModel.obstacles) {
+    if (opp.type == Obstacle::opponent) {
+      float sqrdist = (p - opp.center).squaredNorm();
+      //...and update the minimum distance, that's it
+      if (sqrdist < minSqrDist) {
+        minSqrDist = sqrdist;
+      }
+    }
+  }
+  return minSqrDist;
 }

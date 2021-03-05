@@ -76,11 +76,11 @@ STREAMABLE(LibCheck,
   FUNCTION(Vector2f(bool shootASAP)) goalTarget;
 
   /** Computes the attractive field for the striker **/
-  FUNCTION(std::vector<NodePF>(Vector2f goal, float RO, float Kap, float Kbp, float Kr, 
+  FUNCTION(std::vector<NodePF>(Vector2f goal, float RO, float Kap, float Kbp, float Kr,
                                                     float TEAMMATE_CO, float ETA, float GAMMA)) compute_striker_attractive_PF;
 
   /** Computes the repulsive field for the striker **/
-  FUNCTION(std::vector<NodePF>(float RO, float Kap, float Kbp, float Kr, 
+  FUNCTION(std::vector<NodePF>(float RO, float Kap, float Kbp, float Kr,
                                                     float TEAMMATE_CO, float ETA, float GAMMA)) compute_striker_repulsive_PF;
 
   /** Initializes an empty PF **/
@@ -91,7 +91,7 @@ STREAMABLE(LibCheck,
 
   /** Performs checks for the team behavior */
   FUNCTION(void()) performTeamCheck;
-  
+
   FUNCTION(bool(float currentValue, float target, float bound)) isValueBalanced;
   FUNCTION(float(float x, float y)) angleToTarget;
   FUNCTION(float(float x, float y)) norm;
@@ -119,7 +119,9 @@ STREAMABLE(LibCheck,
   FUNCTION(std::tuple<int,int,Pose2f>()) strikerPassShare;
   FUNCTION(float(Vector2f objectToCheck, Vector2f linePoint1, Vector2f linePoint2)) distanceToLine;
   FUNCTION(bool(Vector2f point)) obstacleExistsAroundPoint;
-  FUNCTION(float()) defenderDynamicY,
+  FUNCTION(float()) defenderDynamicY;
+
+  FUNCTION(bool(int)) strikerKickCommonConditions,
 
   (bool) isGoalieInStartingPosition,
   (bool) isGoalieInAngle,
@@ -127,12 +129,12 @@ STREAMABLE(LibCheck,
   (bool) isGoalieInKickAwayRange,
   (bool) isBallInArea,
   (bool) isGoalieInArea,
-  
+
   (Vector2f) goaliePosition,
   (Vector2f) defenderPosition,
   (Vector2f) supporterPosition,
   (Vector2f) jollyPosition,
-  
+
   (float) angleForDefender,
   (float) angleForSupporter,
   (float) angleForJolly,

@@ -18,6 +18,7 @@
 #include "Representations/Communication/RobotInfo.h"
 #include "Representations/MotionControl/MotionInfo.h"
 #include "Representations/BehaviorControl/Libraries/LibCheck.h"
+#include "Representations/Modeling/TeamPlayersModel.h"
 #include "Tools/Math/BHMath.h"
 
 
@@ -51,6 +52,8 @@ CARD(ApproachAndPassCard,
   USES(BehaviorStatus),
 
   REQUIRES(GameInfo),
+
+  REQUIRES(TeamPlayersModel),
   DEFINES_PARAMETERS(
   {,
     (float)(0.8f) walkSpeed,
@@ -94,8 +97,19 @@ class ApproachAndPassCard : public ApproachAndPassCardBase
   //NOTICE: the only code that sets thePassShare.readyPass to 0 is contained in PassShareProvider
   bool postconditions() const override
   {
+    /*
     return thePassShare.readyPass == 0 ||
             std::abs(theBehaviorStatus.shootingTo.x())<std::abs(theRobotPose.translation.x());
+    */
+    if (
+      thePassShare.readyPass == 0 ||
+      std::abs(theBehaviorStatus.shootingTo.x())<std::abs(theRobotPose.translation.x())
+    ) {
+      std::cout << "pass post: early check is true" << '\n';
+      return true;
+    }
+
+    return theLibCheck.strikerKickCommonConditions(-1);
   }
 
   option
