@@ -36,6 +36,7 @@ void LibCheckProvider::update(LibCheck& libCheck)
   reset();
   libCheck.timeSinceBallWasSeen = theFrameInfo.getTimeSince(theTeamBallModel.timeWhenLastSeen);
   libCheck.angleToGoal = (theRobotPose.inversePose * Vector2f(theFieldDimensions.xPosOpponentGroundline, 0.f)).angle();
+  libCheck.angleToBall = (theRobotPose.inversePose * theFieldBall.positionOnField).angle();
   libCheck.isGoalieInStartingPosition = isGoalieInStartingPosition();
   libCheck.isBallInArea = isBallInArea();
   libCheck.isGoalieInAngle = isGoalieInAngle();
@@ -261,103 +262,12 @@ libCheck.defenderDynamicDistance = [&]() -> float
 
   /*
   @author Graziano Specchi
+  @author Emanuele Musumeci
   Provide a utility value for a certain targetable segment on the opponent goal line
   */
-libCheck.areaValueHeuristic = [this](const float leftLimit, const float rightLimit)  -> float 
-{
-  // Useful notes for the reader:
-  //       leftLimit is the left limit of THIS free area, rightLimit is the right one. 
-  //       Note that the axis is directed to the left, then leftLimit > righLimit.
-
-    std::vector<float> opponents_distances;
-    std::vector<float> teammates_distances;
-    
-    Pose2f freeAreaPoseleftLimit= Pose2f(theFieldDimensions.xPosOpponentGroundline,leftLimit);
-    Pose2f freeAreaPoserightLimit= Pose2f(theFieldDimensions.xPosOpponentGroundline,rightLimit);
-
-    for(auto obs : theTeamPlayersModel.obstacles){
-        
-        if ((obs.center.x()==theFieldDimensions.xPosOpponentGoalPost) && (obs.center.y()==theFieldDimensions.yPosLeftGoal || obs.center.y()==theFieldDimensions.yPosRightGoal)){
-          continue;  // don't consider the poles
-        }
-        if ((obs.center.x()==-theFieldDimensions.xPosOpponentGoalPost) && (obs.center.y()==theFieldDimensions.yPosLeftGoal || obs.center.y()==theFieldDimensions.yPosRightGoal)){
-          continue;  // don't consider the poles
-        }
-        if(theRobotPose.translation.x()>obs.center.x()){
-          continue; // if the obstacle is behind me, don't consider me
-        }
-
-        float final_distance=0;
-
-        //###########     Considering projection wrt my eyes 
-
-   
-        float obs_center_proj = projectPointOntoOpponentGroundline(obs.center.x(),obs.center.y());
-        float obs_left_proj = projectPointOntoOpponentGroundline(obs.left.x(),obs.left.y());
-        float obs_right_proj = projectPointOntoOpponentGroundline(obs.right.x(),obs.right.y());
-
-
-        // IT'S NOT POSSIBLE THAT THIS PROJECTION IS INTO SOME FREE_AREAS. Then, just check if it is left or right wrt the obstacle.
-
-        if(obs_right_proj >= leftLimit){ // Obstacle is on the right side of the freeArea
-          final_distance=obs_right_proj-leftLimit;
-
-        }
-
-        if(obs_left_proj<= rightLimit){   // Obstacle is on the left side of the freeArea
-          final_distance=rightLimit-obs_left_proj;
-        }
-
-        // Differentiate the obstacles in two sets: one of oppontents, one of teammates.
-        if(obs.isOpponent()){
-          opponents_distances.push_back(final_distance);
-        }
-        if(obs.isTeammate()){
-          teammates_distances.push_back(final_distance);
-        }      
-       
-
-    }
-
-    // Although they are in two different vectors, they are treated in the same way. 
-    // However if one in the future wants to use this feature, it is ready to be exploited.
-    // Let's consider just the closest opponent
-    float minimo_opponents=0;
-    bool firstTime=true;
-    for(auto distance : opponents_distances){
-      if(firstTime){
-        firstTime=false;
-        minimo_opponents=distance;
-      }else if(minimo_opponents>distance){
-        minimo_opponents=distance;
-      }
-    }
-
-    //Let's use the same minimum variable for both opponents and teammetes ( no distinction )
-    float minimo_teammates=0;
-    firstTime=false;
-    for(auto distance : teammates_distances){
-      if(firstTime){
-        firstTime=false;
-        minimo_opponents=distance;
-      }
-      if(minimo_opponents>distance){
-        minimo_opponents=distance;
-      }
-    }
-    // final utility is always positive.
-    float final_utility=100000+minimo_opponents+minimo_teammates;
-
-    return final_utility;
-
-    //Ideas that can be exploited in order to improve this function:
-    /*
-    1) First criteria: vicinity to jolly (or in alternative the second robot nearest to the ball, as the first one is the striker)
-    2) Second criteria: number of opponent in intercept range
-    3) Third criteria: vicinity of enemy goalie (is this possible?)
-    4) Width of parent area
-    5) Penalize the poles, but this can be done at an higher level of abstraction
-    */
+  libCheck.areaValueHeuristic = [this](const float leftLimit, const float rightLimit, const float poles_weight, const float opponents_weight, const float teammates_weight)  -> float 
+  {
+    return areaValueHeuristic(leftLimit, rightLimit, poles_weight, opponents_weight, teammates_weight);
   };
   //#####################
 
@@ -373,387 +283,7 @@ libCheck.areaValueHeuristic = [this](const float leftLimit, const float rightLim
   */
   libCheck.computeFreeAreas = [this](float minimumDiscretizedAreaSize) -> std::vector<FreeGoalTargetableArea>
   {
-    /*
-    NOTICE:
-    begin = leftLimit
-    end = rightLimit
-    */
-  
-    Pose2f myPose = Pose2f(theRobotPose.translation);
-
-    float GOAL_TARGET_OBSTACLE_INFLATION = theOpponentGoalModel.goalTargetObstacleInflation;
-    float GOAL_TARGET_AREA_DISCRETIZATION = theOpponentGoalModel.useAreaDiscretization;
-
-    //vector of opponents
-    std::vector<Obstacle> opponents;
-    //vector of poles
-    std::vector<Obstacle> poles;
-
-    for(auto obs : theTeamPlayersModel.obstacles){
-      /*NOTICE: poles are added statically (a priori) by the vision system
-        so the 4 goal poles will always be in the obstacle list*/
-      switch(obs.type)
-      {
-        case Obstacle::Type::goalpost:
-        {
-          if(obs.type==Obstacle::Type::goalpost && obs.center.x()>0)
-          {
-            //std::cout<<"Found opponent goal post: (left:"<<obs.left.y()<<", right:"<<obs.right.y()<<")\n";
-            poles.push_back(obs);
-          }
-          break;
-        }
-        default:
-        {
-          if(obs.center.x()>theRobotPose.translation.x() || obs.left.x()>theRobotPose.translation.x() || obs.right.x()>theRobotPose.translation.x())
-          {
-            opponents.push_back(obs);
-          }
-          break;
-        }
-      }
-    }
-
-    Pose2f leftPole, rightPole;
-
-    if(poles.size()==0)
-    {
-      leftPole.translation.x() = (float)theFieldDimensions.xPosOpponentGroundline;
-      leftPole.translation.y() = projectPointOntoOpponentGroundline(leftPole.translation.x(),730.);
-      if(leftPole.translation.y()>730) leftPole.translation.y()=730; 
-      rightPole.translation.x() = (float)theFieldDimensions.xPosOpponentGroundline;
-      rightPole.translation.y() = projectPointOntoOpponentGroundline(rightPole.translation.x(),-730.);
-      if(rightPole.translation.y()<-730) leftPole.translation.y()=-730; 
-    }
-    else
-    {
-      
-      leftPole.translation.x() = poles.at(0).right.x();
-      if(leftPole.translation.x()>(float)theFieldDimensions.xPosOpponentGroundline) leftPole.translation.x()=(float)theFieldDimensions.xPosOpponentGroundline; 
-
-      leftPole.translation.y() = projectPointOntoOpponentGroundline(leftPole.translation.x(),poles.at(0).right.y());
-      if(leftPole.translation.y()>730) leftPole.translation.y()=730; 
-
-      rightPole.translation.x() = poles.at(1).left.x();
-      if(rightPole.translation.x()>(float)theFieldDimensions.xPosOpponentGroundline) rightPole.translation.x()=(float)theFieldDimensions.xPosOpponentGroundline; 
-
-      rightPole.translation.y() = projectPointOntoOpponentGroundline(rightPole.translation.x(),poles.at(1).left.y());
-      if(rightPole.translation.y()<-730) rightPole.translation.y()=-730; 
-      
-      /*
-      WORK IN PROGRESS - Trying to use the projection of the poles on the groundline as left/right limit of the
-      goal line (useful in case the player is particularly angled wrt the opponent goal)
-      
-      Vector2f leftPoleRightLimit(
-        1/tan(theRobotPose.rotation+asin(POLE_RADIUS/distance(theRobotPose,poles.at(0).center))),
-        poles.at(0).center.y() - tan(theRobotPose.rotation+asin(POLE_RADIUS/distance(theRobotPose,poles.at(0).center)))
-      );
-      leftPole.translation.x() = (float)theFieldDimensions.xPosOpponentGroundline;
-      leftPole.translation.y() = projectPointOntoOpponentGroundline(leftPole.translation.x(),leftPoleRightLimit.y());
-      
-      Vector2f rightPoleLeftLimit(
-        1/tan(theRobotPose.rotation-asin(POLE_RADIUS/distance(theRobotPose,poles.at(1).center))),
-        poles.at(1).center.y() - tan(theRobotPose.rotation-asin(POLE_RADIUS/distance(theRobotPose,poles.at(1).center)))
-      );
-      rightPole.translation.x() = (float)theFieldDimensions.xPosOpponentGroundline;
-      rightPole.translation.y() = projectPointOntoOpponentGroundline(rightPole.translation.x(),rightPoleLeftLimit.y());
-      */
-
-      //std::cout<<"Left goal pole projection: ("<<leftPole.translation.x()<<","<<leftPole.translation.y()<<")\n";
-      //std::cout<<"Right goal pole projection:"<<rightPole.translation.x()<<","<<rightPole.translation.y()<<")\n";
-    }
-    
-    //FREE AREAS COMPUTATION
-
-    std::vector<float> leftPoints;
-    std::vector<float> rightPoints;
-    std::vector<FreeGoalTargetableArea> freeAreas;
-
-    
-    Obstacle swapper;
-
-    /*1) Sort the opponents in vector based on the y coordinate of their left points 
-    (for each obstacle, the leftmost point I see)*/
-    for(int i = 0; i < opponents.size(); i++){
-        for(int k = 0; k < opponents.size(); k++){
-            float firstLeft = projectPointOntoOpponentGroundline(opponents.at(i).left.x(),opponents.at(i).left.y());
-            float secondLeft = projectPointOntoOpponentGroundline(opponents.at(k).left.x(),opponents.at(k).left.y());
-            if(firstLeft > secondLeft ){
-                swapper = opponents.at(k);
-                opponents.at(k) = opponents.at(i);
-                opponents.at(i) = swapper;
-            }
-        }
-    }
-    /*std::cout<<"Opponents: [";
-    for(int i=0;i<opponents.size();i++)
-    {
-      std::cout<<"("<<std::to_string(opponents.at(i).center.x())+","<<opponents.at(i).center.y()<<"), ";
-    }
-    std::cout<<"]\n";*/
-
-    /*2) Find overlapping obstacles and merge them into a single one. For each obstacle (including the
-        ones obtained by merging) save the projections on the goal line of its left and right point, in order
-        to populate a list of obstacles from the player's point of view.
-
-        NOTICE: the obstacles are ordered from left to right
-
-        NOTICE: GOAL_TARGET_OBSTACLE_INFLATION is used as an "obstacle inflation" factor
-        to enlarge obstacles (as the visualization system makes the opponent robots smaller than their
-        feet width
-    */
-    
-    if(opponents.size()>0)
-    {
-      float leftPointY = projectPointOntoOpponentGroundline(opponents.at(0).left.x(),opponents.at(0).left.y())+GOAL_TARGET_OBSTACLE_INFLATION*1000/distance(theRobotPose,opponents.at(0).left);
-      float rightPointY = projectPointOntoOpponentGroundline(opponents.at(0).right.x(),opponents.at(0).right.y())-GOAL_TARGET_OBSTACLE_INFLATION*1000/distance(theRobotPose,opponents.at(0).right);
-      if(opponents.size()==1)
-      {
-        //If the obstacle projection is at least partially inside the goal line add it
-        if(areOverlappingSegmentsOnYAxis(leftPointY,rightPointY,leftPole.translation.y(),rightPole.translation.y()))
-        {
-          //std::cout<<"1 Adding single obstacle: ("+std::to_string(leftPointY)+","+std::to_string(rightPointY)+")\n";  
-          leftPoints.push_back(leftPointY);
-          rightPoints.push_back(rightPointY);
-        }
-      }
-      else if(opponents.size()>1)
-      {
-        int i=1;
-        bool wereOverlapping;
-
-        /*
-          For each obstacle in the list, compare it against the next one to check for overlapping and,
-          depending on the kind of overlapping, merge them accordingly or add them separately
-        */
-        while(i<opponents.size()+1)
-        {
-          float nextLeftPointY, nextRightPointY;
-          if(i==opponents.size())
-          {
-            /*
-              If leftPoint and rightPoint identify the last obstacle in the opponents list, use 
-              the right pole as the next obstacle to compare for overlapping
-            */
-            nextLeftPointY = projectPointOntoOpponentGroundline(poles.at(1).left.x(),poles.at(1).left.y());
-            nextRightPointY = projectPointOntoOpponentGroundline(poles.at(1).right.x(),poles.at(1).right.y());
-          }
-          else
-          {
-            /*
-              Else use the next obstacle in the list
-            */
-            nextLeftPointY = projectPointOntoOpponentGroundline(opponents.at(i).left.x(),opponents.at(i).left.y())+GOAL_TARGET_OBSTACLE_INFLATION*1000/distance(theRobotPose,opponents.at(i).left);
-            nextRightPointY = projectPointOntoOpponentGroundline(opponents.at(i).right.x(),opponents.at(i).right.y())-GOAL_TARGET_OBSTACLE_INFLATION*1000/distance(theRobotPose,opponents.at(i).right);
-          }
-          //std::cout<<"Iteration #"<<i<<": LeftPointY: "+std::to_string(leftPointY)+", RightPointY: "+std::to_string(rightPointY)+"\n";
-          //std::cout<<"Iteration #"<<i<<": nextLeftPointY: "+std::to_string(nextLeftPointY)+", nextRightPointY: "+std::to_string(nextRightPointY)+"\n";
-          
-          /*
-            Check for overlapping: there are three cases to manage
-            1) One obstacle is inside the other: do nothing
-            2) Obstacles overlap only partially: merge the obstacles
-            3) No overlap: add the first obstacle and pass to the second one
-          */
-          if(areOverlappingSegmentsOnYAxis(leftPointY, rightPointY, nextLeftPointY, nextRightPointY))
-          {
-            //std::cout<<"Overlapping: ("+std::to_string(leftPointY)+","+std::to_string(rightPointY)+") with ("+std::to_string(nextLeftPointY)+","+std::to_string(nextRightPointY)+")\n";
-            
-            if(leftPointY>nextLeftPointY && rightPointY<nextRightPointY)
-            {
-              //1) One obstacle is inside the other: do nothing
-
-              //std::cout<<"CASE 1\n";
-              //std::cout<<"Current obstacle: ("+std::to_string(leftPointY)+","+std::to_string(rightPointY)+")\n";
-            }
-            else
-            {
-              //2) Obstacles overlap only partially: merge the obstacles
-
-              //std::cout<<"CASE 2\n";
-              rightPointY = nextRightPointY;
-              
-              //std::cout<<"Current obstacle: ("+std::to_string(leftPointY)+","+std::to_string(rightPointY)+")\n";  
-
-            }
-            wereOverlapping=true;
-          }
-          else
-          {  
-            //3) No overlap: add the first obstacle and pass to the second one
-            if(areOverlappingSegmentsOnYAxis(leftPointY,rightPointY,leftPole.translation.y(),rightPole.translation.y()))
-            {
-              //Add the obstacle projection only if it falls (even only partially) inside the goal line
-              //std::cout<<"2 Adding obstacle: ("+std::to_string(leftPointY)+","+std::to_string(rightPointY)+")\n";  
-              leftPoints.push_back(leftPointY);
-              rightPoints.push_back(rightPointY);
-            }
-            leftPointY = nextLeftPointY;
-            rightPointY = nextRightPointY;
-            wereOverlapping=false;
-          }
-
-          i++;
-        }
-
-        //Add last remaining obstacle points (only in case where it overlaps right pole)
-        if(wereOverlapping)
-        {  
-          if(areOverlappingSegmentsOnYAxis(leftPointY,rightPointY,leftPole.translation.y(),rightPole.translation.y()))
-          {
-            //Add the obstacle projection only if it falls (even only partially) inside the goal line
-            //std::cout<<"3 Adding obstacle: ("+std::to_string(leftPointY)+","+std::to_string(rightPointY)+")\n";  
-            leftPoints.push_back(leftPointY);
-            rightPoints.push_back(rightPointY);
-          }
-        }      
-      }
-    }
-
-    //std::cout<<"End of overlap check\n\n";
-    
-    /*3) Now that we have left and right points of the obstacles
-      3.1) We first determine if there is any free area (or if a single obstacle 
-           projection overlaps the whole goal line)
-      3.2) We shrink the left and right limit (begin/end) of the goal line if there are
-           obstacles overlapping the left/right poles
-    */
-    //determines if all obstacles are outside goal
-    bool noneInside = true;
-
-    //Consider my angle in inflating the pole
-    float begin = leftPole.translation.y();
-    float end = rightPole.translation.y();
-
-    for(int i = 0; i < leftPoints.size(); i++){
-
-        //3.1)
-        //at least one point inside goal
-        if(leftPoints.at(i)<leftPole.translation.y() && rightPoints.at(i)>rightPole.translation.y() || 
-        leftPoints.at(i)>leftPole.translation.y() && rightPoints.at(i)<leftPole.translation.y() || 
-        leftPoints.at(i)>rightPole.translation.y() && rightPoints.at(i)<rightPole.translation.y())
-        {
-          noneInside = false;
-        }
-//WATCH OUT, TEMPORARY SOLUTION: If an obstacle projection cover the whole goal area I return an empty area list
-        if(leftPoints.at(i)>leftPole.translation.y() && rightPoints.at(i) < rightPole.translation.y())
-        {
-          return freeAreas;
-        }
-
-        //3.2)
-        //left obstacle border outside goal, right border inside
-        if(leftPoints.at(i) > leftPole.translation.y() && rightPoints.at(i) < leftPole.translation.y()){
-            begin = rightPoints.at(i);
-        }
-        //right obstacle border outside goal, left border inside
-        if(leftPoints.at(i) > rightPole.translation.y() && rightPoints.at(i) < rightPole.translation.y()){
-            end = leftPoints.at(i);
-        }
-    }
-
-    /*4) Build the free targetable segments vector
-      4.1) If there is no targetable segment, return the empty vector
-      4.2) Else populate the freeAreas vector
-    */
-
-    //4.1)
-    if(noneInside == true){
-      freeAreas.push_back(FreeGoalTargetableArea(begin, end, 1));
-      //std::cout<<"NONE INSIDE\n";
-        return freeAreas;
-    }
-    std::vector<float> freeAreasPoints;
-    freeAreasPoints.push_back(begin);
-
-    //4.2)
-    for(int i = 0; i < leftPoints.size(); i++){
-        if(leftPoints.at(i) < begin && leftPoints.at(i) > end){
-            freeAreasPoints.push_back(leftPoints.at(i));
-        }
-        if(rightPoints.at(i) < begin && rightPoints.at(i) > end ){
-            freeAreasPoints.push_back(rightPoints.at(i));
-        }
-    }
-    freeAreasPoints.push_back(end);
-
-    sort(freeAreasPoints.begin(),freeAreasPoints.end());
-
-    /*std::cout<<"FreeAreasPoints: [";
-    for(int i=0;i<freeAreasPoints.size();i++)
-    {
-      std::cout<<std::to_string(freeAreasPoints.at(i))+",";
-    }
-    std::cout<<"]\n";*/
-
-    /*5A) Apply discretization to the targetable segments, by dividing targetable areas in smaller segments,
-        in order to assign them a utility value
-    */
-
-    if(GOAL_TARGET_AREA_DISCRETIZATION)
-    {
-      for(int i = freeAreasPoints.size()-1; i-1>=0; i-=2)
-      {
-        float beginning = freeAreasPoints.at(i);
-        float end = freeAreasPoints.at(i-1);
-        float size = std::abs(end-beginning);
-        if(size>minimumDiscretizedAreaSize)
-        {
-          int numberOfDiscretizedAreasInFreeArea = floor(size/minimumDiscretizedAreaSize);
-
-          float discretizedAreaSize = size/numberOfDiscretizedAreasInFreeArea;
-
-          float firstPoint = beginning;
-          for(int i = numberOfDiscretizedAreasInFreeArea -1; i>0; i--)
-          {
-            float lastPoint = firstPoint-discretizedAreaSize;
-            freeAreas.push_back(FreeGoalTargetableArea(firstPoint,lastPoint,areaValueHeuristic(firstPoint,lastPoint)));
-            firstPoint = lastPoint;
-          }
-            freeAreas.push_back(FreeGoalTargetableArea(firstPoint,end,areaValueHeuristic(firstPoint,end)));
-        }
-        else
-        {
-          continue;
-        }
-        
-      }
-
-      /*
-        6) Sort the result of the discretization on its utility value
-      */
-
-      //Sort the freeAreas vector in a decreasing order of utility values
-      sort(freeAreas.begin(),freeAreas.end(), [](const FreeGoalTargetableArea &x, const FreeGoalTargetableArea &y){ return (x.value > y.value);});
-      /*for(const auto& free: freeAreas)
-      {
-        std::cout<<free.value<<" ";
-      }
-      std::cout<<"\n";*/
-    }
-    else
-    {
-      /*
-        5B) Do not discretize free areas: the whole area between opponent projections is used:
-            might be imprecise and less effective and also will require longer times to align with the ball
-      */
-      for(int i = freeAreasPoints.size() -1; i-1 >= 0; i-=2)
-      {
-        freeAreas.push_back(FreeGoalTargetableArea(freeAreasPoints.at(i), freeAreasPoints.at(i-1), areaValueHeuristic(freeAreasPoints.at(i),freeAreasPoints.at(i-1))));
-      }
-      sort(freeAreas.begin(),freeAreas.end(), [](const FreeGoalTargetableArea &x, const FreeGoalTargetableArea &y){ return (x.value > y.value);});
-    }
-    
-    /*std::cout<<"Discretized FreeAreas: [";
-    for(int i=0; i<freeAreas.size(); i++)
-    {
-      std::cout<<"("<<std::to_string(freeAreas.at(i).end)<<","<<std::to_string(freeAreas.at(i).begin)<<"),";
-    }
-    std::cout<<"]\n";*/
-
-    //std::cout<<"Role: "<<theRole.role<<"\n";
-
-    return freeAreas;
+    return computeFreeAreas(minimumDiscretizedAreaSize);
   };
 
 /*
@@ -767,122 +297,7 @@ Return a Vector2f containing the chosen target based on the selected mode. There
 */
 //TODO: Move constant parameters to CFG
 libCheck.goalTarget = [this](bool shootASAP) -> Vector2f {
-    //float GOAL_TARGET_AREA_MIN_SIZE = theBallSpecification.radius*AREA_SIZE_MULTIPLICATOR;
-    float GOAL_TARGET_AREA_MIN_SIZE = theOpponentGoalModel.goalTargetAreaMinSize;
-    
-    float GOAL_TARGET_MIN_OFFSET_FROM_SIDE = theOpponentGoalModel.goalTargetMinOffsetFromSide;
-    float GOAL_TARGET_DISTANCE_THRESHOLD = theOpponentGoalModel.goalTargetDistanceThreshold;
-
-    //std::cout<<"TARGET_MIN_OFFSET_FROM_SIDE"<<TARGET_MIN_OFFSET_FROM_SIDE<<"\n";
-    //std::cout<<"GOAL_DISTANCE_THRESHOLD="<<GOAL_DISTANCE_THRESHOLD<<"\n";
-    //std::cout<<"GOAL_TARGETABLE_AREA_MIN_SIZE="<<GOAL_TARGETABLE_AREA_MIN_SIZE<<"\n";
-
-    std::vector<FreeGoalTargetableArea> freeAreas = computeFreeAreas(GOAL_TARGET_AREA_MIN_SIZE);
-    
-    /*std::cout<<"FreeAreas: [";
-    for(int i=0; i<freeAreas.size(); i++)
-    {
-      std::cout<<"("<<std::to_string(freeAreas.at(i).end)<<","<<std::to_string(freeAreas.at(i).begin)<<"),";
-    }
-    std::cout<<"]\n";*/
-  
-    /*
-      1) Filter free areas, ignoring the smaller ones
-    */
-    std::vector<FreeGoalTargetableArea> filteredFreeAreas;
-    for(const auto& area : freeAreas)
-    {
-      if(area.interval>=GOAL_TARGET_AREA_MIN_SIZE)
-      {
-        filteredFreeAreas.push_back(area);
-        //std::cout << ("[Robot #"+std::to_string(theRobotInfo.number)+"] FreeGoalTargetableArea: ("+std::to_string(area.begin)+","+std::to_string(area.end)+")") << "\n";
-      }
-    }
-
-    /*
-      2) If there is no free area, return the median point on the opponent goal line
-    */
-    //WATCH OUT: TEMPORARY FIX FOR THE CASE IN WHICH THERE IS NO TARGETABLE AREA, TO MANAGE IN STRIKER BEHAVIOR
-    if(filteredFreeAreas.size()==0)
-    {
-      //std::cout<<"No free area\n";
-      
-      //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      //return Vector2f(0,0);
-      return Vector2f(theFieldDimensions.xPosOpponentGroundline,0);
-    } 
-
-    //project my line of view onto the goal line
-    //float myGazeProjection = theOpponentGoalModel.myGazeProjection;
-    float myGazeProjection = projectGazeOntoOpponentGroundline();
-    //std::cout << "myGazeProjection: "+std::to_string(myGazeProjection) << "\n";
-
-    float targetPoint = 0;
-
-    float minTargetableAreaDistance=INFINITY;
-
-    //CASE 1: I'm near the goal post -> choose the nearest free area
-    if(shootASAP || (std::abs(theFieldDimensions.xPosOpponentGroundline-theRobotPose.translation.x())<GOAL_TARGET_DISTANCE_THRESHOLD && filteredFreeAreas.size()!=0) || filteredFreeAreas.size()==1)
-    {
-      for(int i = 0; i < filteredFreeAreas.size(); i++)
-      {
-        FreeGoalTargetableArea currentArea = filteredFreeAreas.at(i);
-        //CASE 1.1: Looking at free area directly
-        if(myGazeProjection<currentArea.begin && myGazeProjection>currentArea.end)
-        {
-          //std::cout<<"Looking at free area ("+std::to_string(currentArea.begin)+","+std::to_string(currentArea.end)+")\n";
-          if(myGazeProjection>currentArea.begin-GOAL_TARGET_MIN_OFFSET_FROM_SIDE) targetPoint = currentArea.begin-GOAL_TARGET_MIN_OFFSET_FROM_SIDE;
-          else if(myGazeProjection<currentArea.end+GOAL_TARGET_MIN_OFFSET_FROM_SIDE) targetPoint = currentArea.end+GOAL_TARGET_MIN_OFFSET_FROM_SIDE;
-          else targetPoint = myGazeProjection; 
-          break;
-        }
-        //CASE 1.2: Looking away from free area
-        else
-        {
-          //if freeArea is on the left
-          if(currentArea.begin<myGazeProjection)
-          { 
-            float currentFreeAreaDistance=myGazeProjection-currentArea.begin;
-            if(minTargetableAreaDistance>currentFreeAreaDistance)
-            {
-              minTargetableAreaDistance=currentFreeAreaDistance;
-              targetPoint= currentArea.begin-GOAL_TARGET_MIN_OFFSET_FROM_SIDE;
-              //std::cout<<"FreeArea on the left: assigned targetPoint "+std::to_string(targetPoint)+"\n";
-            }
-          }
-          //if freeArea is on the right
-          else if(currentArea.end>myGazeProjection)
-          {
-            float currentFreeAreaDistance=currentArea.end-myGazeProjection;
-            if(minTargetableAreaDistance>currentFreeAreaDistance)
-            {
-              minTargetableAreaDistance=currentFreeAreaDistance;
-              targetPoint= currentArea.end+GOAL_TARGET_MIN_OFFSET_FROM_SIDE;
-              //std::cout<<"FreeArea on the right: assigned targetPoint : "+std::to_string(targetPoint)+"\n";
-            }
-          }
-        }
-      }
-    }
-    //CASE 2: I'm far away from the goal post -> find the area with the highest utility
-    else
-    {
-      //std::cout<< "Seeking best area based on its utility value: theRobotPose.translation.x(): "<< theRobotPose.translation.x()<<", distance from opponentGroundline: "<<std::abs(theRobotPose.translation.x()-theFieldDimensions.xPosOpponentGroundline)<<" > GOAL_DISTANCE_THRESHOLD: "<<GOAL_DISTANCE_THRESHOLD<<"\n";
-
-      //The freeAreas vector is sorted in a decreasing order of utility values, so I select the first area
-      targetPoint = filteredFreeAreas.at(0).midpoint;
-      
-    }
-    //std::cout<<"targetPoint y coordinate: "<<targetPoint<<"\n";
-
-    //If I'm too near to the goal line, shoot inside the goal, else shoot on the goal line
-    Vector2f target;
-    if (theRobotPose.translation.x() >= (theFieldDimensions.xPosOpponentGroundline - 600.f) &&
-            std::abs(theRobotPose.translation.y()) < 500.f )
-        target = Vector2f(theFieldDimensions.xPosOpponentGroundline + 1000.f, targetPoint);
-    else
-        target = Vector2f(theFieldDimensions.xPosOpponentGroundline, targetPoint);
-      return target;
+    return goalTarget(shootASAP);
   };
 
   libCheck.glob2Rel = [&](float x, float y) -> Pose2f
@@ -1646,6 +1061,7 @@ libCheck.strikerPassShare = [&] () -> std::tuple<int,int,Pose2f>
         default:
         {
           repulsive_obstacles.push_back(obs.center);
+          //std::cout<<"Obs: ("<<obs.center.x()<<", "<<obs.center.y()<<")"<<std::endl;
           break;
         }
       }
@@ -1663,7 +1079,7 @@ libCheck.strikerPassShare = [&] () -> std::tuple<int,int,Pose2f>
         for(unsigned int r=0; r<repulsive_obstacles.size(); ++r)
         {
 
-            if(r == (uint) theRobotInfo.number-1) continue;
+            //if(r == (uint) theRobotInfo.number-1) continue;
             if (repulsive_obstacles.at(r).x() == 0 || repulsive_obstacles.at(r).y() == 0) continue;
 
             Vector2f tmp_err = repulsive_obstacles.at(r) - current_cell_pos;
@@ -1691,29 +1107,17 @@ libCheck.strikerPassShare = [&] () -> std::tuple<int,int,Pose2f>
 
   libCheck.computePF = [&](std::vector<NodePF> attractive_field, std::vector<NodePF> repulsive_field, float cell_size) -> std::vector<NodePF>
   {
-
-    std::vector<NodePF> potential_field = initialize_PF(cell_size);
-
-  ///////////////////////////////
-  //NOTICE: can be parallelized//
-  ///////////////////////////////
-
-    for(unsigned int p=0; p<potential_field.size(); ++p)
-    {
-      potential_field.at(p).potential = (attractive_field.at(p).potential + repulsive_field.at(p).potential);
-    }
-
-    //attractive_field.clear();
-    //repulsive_field.clear();
-    //potential_field.clear();
-
-    return potential_field;
+    return computePF(attractive_field, repulsive_field, cell_size);
   };
+
   libCheck.angleForDefender  = angleToTarget(libCheck.defenderPosition.x(), libCheck.defenderPosition.y());
   libCheck.angleForSupporter = angleToTarget(libCheck.supporterPosition.x(), libCheck.supporterPosition.y());
   //libCheck.angleForJolly = angleToTarget(libCheck.jollyPosition.x(), libCheck.jollyPosition.y());
   libCheck.angleForJolly = angleToTarget(theFieldDimensions.yPosLeftGoal, theFieldDimensions.yPosRightGoal);//check this part the values of YposleftGoal and soon
-
+  libCheck.mapToInterval = [&](float value, float fromIntervalMin, float fromIntervalMax, float toIntervalMin, float toIntervalMax) -> float
+  {
+    return mapToInterval(value, fromIntervalMin, fromIntervalMax, toIntervalMin, toIntervalMax);
+  };
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1938,6 +1342,14 @@ Pose2f LibCheckProvider::refineTarget(Pose2f t, float d){
 
 }
 
+float LibCheckProvider::mapToInterval(float value, float fromIntervalMin, float fromIntervalMax, float toIntervalMin, float toIntervalMax) {
+  float fromIntervalSize = fromIntervalMax - fromIntervalMin;
+  float toIntervalSize = toIntervalMax - toIntervalMin;
+  if(value > fromIntervalMax) return toIntervalMax;
+  else if (value<fromIntervalMin) return toIntervalMin;
+  else return toIntervalMin + (value - fromIntervalMin) * toIntervalSize / fromIntervalSize;
+}
+
 //@author Emanuele Musumeci
 //Project my line of sight (the direction i'm looking at) on the opponent ground line
 float LibCheckProvider::projectGazeOntoOpponentGroundline()
@@ -1954,93 +1366,132 @@ float LibCheckProvider::projectPointOntoOpponentGroundline(float x, float y)
 
 //Questa è quella eseguita veramente
 // 1) Note: We are considering only the closest obstacle to the freeArea. 
-float LibCheckProvider::areaValueHeuristic(const float leftLimit, const float rightLimit) 
+float LibCheckProvider::areaValueHeuristic(const float leftLimit, const float rightLimit, const float poles_weight, const float opponents_weight, const float teammates_weight) 
 {
   // Useful notes for the reader:
   //       leftLimit is the left limit of THIS free area, rightLimit is the right one. 
   //       Note that the axis is directed to the left, then leftLimit > righLimit.
 
-    float BASE_UTILITY = theOpponentGoalModel.baseUtility;
-    std::vector<float> opponents_distances;
-    std::vector<float> teammates_distances;
+    //std::vector<float> opponents_distances;
+    //std::vector<float> teammates_distances;
+    std::vector<float> distances;
+    std::vector<float> weights;
+
     
     Pose2f freeAreaPoseleftLimit= Pose2f(theFieldDimensions.xPosOpponentGroundline,leftLimit);
     Pose2f freeAreaPoserightLimit= Pose2f(theFieldDimensions.xPosOpponentGroundline,rightLimit);
 
+    float final_utility = 0;
+
+    Obstacle nearest_opponent;
+    float nearest_opponent_distance = INFINITY;
+
+    //1) Find nearest opponent
+    for(auto obs: theTeamPlayersModel.obstacles)
+    {
+      //float obs_center_proj = projectPointOntoOpponentGroundline(obs.center.x(),obs.center.y());
+      float obs_left_proj = projectPointOntoOpponentGroundline(obs.left.x(),obs.left.y());
+      float obs_right_proj = projectPointOntoOpponentGroundline(obs.right.x(),obs.right.y());
+
+      // IT'S NOT POSSIBLE THAT THIS PROJECTION IS INTO SOME FREE_AREAS. Then, just check if it is left or right wrt the obstacle.
+
+      float distance;
+      if(obs_right_proj >= leftLimit){ // Obstacle is on the right side of the freeArea
+        distance=obs_right_proj-leftLimit;
+      }
+
+      if(obs_left_proj<= rightLimit){   // Obstacle is on the left side of the freeArea
+        distance=rightLimit-obs_left_proj;
+      }
+
+      if(distance < nearest_opponent_distance)
+      {
+        nearest_opponent = obs;
+        nearest_opponent_distance = distance;
+      }
+    }
+
+    //Add distance from nearest opponent, appropriately weighed
+    final_utility = nearest_opponent_distance * theOpponentGoalModel.utilityNearestOpponentWeight;
+    
+    //2) Find other distances and weight them appropriately
     for(auto obs : theTeamPlayersModel.obstacles){
         
-        if ((obs.center.x()==theFieldDimensions.xPosOpponentGoalPost) && (obs.center.y()==theFieldDimensions.yPosLeftGoal || obs.center.y()==theFieldDimensions.yPosRightGoal)){
-          continue;  // i pali non li conto
-        }
-        if ((obs.center.x()==-theFieldDimensions.xPosOpponentGoalPost) && (obs.center.y()==theFieldDimensions.yPosLeftGoal || obs.center.y()==theFieldDimensions.yPosRightGoal)){
-          continue;  // i pali non li conto
-        }
-        if(theRobotPose.translation.x()>obs.center.x()){
-          continue; // if the obstacle is back wrt me, it is not considered
+        //Skip the nearest opponent as it is treated differently
+        if(&obs == &nearest_opponent) continue;
+
+        if(theRobotPose.translation.x() > obs.center.x()){
+          continue; // if the obstacle is behind me, it's not considered
         }
 
-        float final_distance=0;
+        float final_distance;
+        float final_weight;
 
         //###########     Considering projection wrt my eyes 
-
    
-        float obs_center_proj = projectPointOntoOpponentGroundline(obs.center.x(),obs.center.y());
+        //float obs_center_proj = projectPointOntoOpponentGroundline(obs.center.x(),obs.center.y());
         float obs_left_proj = projectPointOntoOpponentGroundline(obs.left.x(),obs.left.y());
         float obs_right_proj = projectPointOntoOpponentGroundline(obs.right.x(),obs.right.y());
 
-
-        // IT'S NOT POSSIBLE THAT THIS PROJECTION IS INTO SOME FREE_AREAS. Then, just check if it is left or right wrt the obstacle.
+        //Obstacles can be only to the left or to the right of free areas (not inside)
 
         if(obs_right_proj >= leftLimit){ // Obstacle is on the right side of the freeArea
           final_distance=obs_right_proj-leftLimit;
-
         }
 
         if(obs_left_proj<= rightLimit){   // Obstacle is on the left side of the freeArea
           final_distance=rightLimit-obs_left_proj;
         }
 
-        // Differentiate the obstacles in two sets: one of oppontents, one of teammates.
-        if(obs.isOpponent()){
-          opponents_distances.push_back(final_distance);
+        switch(obs.type){
+          case Obstacle::Type::opponent:
+          {
+            //Reweight based on vicinity of the opponent to area midpoint
+            Vector2f midpoint(theFieldDimensions.xPosOpponentGroundline, (leftLimit - rightLimit)/2);
+            float opponent_distance_factor = theOpponentGoalModel.utilityOpponentsXDistanceThreshold - distance(midpoint, obs.center);
+            float remapped_opponent_weight = mapToInterval(opponent_distance_factor, 0.0, theOpponentGoalModel.utilityOpponentsXDistanceThreshold, 0.0, theOpponentGoalModel.utilityOpponentsWeight);
+            //std::cout<<"remapped_opponent_weight: "<<remapped_opponent_weight<<std::endl;
+            final_weight = remapped_opponent_weight;
+            
+            final_utility += final_weight * final_distance;            
+            break;
+          }
+          case Obstacle::Type::teammate:
+          {
+            final_weight = theOpponentGoalModel.utilityTeammatesWeight;
+            final_utility += final_weight * final_distance;
+            break;
+          }
+          default:
+          {
+            final_weight = 0;
+            break;
+          }
         }
-        if(obs.isTeammate()){
-          teammates_distances.push_back(final_distance);
-        }      
-       
 
+        distances.push_back(final_distance);
+        weights.push_back(final_weight);
     }
-
-    // Although they are in two different vectors, they are treated in the same way. 
-    // However if one in the future wants to use this feature, it is ready to be exploited.
-    // Let's consider just the closest opponent
-    float minimo_opponents=0;
-    bool firstTime=true;
-    for(auto distance : opponents_distances){
-      if(firstTime){
-        firstTime=false;
-        minimo_opponents=distance;
-      }else if(minimo_opponents>distance){
-        minimo_opponents=distance;
-      }
+    
+    float pole_distance_penalty;
+    if(std::abs(theFieldDimensions.yPosLeftGoal - leftLimit) > std::abs(theFieldDimensions.yPosRightGoal - rightLimit))
+    {
+      //nearest_pole_distance = std::abs(theFieldDimensions.yPosRightGoal - rightLimit);
+      pole_distance_penalty = std::abs(rightLimit);
     }
-
-    //Let's use the same minimum variable for both opponents and teammetes ( no distinction )
-    float minimo_teammates=0;
-    firstTime=false;
-    for(auto distance : teammates_distances){
-      if(firstTime){
-        firstTime=false;
-        minimo_opponents=distance;
-      }
-      if(minimo_opponents>distance){
-        minimo_opponents=distance;
-      }
+    else
+    {
+      //nearest_pole_distance = std::abs(theFieldDimensions.yPosLeftGoal - leftLimit);
+      pole_distance_penalty = std::abs(leftLimit);
     }
-    // final utility is always positive.
-    float final_utility=BASE_UTILITY+minimo_opponents+minimo_teammates;
-
-    return final_utility;
+    
+    pole_distance_penalty *= theOpponentGoalModel.utilityPolesWeight;
+    //std::cout<<"pole_distance_penalty: "<<std::endl;
+    //std::cout<<pole_distance_penalty<<std::endl;
+    //std::cout<<"final_utility: "<<std::endl;
+    //std::cout<<final_utility<<std::endl;
+    
+    return final_utility-pole_distance_penalty;
 
     //Ideas that can be exploited in order to improve this function:
     /*
@@ -2071,7 +1522,12 @@ float LibCheckProvider::areaValueHeuristic(const float leftLimit, const float ri
 
     float GOAL_TARGET_OBSTACLE_INFLATION = theOpponentGoalModel.goalTargetObstacleInflation;
     float GOAL_TARGET_AREA_DISCRETIZATION = theOpponentGoalModel.useAreaDiscretization;
-
+    float GOAL_POST_RADIUS = theFieldDimensions.goalPostRadius;
+    float GOAL_POLE_MINIMUM_TARGET_OFFSET = theOpponentGoalModel.goalPoleMinimumTargetOffset;
+    
+    float GOAL_LINE_LEFT_LIMIT = theFieldDimensions.yPosLeftGoal - GOAL_POST_RADIUS - GOAL_POLE_MINIMUM_TARGET_OFFSET;
+    float GOAL_LINE_RIGHT_LIMIT = theFieldDimensions.yPosRightGoal + GOAL_POST_RADIUS + GOAL_POLE_MINIMUM_TARGET_OFFSET;
+    
     //vector of opponents
     std::vector<Obstacle> opponents;
     //vector of poles
@@ -2108,10 +1564,10 @@ float LibCheckProvider::areaValueHeuristic(const float leftLimit, const float ri
     {
       leftPole.translation.x() = (float)theFieldDimensions.xPosOpponentGroundline;
       leftPole.translation.y() = projectPointOntoOpponentGroundline(leftPole.translation.x(),730.);
-      if(leftPole.translation.y()>730) leftPole.translation.y()=730; 
+      if(leftPole.translation.y()>GOAL_LINE_LEFT_LIMIT) leftPole.translation.y()=GOAL_LINE_LEFT_LIMIT; 
       rightPole.translation.x() = (float)theFieldDimensions.xPosOpponentGroundline;
       rightPole.translation.y() = projectPointOntoOpponentGroundline(rightPole.translation.x(),-730.);
-      if(rightPole.translation.y()<-730) leftPole.translation.y()=-730; 
+      if(rightPole.translation.y()<GOAL_LINE_RIGHT_LIMIT) leftPole.translation.y()=GOAL_LINE_RIGHT_LIMIT; 
     }
     else
     {
@@ -2120,13 +1576,13 @@ float LibCheckProvider::areaValueHeuristic(const float leftLimit, const float ri
       if(leftPole.translation.x()>(float)theFieldDimensions.xPosOpponentGroundline) leftPole.translation.x()=(float)theFieldDimensions.xPosOpponentGroundline; 
 
       leftPole.translation.y() = projectPointOntoOpponentGroundline(leftPole.translation.x(),poles.at(0).right.y());
-      if(leftPole.translation.y()>730) leftPole.translation.y()=730; 
+      if(leftPole.translation.y()>GOAL_LINE_LEFT_LIMIT) leftPole.translation.y()=GOAL_LINE_LEFT_LIMIT; 
 
       rightPole.translation.x() = poles.at(1).left.x();
       if(rightPole.translation.x()>(float)theFieldDimensions.xPosOpponentGroundline) rightPole.translation.x()=(float)theFieldDimensions.xPosOpponentGroundline; 
 
       rightPole.translation.y() = projectPointOntoOpponentGroundline(rightPole.translation.x(),poles.at(1).left.y());
-      if(rightPole.translation.y()<-730) rightPole.translation.y()=-730; 
+      if(rightPole.translation.y()<GOAL_LINE_RIGHT_LIMIT) rightPole.translation.y()=GOAL_LINE_RIGHT_LIMIT; 
       
       /*
       WORK IN PROGRESS - Trying to use the projection of the poles on the groundline as left/right limit of the
@@ -2150,6 +1606,9 @@ float LibCheckProvider::areaValueHeuristic(const float leftLimit, const float ri
       //std::cout<<"Left goal pole projection: ("<<leftPole.translation.x()<<","<<leftPole.translation.y()<<")\n";
       //std::cout<<"Right goal pole projection:"<<rightPole.translation.x()<<","<<rightPole.translation.y()<<")\n";
     }
+    
+    //std::cout<<"Left goal pole projection: ("<<leftPole.translation.x()<<","<<leftPole.translation.y()<<")\n";
+    //std::cout<<"Right goal pole projection: ("<<rightPole.translation.x()<<","<<rightPole.translation.y()<<")\n";
     
     //FREE AREAS COMPUTATION
 
@@ -2417,7 +1876,7 @@ float LibCheckProvider::areaValueHeuristic(const float leftLimit, const float ri
       {
         std::cout<<free.value<<" ";
       }
-      std::cout<<"\n";*/
+      */
     }
     else
     {
@@ -2550,6 +2009,7 @@ Vector2f LibCheckProvider::goalTarget(bool shootASAP)
       //std::cout<< "Seeking best area based on its utility value: theRobotPose.translation.x(): "<< theRobotPose.translation.x()<<", distance from opponentGroundline: "<<std::abs(theRobotPose.translation.x()-theFieldDimensions.xPosOpponentGroundline)<<" > GOAL_DISTANCE_THRESHOLD: "<<GOAL_DISTANCE_THRESHOLD<<"\n";
 
       //The freeAreas vector is sorted in a decreasing order of utility values, so I select the first area
+      //std::cout << "Chosen area: ("<<filteredFreeAreas.at(0).begin<<", "<<filteredFreeAreas.at(0).end<<")"<<std::endl;
       targetPoint = filteredFreeAreas.at(0).midpoint;
       
     }

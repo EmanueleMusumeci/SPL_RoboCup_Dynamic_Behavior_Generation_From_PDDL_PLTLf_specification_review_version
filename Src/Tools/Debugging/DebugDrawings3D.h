@@ -103,6 +103,7 @@ class DrawingManager3D : public DrawingManager {};
  * A macro that adds a cross to a drawing.
  * @param id The drawing to which the cross should be added.
  * @param x,y,z The center of the cross.
+ * @param length Half diagonal of the square enclosing the cross.
  * @param size Half of the height of the rectangle enclosing the cross.
  * @param penColor The color of the quadrangle.
  */
@@ -112,6 +113,23 @@ class DrawingManager3D : public DrawingManager {};
     { \
       LINE3D(id, x+length, y+length, z, x-length, y-length, z, size, penColor); \
       LINE3D(id, x+length, y-length, z, x-length, y+length, z, size, penColor); \
+    } \
+  while(false)
+
+/**
+ * A macro that adds a "target" (a cross enclosed in a circle) to a drawing.
+ * @param id The drawing to which the cross should be added.
+ * @param x,y,z The center of the cross.
+ * @param radius Radius of the circle enclosing the cross.
+ * @param size Half of the height of the rectangle enclosing the cross.
+ * @param penColor The color of the quadrangle.
+ */
+#define TARGET3D(id, x, y, z, radius, size, penColor) \
+  do \
+    COMPLEX_DRAWING3D(id) \
+    { \
+      LINE3D(id, x+radius, y+radius, z, x-radius, y-radius, z, size, penColor); \
+      LINE3D(id, x+radius, y-radius, z, x-radius, y+radius, z, size, penColor); \
     } \
   while(false)
 
@@ -162,8 +180,9 @@ class DrawingManager3D : public DrawingManager {};
         }\
     }\
   while(false)
+
 /**
- * A macro that adds a quadrilateral to a drawing.
+ * A macro that adds a quadrilateral to a drawing (NO BORDERS, use QUAD3D2 for a version with borders).
  * @param id The drawing to which the line should be added.
  * @param corner1, corner2, corner3, corner4 The corner points.
  * @param color The color of the quadrilateral.
@@ -182,7 +201,31 @@ class DrawingManager3D : public DrawingManager {};
   while(false)
 
 /**
- * A macro that adds a rectangle to a drawing.
+ * A macro that adds a quadrilateral to a drawing (WITH BORDERS).
+ * @param id The drawing to which the line should be added.
+ * @param corner1, corner2, corner3, corner4 The corner points.
+ * @param size The size of the border line.
+ * @param color The color of the quadrilateral.
+ */
+#define QUAD3D2(id, corner1, corner2, corner3, corner4, size, color) \
+  do \
+    COMPLEX_DRAWING3D(id) \
+    { \
+      LINE3D(id, corner1.x(), corner1.y(), corner1.z(), corner2.x(), corner2.y(), corner2.z(), size, color); \
+      LINE3D(id, corner2.x(), corner2.y(), corner2.z(), corner3.x(), corner3.y(), corner3.z(), size, color); \
+      LINE3D(id, corner3.x(), corner3.y(), corner3.z(), corner4.x(), corner4.y(), corner4.z(), size, color); \
+      LINE3D(id, corner4.x(), corner4.y(), corner4.z(), corner1.x(), corner1.y(), corner1.z(), size, color); \
+      OUTPUT(idDebugDrawing3D, bin, \
+             static_cast<char>(Drawings3D::quad) << \
+             Global::getDrawingManager3D().getDrawingId(id) << \
+             Vector3f(corner1) << Vector3f(corner2) << Vector3f(corner3) << Vector3f(corner4) << \
+             ColorRGBA(color) \
+            ); \
+    } \
+  while(false)
+
+/**
+ * A macro that adds a WIREFRAME cube to a drawing.
  * @param id The drawing to which the line should be added.
  * @param a,b,c,d,e,f,g,h The x,y and z parameter of the corner points.
  * @param size The thickness of the line in pixels.
@@ -203,6 +246,28 @@ class DrawingManager3D : public DrawingManager {};
     } \
   while(false)
 
+  /**
+   * A macro that adds a SOLID cube to a drawing.
+   * @param id The drawing to which the line should be added.
+   * @param a,b,c,d,e,f,g,h The x,y and z parameter of the corner points.
+   * @param size The thickness of the line in pixels.
+   * @param color The color of the line.
+   *
+  #define CUBE3D2(id, a, b, c, d, e, f, g, h, size, color) \
+    do \
+      COMPLEX_DRAWING3D(id) \
+      { \
+        OUTPUT(idDebugDrawing3D, bin, \
+              static_cast<char>(Drawings3D::cube) << \
+              Global::getDrawingManager3D().getDrawingId(id) << \
+              Vector3f(a) << Vector3f(b) << Vector3f(c) << Vector3f(d) << Vector3f(e) << Vector3f(f) << \
+              Vector3f(g) << Vector3f(h) << \
+              static_cast<float>(size) << \
+              ColorRGBA(color) \
+              ); \
+      } \
+    while(false)*/
+    
 /**
  * A macro that draws three lines on the three axis in positive direction.
  * @param id The id of the drawing.

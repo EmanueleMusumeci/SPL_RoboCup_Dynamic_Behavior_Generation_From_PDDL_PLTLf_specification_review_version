@@ -1,7 +1,7 @@
 /**
  * @file GoalTarget.cpp
  *
- * This file implements the implementation of the GoalTarget skill.
+ * This file contains the implementation of the GoalTarget skill, that just updates the BehaviorStatus goalTarget target to the goalTarget.
  *
  * @author <A href="mailto:musumeci.1653885@studenti.uniroma1.it">Emanuele Musumeci</A>
  */
@@ -21,7 +21,7 @@ class GoalTargetImpl : public GoalTargetImplBase
 {
   void execute(const GoalTarget& p) override
   {
-    theBehaviorStatus.shootingTo = p.goalTarget;
+    theBehaviorStatus.goalTarget = p.goalTarget;
   }
 };
 

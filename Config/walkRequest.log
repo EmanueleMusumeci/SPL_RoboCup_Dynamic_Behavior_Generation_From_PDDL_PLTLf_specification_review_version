@@ -1,20 +1,20 @@
-mode = targetMode;
+mode = relativeSpeedMode;
 speed = {
-  rotation = 57.2958deg;
+  rotation = nandeg;
   translation = {
-    x = 1;
-    y = 1;
+    x = 0;
+    y = 0;
   };
 };
 target = {
-  rotation = -nandeg;
+  rotation = 0deg;
   translation = {
-    x = 438.37;
-    y = 301.015;
+    x = 0;
+    y = 0;
   };
 };
 walkKickRequest = {
   kickType = none;
   kickLeg = left;
 };
-"BehaviorControl/playing, GameControlCard, GameplayCard/opponentFreeKick, ApproachAndKickCard/walkToBall, Activity, LookForward, WalkToApproach"
+"BehaviorControl/playing, GameControlCard, GameplayCard/supporter, SupporterCoreCardSentinel/moveAroundObstacle, Activity, WalkToTargetPathPlanner, LookLeftAndRight/s_3"
