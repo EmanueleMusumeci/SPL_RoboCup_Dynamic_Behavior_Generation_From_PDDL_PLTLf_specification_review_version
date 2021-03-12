@@ -1715,9 +1715,9 @@ libCheck.strikerPassShare = [&] () -> std::tuple<int,int,Pose2f>
   libCheck.angleForJolly = angleToTarget(theFieldDimensions.yPosLeftGoal, theFieldDimensions.yPosRightGoal);//check this part the values of YposleftGoal and soon
 
   //@author Francesco Petri
-  //Common computations for the pre/post-conditions of ApproachAnd<Kick/Pass>Card
-  // RETURNS true if the striker should kick, false otherwise.
-  libCheck.strikerKickCommonConditions = [&](int hysteresisSign) -> bool {       // 0 = no hysteresis ; +1 = kick ; -1 = pass
+  //Common computations for the pre/post-conditions of the Pass and Carry cards
+  // RETURNS true if the striker should pass, false otherwise.
+  libCheck.strikerPassCommonConditions = [&](int hysteresisSign) -> bool {       // 0 = no hysteresis ; +1 = pass ; -1 = not passing
     //the conditions branch depending on whether the striker
     //is under immediate pressure to send the ball *somewhere*.
     //This is true if the striker is close to the ball
@@ -1725,6 +1725,7 @@ libCheck.strikerPassShare = [&] () -> std::tuple<int,int,Pose2f>
     //    or the striker is close to the goal.
     //in these conditions, we don't want the striker to take too much time
     //walking around the ball.
+    //TODO this will have to change when we have contrast
     bool act_asap = (
       theFieldBall.positionRelative.squaredNorm()<sqr(300.f) && (
         theRobotPose.translation.x() > theFieldDimensions.xPosOpponentPenaltyMark ||
@@ -1735,44 +1736,122 @@ libCheck.strikerPassShare = [&] () -> std::tuple<int,int,Pose2f>
       //if the striker is pressed to act, then the choice between kick or pass
       //depends solely on which action is faster to execute in the immediate future
       //(remember that if the control flow gets here, there *is* an available pass).
-      //Thus, choose to kick if it's easier than passing,
+      //Thus, choose to pass if it's easier than kicking,
       //measured in terms of how much walk-around-the-ball the striker needs
       //(because we've already assume the striker is close to the ball)
       Pose2f goal_target = goalTarget(act_asap);
       Angle kickAngle = Angle(atan2f(
-        theRobotPose.translation.y()-goal_target.translation.y(),
-        theRobotPose.translation.x()-goal_target.translation.x()
+        goal_target.translation.y()-theRobotPose.translation.y(),
+        goal_target.translation.x()-theRobotPose.translation.x()
       ));
       Angle passAngle = Angle(atan2f(
-        theRobotPose.translation.y()-thePassShare.passTarget.translation.y(),
-        theRobotPose.translation.x()-thePassShare.passTarget.translation.x()
+        thePassShare.passTarget.translation.y()-theRobotPose.translation.y(),
+        thePassShare.passTarget.translation.x()-theRobotPose.translation.x()
       ));
       Angle angDistToKick = theRobotPose.rotation.diffAbs(kickAngle);
       Angle angDistToPass = theRobotPose.rotation.diffAbs(passAngle);
-      bool shouldKick = angDistToKick <= angDistToPass + hysteresisSign*pi/10;
-      if (shouldKick) {
-        std::cout << "Act ASAP: kick" << '\n';
-      }
-      else {
+      // adding a constant epsilon in order to make the striker prefer passing
+      // if the two angles are practically equal
+      bool shouldPass = (angDistToPass <= angDistToKick + pi/30 + hysteresisSign*pi/10);
+      /*
+      if (shouldPass) {
         std::cout << "Act ASAP: pass" << '\n';
       }
-      return shouldKick;
+      else {
+        std::cout << "Act ASAP: carry" << '\n';
+      }
+      */
+      return shouldPass;
     }
     else {
       //if the striker is not under immediate pressure,
       //it can actually reason and choose whether to kick or pass.
       //for now, the only discriminating condition in this case is:
-      //refuse to pass if opponents are too close to the passtarget
+      //only pass if the passtarget is sufficiently clear of opponents
       //(the pass routines only find the target w/ highest opp distance, but don't set a minimum threshold)
-      bool shouldKick = (sqrDistanceOfClosestOpponentToPoint(thePassShare.passTarget.translation) < sqr(500.0f + hysteresisSign*100.0f));
-      if (shouldKick) {
-        std::cout << "Act normal: kick" << '\n';
-      }
-      else {
+      bool shouldPass = (sqrDistanceOfClosestOpponentToPoint(thePassShare.passTarget.translation) >= sqr(500.0f - hysteresisSign*100.0f));
+      /*
+      if (shouldPass) {
         std::cout << "Act normal: pass" << '\n';
       }
-      return shouldKick;
+      else {
+        std::cout << "Act normal: carry" << '\n';
+      }
+      */
+      return shouldPass;
     }
+  };
+
+  // @author Francesco Petri
+  // Adapting canPass to check if the shooting line is clear of obstacles (of any type)
+  // as a possible reason to prioritize shooting over passing
+  libCheck.cleanShot = [&] (
+    Pose2f targetPose,
+    Pose2f shootingPose,
+    std::vector<Obstacle, Eigen::aligned_allocator<Obstacle>> obstacles,
+    int hysteresisSign    // 0 = no hysteresis, +1 = kicking, -1 = not kicking
+  ) -> bool {
+    // relevant difference from canPass: striker must be close to opponent goal
+    // because this test is pretty short-term
+    float penMrkOffset = 1200.0f;
+    if (hysteresisSign==1) {
+      penMrkOffset += 200.0f;
+    }
+    if (shootingPose.translation.x() < theFieldDimensions.xPosOpponentPenaltyMark - penMrkOffset) {
+      return false;
+    }
+    float m = 0;
+    bool sameX = false;
+    bool sameY = false;
+    //se hanno la stessa x (più o meno)
+    if(std::abs(shootingPose.translation.x() - targetPose.translation.x()) <= 0.5){
+      sameX = true;
+    }
+    else{
+      float m = shootingPose.translation.y() - targetPose.translation.y();
+      if(std::abs(m) <= 0.5 ){
+        sameY = true;
+      }
+      else{
+        m /= shootingPose.translation.x() - targetPose.translation.x();
+      }
+    }
+    float q = shootingPose.translation.y() - m * shootingPose.translation.x();
+    float orthoThreshold = 100.f - 30.0f*(float)hysteresisSign;
+    float obliqueThreshold = 0.5f - 0.1f*(float)hysteresisSign;
+    //TODO inserire il vettore degli obstacles
+    for(auto const& obstacle : obstacles){
+      // relevant difference from canPass: only consider obstacles ahead of yourself
+      // and the goalpost doesn't count
+      if (obstacle.center.x() < shootingPose.translation.x()) {
+        break;
+      }
+      if (obstacle.type==Obstacle::Type::goalpost) {
+        break;
+      }
+      if(sameX){
+        if(std::abs(obstacle.center.x() - shootingPose.translation.x()) < orthoThreshold){
+          std::cout<<"1"<<std::endl;
+          return false;
+        }
+      }
+      else if(sameY){
+        if(std::abs(obstacle.center.y() - shootingPose.translation.y()) < orthoThreshold){
+          std::cout<<"2"<<std::endl;
+          return false;
+        }
+      }
+      else{
+        for(int i = -50; i < 50; i++){
+          //se l'obstacle si trova su una retta del fascio
+          if((obstacle.center.y() - m * obstacle.center.x() - q - (float) i * 10.f) <= obliqueThreshold ){
+            std::cout<<"3"<<std::endl;
+            return false;
+          }
+        }
+      }
+    }
+    return true;
   };
 
 }

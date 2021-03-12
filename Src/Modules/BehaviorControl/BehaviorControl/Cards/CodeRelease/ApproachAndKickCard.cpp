@@ -75,27 +75,22 @@ class ApproachAndKickCard : public ApproachAndKickCardBase
   double distanceConfirmed = 0.0;
   bool alreadyEnqueued = false;
 
-  // Check whether the striker should kick,
-  // which equates to "should not pass"
-  // because if the dealer does not select this card
-  // it checks ApproachAndPassCard next.
+  // Check whether the striker should kick.
+  // The choice between passing and carrying ball is done further down in the hierarchy.
   bool preconditions() const override
   {
     std::cout << "pre " << theRobotPose.translation.norm() << '\n';
 
-    //always choose to kick if one of the following conditions applies:
-    if (
-      //there is no pass available
-      thePassShare.readyPass == 0 ||
-      //there is a clear scoring opportunity (striker close enough to the goal with no opponents in sight)
-      cleanShot(theLibCheck.goalTarget(false), theRobotPose, theTeamPlayersModel.obstacles)
-    ) {
-      if (thePassShare.readyPass == 0) std::cout << "No pass avaliable, kicking" << '\n';
-      else std::cout << "Clean shot, kicking" << '\n';
+    //choose to kick if there is a clear scoring opportunity (striker close enough to the goal with no opponents in sight)
+    if (theLibCheck.cleanShot(theLibCheck.goalTarget(false), theRobotPose, theTeamPlayersModel.obstacles, 0)) {
+      std::cout << "Clean shot, here I go!!" << '\n';
       return true;
     }
-
-    return theLibCheck.strikerKickCommonConditions(0);
+    //otherwise, it's best to pass or carry the ball
+    else {
+      std::cout << "No kick for now" << '\n';
+      return false;
+    }
   }
 
 
@@ -103,13 +98,14 @@ class ApproachAndKickCard : public ApproachAndKickCardBase
   //this also includes some hysteresis to make sure the striker sticks with a decision.
   bool postconditions() const override
   {
-    //never exit if there's no pass available
-    if (thePassShare.readyPass == 0) {
-      std::cout << "Still no pass, kicking" << '\n';
+    if (! theLibCheck.cleanShot(theLibCheck.goalTarget(false), theRobotPose, theTeamPlayersModel.obstacles, 1)) {
+      std::cout << "Shouldn't kick anymore" << '\n';
+      return true;
+    }
+    else {
+      std::cout << "Still kicking" << '\n';
       return false;
     }
-
-    return theLibCheck.strikerKickCommonConditions(1);
   }
 
   option
@@ -293,11 +289,22 @@ class ApproachAndKickCard : public ApproachAndKickCardBase
 
   // Adapting libCheck.canPass to check if the shooting line is clear of obstacles (of any type)
   // as a possible reason to prioritize shooting over passing
-  bool cleanShot(Pose2f targetPose, Pose2f shootingPose, std::vector<Obstacle, Eigen::aligned_allocator<Obstacle>> obstacles) const
+  //moved to libcheck
+  /*
+  bool cleanShot(
+    Pose2f targetPose,
+    Pose2f shootingPose,
+    std::vector<Obstacle, Eigen::aligned_allocator<Obstacle>> obstacles,
+    int hysteresisSign    // 0 = no hysteresis, +1 = kicking, -1 = not kicking
+  ) const
   {
     // relevant difference from canPass: striker must be close to opponent goal
     // because this test is pretty short-term
-    if (shootingPose.translation.x() < theFieldDimensions.xPosOpponentPenaltyMark - 500.0f) {
+    float penMrkOffset = 1000.0f;
+    if (hysteresisSign==1) {
+      penMrkOffset += 200.0f;
+    }
+    if (shootingPose.translation.x() < theFieldDimensions.xPosOpponentPenaltyMark - penMrkOffset) {
       return false;
     }
     float m = 0;
@@ -317,21 +324,26 @@ class ApproachAndKickCard : public ApproachAndKickCardBase
       }
     }
     float q = shootingPose.translation.y() - m * shootingPose.translation.x();
-    float qThreshold = 100.f;
+    float orthoThreshold = 100.f - 30.0f*(float)hysteresisSign;
+    float obliqueThreshold = 0.5f - 0.1f*(float)hysteresisSign;
     //TODO inserire il vettore degli obstacles
     for(auto const& obstacle : obstacles){
       // relevant difference from canPass: only consider obstacles ahead of yourself
+      // and the goalpost doesn't count
       if (obstacle.center.x() < shootingPose.translation.x()) {
         break;
       }
+      if (obstacle.type==Obstacle::Type::goalpost) {
+        break;
+      }
       if(sameX){
-        if(std::abs(obstacle.center.x() - shootingPose.translation.x()) < qThreshold){
+        if(std::abs(obstacle.center.x() - shootingPose.translation.x()) < orthoThreshold){
           std::cout<<"1"<<std::endl;
           return false;
         }
       }
       else if(sameY){
-        if(std::abs(obstacle.center.y() - shootingPose.translation.y()) < qThreshold){
+        if(std::abs(obstacle.center.y() - shootingPose.translation.y()) < orthoThreshold){
           std::cout<<"2"<<std::endl;
           return false;
         }
@@ -339,7 +351,7 @@ class ApproachAndKickCard : public ApproachAndKickCardBase
       else{
         for(int i = -50; i < 50; i++){
           //se l'obstacle si trova su una retta del fascio
-          if((obstacle.center.y() - m * obstacle.center.x() - q - (float) i * 10.f) <= 0.5f ){
+          if((obstacle.center.y() - m * obstacle.center.x() - q - (float) i * 10.f) <= obliqueThreshold ){
             std::cout<<"3"<<std::endl;
             return false;
           }
@@ -348,6 +360,7 @@ class ApproachAndKickCard : public ApproachAndKickCardBase
     }
     return true;
   }
+  */
 };
 
 MAKE_CARD(ApproachAndKickCard);

@@ -86,10 +86,26 @@ class ApproachAndPassCard : public ApproachAndPassCardBase
 
   // Because the Pass card was made lower-priority wrt the Kick card,
   // the dealer now only reaches this card if the Kick preconditions were not met.
-  // Therefore any passing conditions are best checked in negative over there.
+  // Here we decide whether to pass (prioritized if possible)
+  // or to carry the ball alone for the moment
   bool preconditions() const override
   {
-    return true;
+    //needless to say, if we don't have a pass avaliable we can't pass
+    if (thePassShare.readyPass == 0) {
+      std::cout << "No pass available, can't pass" << '\n';
+      return false;
+    }
+
+    //if we can pass we run the conditions in libcheck
+    bool shouldPass = theLibCheck.strikerPassCommonConditions(0);
+    if (shouldPass) {
+      std::cout << "Pass conditions are go" << '\n';
+      return true;
+    }
+    else {
+      std::cout << "Maybe it's better to play by myself for now" << '\n';
+      return false;
+    }
   }
 
   //These conditions check when there is no good pass available anymore (or, indirectly, when the pass has been performed already)
@@ -109,7 +125,24 @@ class ApproachAndPassCard : public ApproachAndPassCardBase
       return true;
     }
 
-    return theLibCheck.strikerKickCommonConditions(-1);
+
+    //give up passing if a shooting opportunity comes up,
+    //because that has priority
+    if (theLibCheck.cleanShot(theLibCheck.goalTarget(false), theRobotPose, theTeamPlayersModel.obstacles, -1)) {
+      std::cout << "Kicking opportunity arose, leaving pass card" << '\n';
+      return true;
+    }
+
+    //otherwise check the same conditions as precond. to decide whether to keep passing
+    bool shouldPass = theLibCheck.strikerPassCommonConditions(1);
+    if (shouldPass) {
+      std::cout << "Still passing" << '\n';
+      return true;
+    }
+    else {
+      std::cout << "Shouldn't pass anymore" << '\n';
+      return false;
+    }
   }
 
   option
@@ -279,7 +312,7 @@ class ApproachAndPassCard : public ApproachAndPassCardBase
 
         }
         theLookAtPointSkill(Vector3f(theFieldBall.positionRelative.x(), theFieldBall.positionRelative.y(), 0.f));
-        theKickSkill(false, distanceConfirmed, false); // parameters: (kyck_type, mirror, distance, armsFixed)
+        theKickSkill(false, (float)distanceConfirmed, false); // parameters: (kyck_type, mirror, distance, armsFixed)
 
       }
     }
