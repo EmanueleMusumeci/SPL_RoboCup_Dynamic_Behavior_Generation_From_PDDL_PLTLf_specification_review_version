@@ -15,6 +15,8 @@
 #include "Representations/BehaviorControl/TeamBehaviorStatus.h"
 #include "Representations/BehaviorControl/Role.h"
 #include "Representations/Modeling/BallModel.h"
+#include "Representations/BehaviorControl/FieldBall.h"
+#include "Representations/BehaviorControl/BallCarrierModel/BallCarrierModel.h"
 #include "Representations/Modeling/TeamPlayersModel.h"
 #include "Representations/Configuration/FieldDimensions.h"
 #include "Representations/Communication/RobotInfo.h"
@@ -41,7 +43,6 @@
 #include "Representations/spqr_representations/OurDefinitions.h"
 
 #include "Representations/spqr_representations/PassShare.h"
-#include "Representations/BehaviorControl/FieldBall.h"
 
 #include "Tools/Module/Module.h"
 #include <math.h>
@@ -50,6 +51,7 @@ MODULE(LibCheckProvider,
 {,
   USES(ActivationGraph),
   REQUIRES(BallModel),
+  REQUIRES(FieldBall),
   REQUIRES(FrameInfo),
   REQUIRES(FieldDimensions),
   REQUIRES(RobotInfo),
@@ -66,6 +68,8 @@ MODULE(LibCheckProvider,
   USES(BallSpecification),
   //StrikerPF
   USES(StrikerPFModel),
+  //BallCarrierModel
+  USES(BallCarrierModel),
   //
   USES(TeamActivationGraph),
   USES(TeamBehaviorStatus),
@@ -73,7 +77,6 @@ MODULE(LibCheckProvider,
   USES(Role),
   USES(RoleAndContext),
   USES(PassShare),
-  USES(FieldBall),
   PROVIDES(LibCheck),
   LOADS_PARAMETERS(
   {,
@@ -176,11 +179,14 @@ private:
  float gazeToObstacleProjectionDistanceOntoOpponentGroundLine(Obstacle obs);
 
  /** Provides a float value representing a score for each FreeGoalTargetableArea Determined by computeFreeAreas
-  * @param begin left limit of the free targetable area
-  * @param end right limit of the free targetable area
+  * @param leftLimit left limit of the free targetable area
+  * @param rightLimit right limit of the free targetable area
+  * @param poles_weight relative weight in the final utility for the poles
+  * @param opponents_weight relative weight in the final utility for the opponents
+  * @param teammates_weight relative weight in the final utility for the teammates
   * @return value assigned after area evaluation
   * **/
- float areaValueHeuristic(float leftLimit, float rightLimit);
+ float areaValueHeuristic(float leftLimit, float rightLimit, float poles_weight = 1, float opponents_weight = 1, float teammates_weight = 1);
 
   /** Tells whether two segments are overlapping or not
   * @param l1 left limit of first segment
@@ -266,6 +272,7 @@ private:
  bool isGoalieInAngle();
  float goalie_displacement;
  float angleToGoal;
+ float angleToBall;
  float angleToMyGoal;
  float penaltyAngle;
  float kickAngle;
@@ -276,6 +283,9 @@ private:
 
  float angleToTarget(float x, float y);   // TODO This is to check orientation wrt to target x = 4500 y = 3000 to left and -3000 to right
  float norm(float x, float y);
+
+ //Maps value from interval [fromIntervalMin, fromIntervalMax] to interval [toIntervalMin, toIntervalMax]
+ float mapToInterval(float value, float fromIntervalMin, float fromIntervalMax, float toIntervalMin, float toIntervalMax);
 
  public: LibCheckProvider();
 };

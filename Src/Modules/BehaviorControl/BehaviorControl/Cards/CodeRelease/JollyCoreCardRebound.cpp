@@ -326,7 +326,7 @@ class JollyCoreCardRebound : public JollyCoreCardReboundBase
         }
         action 
         {
-             std::cout<< "move action"<< std::endl;
+             //std::cout<< "move action"<< std::endl;
             if((theRobotPose.translation-theLibCheck.getJollyPosition()).norm() > JOLLY_WALK_THRESHOLD){
                 
                 theWalkToTargetPathPlannerSkill(Pose2f(1.f,1.f,1.f),theLibCheck.getJollyPosition());

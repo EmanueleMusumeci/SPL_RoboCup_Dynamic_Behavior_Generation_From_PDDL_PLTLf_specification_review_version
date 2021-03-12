@@ -29,10 +29,14 @@ STREAMABLE(StrikerPFModel,
   void draw() const,
 
   (bool) graphical_debug,
+  (bool) show_tiles,
   (float) graphical_norm_factor,
   (float) graphical_potential_upper_bound,
   (float) graphical_potential_lower_bound,
   (float) graphical_draw_radius,
+
+  (float) graphical_min_mesh_height,
+  (float) graphical_max_mesh_height,
 
   (float) graphical_arrow_length_as_norm,
   (float) graphical_arrow_length,

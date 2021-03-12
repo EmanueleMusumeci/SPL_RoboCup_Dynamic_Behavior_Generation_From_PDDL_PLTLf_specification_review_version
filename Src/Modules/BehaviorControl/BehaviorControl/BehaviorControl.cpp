@@ -42,6 +42,7 @@ void BehaviorControl::update(ActivationGraph& activationGraph)
   theBehaviorStatus.passTarget = -1;
   theBehaviorStatus.walkingTo = Vector2f::Zero();
   theBehaviorStatus.shootingTo = Vector2f::Zero();
+  theBehaviorStatus.goalTarget = Vector2f::Zero();
 
   theArmMotionRequest.armMotion[Arms::left] = ArmMotionRequest::none;
   theArmMotionRequest.armMotion[Arms::right] = ArmMotionRequest::none;

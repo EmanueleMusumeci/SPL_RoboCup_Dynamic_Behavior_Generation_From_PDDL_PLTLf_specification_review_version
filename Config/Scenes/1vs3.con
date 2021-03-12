@@ -2,4 +2,5 @@ call Includes/Fast
 
 dr debugDrawing3d:representation:OpponentGoalModel
 dr debugDrawing3d:representation:StrikerPFModel
+dr debugDrawing3d:representation:BallCarrierModel
 gc playing
