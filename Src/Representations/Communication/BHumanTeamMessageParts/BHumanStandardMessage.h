@@ -126,6 +126,7 @@ STREAMABLE(BHumanStandardMessage,
   (int)           passTarget, /**< [-1..14] Which teammate this robot wants to pass to (or -1). */
   (Vector2f)      walkingTo,  /**< [-32768..32767 (1)] Where the robot wants to walk. */
   (Vector2f)      shootingTo, /**< [-32768..32767 (1)] Where the robot wants to kick the ball. */
+  (Vector2f)      goalTarget, /**< [-32768..32767 (1)] the current target on the goal line. */
 
   /**
    * Obstacle has the attributes covariance, center, left, right, velocity, lastSeen and type.

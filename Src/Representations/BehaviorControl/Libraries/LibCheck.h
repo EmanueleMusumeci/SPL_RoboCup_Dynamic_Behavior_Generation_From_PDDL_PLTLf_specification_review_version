@@ -10,6 +10,7 @@
 
 #include "Representations/MotionControl/MotionRequest.h"
 #include "Representations/Modeling/FreeGoalTargetableArea.h"
+#include "Representations/BehaviorControl/BallCarrierModel/BallCarrierModel.h"
 #include "Representations/Modeling/NodePF.h"
 #include "Tools/Function.h"
 #include "Tools/RobotParts/Arms.h"
@@ -64,7 +65,7 @@ STREAMABLE(LibCheck,
   FUNCTION(float(Obstacle obs)) gazeToObstacleProjectionDistanceOntoOpponentGroundLine;
 
   /** Provides a float value representing a score for each FreeGoalTargetableArea Determined by computeFreeAreas **/
-  FUNCTION(float(float leftLimit, float rightLimit)) areaValueHeuristic;
+  FUNCTION(float(float leftLimit, float rightLimit, float poles_weight, float opponents_weight, float teammates_weight)) areaValueHeuristic;
 
   /** Tells whether two segments are overlapping or not **/
   FUNCTION(bool(float l1, float r1, float l2, float r2)) areOverlappingSegmentsOnYAxis;
@@ -76,11 +77,11 @@ STREAMABLE(LibCheck,
   FUNCTION(Vector2f(bool shootASAP)) goalTarget;
 
   /** Computes the attractive field for the striker **/
-  FUNCTION(std::vector<NodePF>(Vector2f goal, float RO, float Kap, float Kbp, float Kr, 
+  FUNCTION(std::vector<NodePF>(Vector2f goal, float RO, float Kap, float Kbp, float Kr,
                                                     float TEAMMATE_CO, float ETA, float GAMMA)) compute_striker_attractive_PF;
 
   /** Computes the repulsive field for the striker **/
-  FUNCTION(std::vector<NodePF>(float RO, float Kap, float Kbp, float Kr, 
+  FUNCTION(std::vector<NodePF>(float RO, float Kap, float Kbp, float Kr,
                                                     float TEAMMATE_CO, float ETA, float GAMMA)) compute_striker_repulsive_PF;
 
   /** Initializes an empty PF **/
@@ -89,9 +90,11 @@ STREAMABLE(LibCheck,
   /** Computes an artificial potential field based on the provided attractive and repulsive fields **/
   FUNCTION(std::vector<NodePF>(std::vector<NodePF> attractive_field, std::vector<NodePF> repulsive_field, float cell_size)) computePF;
 
+  FUNCTION(float(float value, float fromIntervalMin, float fromIntervalMax, float toIntervalMin, float toIntervalMax)) mapToInterval;
+
   /** Performs checks for the team behavior */
   FUNCTION(void()) performTeamCheck;
-  
+
   FUNCTION(bool(float currentValue, float target, float bound)) isValueBalanced;
   FUNCTION(float(float x, float y)) angleToTarget;
   FUNCTION(float(float x, float y)) norm;
@@ -119,7 +122,10 @@ STREAMABLE(LibCheck,
   FUNCTION(std::tuple<int,int,Pose2f>()) strikerPassShare;
   FUNCTION(float(Vector2f objectToCheck, Vector2f linePoint1, Vector2f linePoint2)) distanceToLine;
   FUNCTION(bool(Vector2f point)) obstacleExistsAroundPoint;
-  FUNCTION(float()) defenderDynamicY,
+  FUNCTION(float()) defenderDynamicY;
+
+  FUNCTION(bool(int)) strikerPassCommonConditions,
+
 
   (bool) isGoalieInStartingPosition,
   (bool) isGoalieInAngle,
@@ -127,12 +133,12 @@ STREAMABLE(LibCheck,
   (bool) isGoalieInKickAwayRange,
   (bool) isBallInArea,
   (bool) isGoalieInArea,
-  
+
   (Vector2f) goaliePosition,
   (Vector2f) defenderPosition,
   (Vector2f) supporterPosition,
   (Vector2f) jollyPosition,
-  
+
   (float) angleForDefender,
   (float) angleForSupporter,
   (float) angleForJolly,
@@ -141,6 +147,7 @@ STREAMABLE(LibCheck,
   (int) timeSinceBallWasSeen,
   (float) goalie_displacement,
   (float) angleToGoal,
+  (float) angleToBall,
   (float) angleToMyGoal,
   (float) penaltyAngle,
   (float) kickAngle,

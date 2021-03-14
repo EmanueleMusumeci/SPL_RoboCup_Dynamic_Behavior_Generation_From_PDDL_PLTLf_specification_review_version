@@ -97,10 +97,16 @@ namespace Skills
 
  
 /**
-   * This skill walks to the ball to approach a global target.
+   * This skill walks to the ball to approach a global target and kicks to goal or passes.
    * @param target The target to shoot in global coordinates
    */
   SKILL_INTERFACE(WalkToApproach, (const Pose2f&) target, (float) offsetX, (float) offsetY, (bool)(true) useLeft);
+ 
+/**
+   * This skill walks to the ball to approach a global target and carries the ball forward.
+   * @param target The target to shoot in global coordinates
+   */
+  SKILL_INTERFACE(CarryBall, (const Pose2f&) target, (float) offsetX, (float) offsetY);
 
 
 
@@ -182,9 +188,37 @@ namespace Skills
 
   /**
    * This skill sets the goalTarget member of the BehaviorStatus.
-   * @param shootingTo The position in the opponent goal where the ball should end up in global coordinates
+   * @param goalTarget The position in the opponent goal where the ball should end up in global coordinates
    */
   SKILL_INTERFACE(GoalTarget, (const Vector2f&)(Vector2f::Zero()) goalTarget);
+
+  /**
+   * This skill sets the shootingTo member of the BehaviorStatus.
+   * @param shootingTo The target where the ball should end up in global coordinates
+   */
+  SKILL_INTERFACE(SetTarget, (const Vector2f&)(Vector2f::Zero()) chosenTarget);
+
+
+
+  //LOGGING SKILLS
+  /**
+   * These dummy skills are only used to show the value of their arguments on the "behavior" View of any robot in SimRobot.
+   * 
+   * @param Param String that represents the parameter name
+   * @param Value Parameter value (string)
+   */
+  SKILL_INTERFACE(LogStringParameter, (const std::string&) Param, (const std::string&) Value);
+
+  /**
+   * This skill sets the goalTarget member of the BehaviorStatus.
+   * @param Param String that represents the parameter name
+   * @param Value Parameter value (float)
+   */
+  SKILL_INTERFACE(LogFloatParameter, (const std::string&) Param, (float) Value);
+
+  //--------------
+
+
 
   /**
    * This skill sets the activity member of the BehaviorStatus.

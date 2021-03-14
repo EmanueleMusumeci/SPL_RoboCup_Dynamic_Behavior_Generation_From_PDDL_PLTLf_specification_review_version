@@ -97,6 +97,13 @@ void DebugDrawing3D::draw2()
 
   glEnable(GL_NORMALIZE);
 
+  //---------------
+  //|ADDED by SPQR|
+  //---------------
+  //Enables alpha channel
+  glEnable(GL_BLEND);
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
   // Draw all lines.
   if(!lines.empty())
   {
@@ -279,6 +286,8 @@ void DebugDrawing3D::draw2()
   //
   glPopAttrib();
   glPopMatrix();
+  
+  glDisable(GL_BLEND);
 }
 
 void DebugDrawing3D::reset()
