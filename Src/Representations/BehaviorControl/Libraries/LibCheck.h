@@ -124,8 +124,7 @@ STREAMABLE(LibCheck,
   FUNCTION(bool(Vector2f point)) obstacleExistsAroundPoint;
   FUNCTION(float()) defenderDynamicY;
 
-  FUNCTION(bool(int)) strikerPassCommonConditions;
-  FUNCTION(bool(Pose2f, Pose2f, std::vector<Obstacle, Eigen::aligned_allocator<Obstacle>>, int)) cleanShot,
+  FUNCTION(bool(int)) strikerPassCommonConditions,
 
 
   (bool) isGoalieInStartingPosition,

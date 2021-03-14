@@ -130,7 +130,11 @@ class ApproachAndKickCard : public ApproachAndKickCardBase
     std::cout << "pre " << theRobotPose.translation.norm() << '\n';
 
     //choose to kick if there is a clear scoring opportunity (striker close enough to the goal with no opponents in sight)
-    if (theLibCheck.cleanShot(theLibCheck.goalTarget(false), theRobotPose, theTeamPlayersModel.obstacles, 0)) {
+    if (
+      theFieldBall.positionOnField.x() > theFieldDimensions.xPosOpponentPenaltyMark - 1200.0f &&
+      theBallCarrierModel.isTargetOnGoal &&
+      !theBallCarrierModel.isFallbackPath
+    ) {
       std::cout << "Clean shot, here I go!!" << '\n';
       return true;
     }
@@ -146,7 +150,11 @@ class ApproachAndKickCard : public ApproachAndKickCardBase
   //this also includes some hysteresis to make sure the striker sticks with a decision.
   bool postconditions() const override
   {
-    if (! theLibCheck.cleanShot(theLibCheck.goalTarget(false), theRobotPose, theTeamPlayersModel.obstacles, 1)) {
+    if (!(
+      theFieldBall.positionOnField.x() > theFieldDimensions.xPosOpponentPenaltyMark - 1400.0f &&
+      theBallCarrierModel.isTargetOnGoal &&
+      !theBallCarrierModel.isFallbackPath
+    )) {
       std::cout << "Shouldn't kick anymore" << '\n';
       return true;
     }

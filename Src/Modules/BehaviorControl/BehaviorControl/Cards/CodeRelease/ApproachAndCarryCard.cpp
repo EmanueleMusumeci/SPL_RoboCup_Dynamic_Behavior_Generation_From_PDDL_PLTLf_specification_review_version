@@ -118,6 +118,7 @@ class ApproachAndCarryCard : public ApproachAndCarryCardBase
 
   bool preconditions() const override
   {
+    std::cout << "Carrying" << '\n';
     return true;
   }
 

@@ -19,6 +19,7 @@
 #include "Representations/MotionControl/MotionInfo.h"
 #include "Representations/BehaviorControl/Libraries/LibCheck.h"
 #include "Representations/Modeling/TeamPlayersModel.h"
+#include "Representations/BehaviorControl/BallCarrierModel/BallCarrierModel.h"
 #include "Tools/Math/BHMath.h"
 
 
@@ -49,6 +50,7 @@ CARD(ApproachAndPassCard,
   REQUIRES(FieldDimensions),
   REQUIRES(RobotInfo),
   REQUIRES(RobotPose),
+  REQUIRES(BallCarrierModel),
   USES(BehaviorStatus),
 
   REQUIRES(GameInfo),
@@ -96,7 +98,8 @@ class ApproachAndPassCard : public ApproachAndPassCardBase
       return false;
     }
 
-    //if we can pass we run the conditions in libcheck
+    //if there is a pass pass we run the conditions in libcheck
+    //to decide whether to actually do it or not
     bool shouldPass = theLibCheck.strikerPassCommonConditions(0);
     if (shouldPass) {
       std::cout << "Pass conditions are go" << '\n';
@@ -125,10 +128,13 @@ class ApproachAndPassCard : public ApproachAndPassCardBase
       return true;
     }
 
-
     //give up passing if a shooting opportunity comes up,
     //because that has priority
-    if (theLibCheck.cleanShot(theLibCheck.goalTarget(false), theRobotPose, theTeamPlayersModel.obstacles, -1)) {
+    if (
+      theFieldBall.positionOnField.x() > theFieldDimensions.xPosOpponentPenaltyMark - 1200.0f &&
+      theBallCarrierModel.isTargetOnGoal &&
+      !theBallCarrierModel.isFallbackPath
+    ) {
       std::cout << "Kicking opportunity arose, leaving pass card" << '\n';
       return true;
     }
