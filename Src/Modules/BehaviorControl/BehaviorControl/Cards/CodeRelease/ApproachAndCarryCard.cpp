@@ -1,9 +1,10 @@
 /**
- * @file ApproachAndKickCard.cpp
+ * @file ApproachAndCarryCard.cpp
  *
- * This file implements a behavior for approaching the ball and kick it to a given target.
+ * This file implements a behavior to carry the ball forward in the field, avoiding obstacles.
  *
- * @author Emanuele Antonioni
+ * @author Emanuele Musumeci (based on Emanuele Antonioni's basic approacher behavior structure)
+ * SORRY FOR THE S****Y CODE, DIDN'T HAVE MUCH TIME, WILL FIX IT
  */
 
 #include "Representations/BehaviorControl/BehaviorStatus.h"
@@ -33,7 +34,7 @@ CARD(ApproachAndCarryCard,
   CALLS(Kick),
   CALLS(WalkToTargetPathPlanner),
   CALLS(WalkToTargetPathPlannerStraight),
-  CALLS(WalkToApproach),
+  CALLS(WalkToCarry),
   CALLS(GoalTarget),
   CALLS(SetTarget),
   CALLS(LogFloatParameter),
@@ -118,7 +119,7 @@ class ApproachAndCarryCard : public ApproachAndCarryCardBase
 
   bool preconditions() const override
   {
-    std::cout << "Carrying" << '\n';
+    //std::cout << "Carrying" << '\n';
     return true;
   }
 
@@ -129,7 +130,7 @@ class ApproachAndCarryCard : public ApproachAndCarryCardBase
 
   option
   {
-    theActivitySkill(BehaviorStatus::approachAndKick);
+    theActivitySkill(BehaviorStatus::approachAndCarry);
 
     initial_state(start)
     {
@@ -246,7 +247,7 @@ class ApproachAndCarryCard : public ApproachAndCarryCardBase
           goto walkToBall_far;
         }
 
-        std::cout<<"\nangleToTarget:"<<abs(angleToTarget)<<std::endl;
+        /*std::cout<<"\nangleToTarget:"<<abs(angleToTarget)<<std::endl;
         std::cout<<"angle_target_treshold:"<<angle_target_treshold<<std::endl;
         std::cout<<"std::abs(angleToTarget) < angle_target_treshold:"<<(std::abs(angleToTarget) < angle_target_treshold)<<std::endl;
         std::cout<<"\ntheFieldBall.positionRelative.x():"<<theFieldBall.positionRelative.x()<<std::endl;
@@ -259,20 +260,22 @@ class ApproachAndCarryCard : public ApproachAndCarryCardBase
             && ballOffsetYRange.isInside(theFieldBall.positionRelative.y())){
                 // We could let robot saying " KICK AT GOAL "
                 goto kick;
-        }
+        }*/
+        goto kick;
+
       }
       action{
-        theLookAtPointSkill(Vector3f(theFieldBall.positionRelative.x(), theFieldBall.positionRelative.y(), 0.f));
+        //theLookAtPointSkill(Vector3f(theFieldBall.positionRelative.x(), theFieldBall.positionRelative.y(), 0.f));
 
-        theGoalTargetSkill(goalTarget);
-        theSetTargetSkill(chosenTarget);
+        //theGoalTargetSkill(goalTarget);
+        //theSetTargetSkill(chosenTarget);
         //theLogFloatParameterSkill("HELLO", 0);
         //std::cout<<"Target: ("<<chosenTarget.x()<<", "<<chosenTarget.y()<<")"<<std::endl;
-        theWalkToApproachSkill(chosenTarget, ballOffsetX, ballOffsetY, true);
+        //theWalkToApproachSkill(chosenTarget, ballOffsetX, ballOffsetY, true);
 
-        double distanceTarget =  (chosenTarget - theFieldBall.positionOnField).norm();
+        //double distanceTarget =  (chosenTarget - theFieldBall.positionOnField).norm();
         // Since we are kicking, we don't want the ball to arrive just on the opponent goal line. So let's add 2 meters.
-        distanceConfirmed = distanceTarget+2000.f;
+        //distanceConfirmed = distanceTarget+2000.f;
         //const Angle angleToTarget = calcAngleToTarget(target);
         //std::cout<< "TAR_X:"<<target.x()<<"\tTAR_Y:"<<target.y()<<"\tDISTANCE TO TARGET:"<< distanceTarget<<"\tBallX:"<<theFieldBall.positionRelative.x()<<"\tBallY:"<<theFieldBall.positionRelative.y()<<"\tCHECKx:"<<ballOffsetXRange.isInside(theFieldBall.positionRelative.x())<<"\tCHECKy"<<ballOffsetYRange.isInside(theFieldBall.positionRelative.y())<<"\tyRange:["<<ballOffsetYRange.min<<","<<ballOffsetYRange.max<<"]\tangleToTarget:"<<std::abs(angleToTarget)<<"\tangleTreshold:"<<angle_target_treshold<<"\tNORM:"<<theFieldBall.positionRelative.norm()<<"\n";
 
@@ -297,16 +300,25 @@ class ApproachAndCarryCard : public ApproachAndCarryCardBase
 
       action
       {
-        theLogStringParameterSkill("HELLO", "KICK");
+        double distanceTarget =  (chosenTarget - theFieldBall.positionOnField).norm();
+        // Since we are kicking, we don't want the ball to arrive just on the opponent goal line. So let's add 2 meters.
+        //distanceConfirmed = distanceTarget+2000.f;
+        distanceConfirmed = distanceTarget;
+        //const Angle angleToTarget = calcAngleToTarget(target);
+
+        //theLogStringParameterSkill("HELLO", "KICK");
         if ( not alreadyEnqueued){
             alreadyEnqueued = true;
             std::string distanceTargetString = std::to_string(int(distanceConfirmed/1000.f));
-            SystemCall::say("KICKING TO DISTANCE");
+            SystemCall::say("IN WALK KICKING TO DISTANCE");
             SystemCall::say(distanceTargetString.c_str());
             SystemCall::say("METERS");
-
+            theInWalkKickSkill(WalkKickVariant(WalkKicks::forward, Legs::right), Pose2f(Angle::fromDegrees(0.f), theFieldBall.positionRelative.x() - ballOffsetX, theFieldBall.positionRelative.y() - ballOffsetY));
         }
         theLookAtPointSkill(Vector3f(theFieldBall.positionRelative.x(), theFieldBall.positionRelative.y(), 0.f));
+
+        theGoalTargetSkill(goalTarget);
+        theSetTargetSkill(chosenTarget);
         /*if(theFieldBall.positionOnField.x()>goalKickThreshold) //If the ball is near enough to the goal to score with a single long kick
         {
           if(theFieldBall.positionOnField.x()>nearGoalThreshold) //If the ball is right in front of the goal use a strong kick
@@ -341,7 +353,7 @@ class ApproachAndCarryCard : public ApproachAndCarryCardBase
         }*/
 
         //InWalkKick per buttare a destra, target che sta leggermente a sinistra e viceversa (non più di 70° nel cfg)
-        theInWalkKickSkill(WalkKickVariant(WalkKicks::forward, Legs::right), Pose2f(Angle::fromDegrees(0.f), theFieldBall.positionRelative.x() - ballOffsetX, theFieldBall.positionRelative.y() - ballOffsetY));
+        //theInWalkKickSkill(WalkKickVariant(WalkKicks::forward, Legs::right), Pose2f(Angle::fromDegrees(0.f), theFieldBall.positionRelative.x() - ballOffsetX, theFieldBall.positionRelative.y() - ballOffsetY));
        }
     }
 

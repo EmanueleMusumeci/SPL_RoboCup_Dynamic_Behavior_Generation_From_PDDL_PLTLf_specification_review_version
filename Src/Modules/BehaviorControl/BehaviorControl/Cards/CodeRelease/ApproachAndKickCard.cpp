@@ -127,20 +127,21 @@ class ApproachAndKickCard : public ApproachAndKickCardBase
   // The choice between passing and carrying ball is done further down in the hierarchy.
   bool preconditions() const override
   {
-    std::cout << "pre " << theRobotPose.translation.norm() << '\n';
+    //std::cout << "pre " << theRobotPose.translation.norm() << '\n';
 
     //choose to kick if there is a clear scoring opportunity (striker close enough to the goal with no opponents in sight)
     if (
-      theFieldBall.positionOnField.x() > theFieldDimensions.xPosOpponentPenaltyMark - 1200.0f &&
-      theBallCarrierModel.isTargetOnGoal &&
-      !theBallCarrierModel.isFallbackPath
+      theFieldBall.positionOnField.x() > theFieldDimensions.xPosOpponentPenaltyMark - 1200.0f //&&
+      //theBallCarrierModel.isTargetOnGoal && !theBallCarrierModel.isFallbackPath
+      //TO FRANCESCO FROM EMANUELE MUSUMECI: I had to relax a bit the precondition for the kick card 
+      //(theBallCarrierModel.isTargetOnGoal || theBallCarrierModel.isFallbackPath)
     ) {
-      std::cout << "Clean shot, here I go!!" << '\n';
+      //std::cout << "Clean shot, here I go!!" << '\n';
       return true;
     }
     //otherwise, it's best to pass or carry the ball
     else {
-      std::cout << "No kick for now" << '\n';
+      //std::cout << "No kick for now" << '\n';
       return false;
     }
   }
@@ -155,11 +156,11 @@ class ApproachAndKickCard : public ApproachAndKickCardBase
       theBallCarrierModel.isTargetOnGoal &&
       !theBallCarrierModel.isFallbackPath
     )) {
-      std::cout << "Shouldn't kick anymore" << '\n';
+      //std::cout << "Shouldn't kick anymore" << '\n';
       return true;
     }
     else {
-      std::cout << "Still kicking" << '\n';
+      //std::cout << "Still kicking" << '\n';
       return false;
     }
   }

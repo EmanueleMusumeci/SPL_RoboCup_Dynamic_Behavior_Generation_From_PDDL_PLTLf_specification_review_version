@@ -102,6 +102,13 @@ namespace Skills
    */
   SKILL_INTERFACE(WalkToApproach, (const Pose2f&) target, (float) offsetX, (float) offsetY, (bool)(true) useLeft);
  
+
+/**
+   * Similar to WalkToApproach but specific for the ball carrier card
+   * @param target The target to shoot in global coordinates
+   */
+  SKILL_INTERFACE(WalkToCarry, (const Pose2f&) target, (float) offsetX, (float) offsetY, (bool)(true) useLeft);
+
 /**
    * This skill walks to the ball to approach a global target and carries the ball forward.
    * @param target The target to shoot in global coordinates

@@ -94,7 +94,7 @@ class ApproachAndPassCard : public ApproachAndPassCardBase
   {
     //needless to say, if we don't have a pass avaliable we can't pass
     if (thePassShare.readyPass == 0) {
-      std::cout << "No pass available, can't pass" << '\n';
+      //std::cout << "No pass available, can't pass" << '\n';
       return false;
     }
 
@@ -102,11 +102,11 @@ class ApproachAndPassCard : public ApproachAndPassCardBase
     //to decide whether to actually do it or not
     bool shouldPass = theLibCheck.strikerPassCommonConditions(0);
     if (shouldPass) {
-      std::cout << "Pass conditions are go" << '\n';
+      //std::cout << "Pass conditions are go" << '\n';
       return true;
     }
     else {
-      std::cout << "Maybe it's better to play by myself for now" << '\n';
+      //std::cout << "Maybe it's better to play by myself for now" << '\n';
       return false;
     }
   }
@@ -124,29 +124,31 @@ class ApproachAndPassCard : public ApproachAndPassCardBase
       thePassShare.readyPass == 0 ||
       std::abs(theBehaviorStatus.shootingTo.x())<std::abs(theRobotPose.translation.x())
     ) {
-      std::cout << "pass post: early check is true" << '\n';
+      //std::cout << "pass post: early check is true" << '\n';
       return true;
     }
 
     //give up passing if a shooting opportunity comes up,
     //because that has priority
     if (
-      theFieldBall.positionOnField.x() > theFieldDimensions.xPosOpponentPenaltyMark - 1200.0f &&
-      theBallCarrierModel.isTargetOnGoal &&
-      !theBallCarrierModel.isFallbackPath
+      theFieldBall.positionOnField.x() > theFieldDimensions.xPosOpponentPenaltyMark - 1200.0f //&&
+      //TO FRANCESCO FROM EMANUELE MUSUMECI: I had to relax a bit the precondition for the kick card 
+      //theBallCarrierModel.isTargetOnGoal && !theBallCarrierModel.isFallbackPath
+      //(theBallCarrierModel.isTargetOnGoal || theBallCarrierModel.isFallbackPath)
+      
     ) {
-      std::cout << "Kicking opportunity arose, leaving pass card" << '\n';
+      //std::cout << "Kicking opportunity arose, leaving pass card" << '\n';
       return true;
     }
 
     //otherwise check the same conditions as precond. to decide whether to keep passing
     bool shouldPass = theLibCheck.strikerPassCommonConditions(1);
     if (shouldPass) {
-      std::cout << "Still passing" << '\n';
+      //std::cout << "Still passing" << '\n';
       return true;
     }
     else {
-      std::cout << "Shouldn't pass anymore" << '\n';
+      //std::cout << "Shouldn't pass anymore" << '\n';
       return false;
     }
   }

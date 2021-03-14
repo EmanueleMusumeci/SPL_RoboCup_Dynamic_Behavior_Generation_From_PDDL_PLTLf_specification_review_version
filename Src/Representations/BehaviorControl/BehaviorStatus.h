@@ -31,6 +31,7 @@ STREAMABLE(BehaviorStatus, COMMA public BHumanMessageParticle<idBehaviorStatus>
 
     codeReleaseKickAtGoal,
     approachAndKick,
+    approachAndCarry,
     defender,
     defenderCore,
     defenderCoreAU,
