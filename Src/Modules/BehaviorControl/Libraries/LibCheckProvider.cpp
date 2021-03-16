@@ -43,6 +43,12 @@ void LibCheckProvider::update(LibCheck& libCheck)
   libCheck.isGoalieInArea = isGoalieInArea();
   libCheck.isGoalieInKickAwayRange = isGoalieInKickAwayRange();
   libCheck.isBallInKickAwayRange = isBallInKickAwayRange();
+  
+  libCheck.angleBetweenPoints = [&](const Pose2f p1, const Pose2f p2) -> float {
+    std::cout<<"HELLO";
+    (p1.inverse() * Vector2f(p2.translation.x(), p2.translation.x())).angle();
+    std::cout<<"HELLO2";
+  };
 
   libCheck.norm = [&](float x, float y) -> float
   {

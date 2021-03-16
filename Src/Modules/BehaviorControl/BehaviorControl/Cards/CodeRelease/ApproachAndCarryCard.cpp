@@ -69,6 +69,7 @@ CARD(ApproachAndCarryCard,
     (Rangef) approachYRange,
     (Rangef) smallApproachYRange,
     (Rangef) smallApproachXRange,
+    (Rangef) ballAlignmentRange,
     (float) ballOffsetY,
     (Rangef) ballOffsetYRange,
     (int) minKickWaitTime,
@@ -209,18 +210,34 @@ class ApproachAndCarryCard : public ApproachAndCarryCardBase
     {
       transition
       {
-
+        std::cout<<"walkToBallNear"<<std::endl;
         if(!theFieldBall.ballWasSeen(ballNotSeenTimeout))
           goto searchForBall;
 
         if(smallApproachXRange.isInside(theFieldBall.positionRelative.x())
             && smallApproachYRange.isInside(theFieldBall.positionRelative.y())){
-                goto approach;
+              if(!ballAlignmentRange.isInside(calcAngleToTarget(chosenTarget).toDegrees()))
+              {
+                std::cout<<"!ballAlignmentRange.isInside(calcAngleToTarget(chosenTarget).toDegrees())"<<std::endl;
+                goto turnToBall;
+              }
+              else
+              {
+                std::cout<<"goto kick"<<std::endl;
+                goto kick;
+              }
         }
       }
       action{
         theLookAtPointSkill(Vector3f(theFieldBall.positionRelative.x(), theFieldBall.positionRelative.y(), 0.f));
-        theWalkToTargetPathPlannerStraightSkill(Pose2f(1.f,1.f,1.f), Pose2f(theFieldBall.positionOnField) - Pose2f(ballOffsetX, 50.f));
+        
+        float ballToTargetAngle = theLibCheck.angleBetweenPoints(chosenTarget, Pose2f(theFieldBall.positionOnField));
+        std::cout<<"ballToTargetAngle: "<<ballToTargetAngle<<std::endl;
+        float dynamicOffsetX = ballOffsetX * cos(ballToTargetAngle);
+        float dynamicOffsetY = ballOffsetX * sin(ballToTargetAngle);
+        std::cout<<"dynamicOffsetX: "<<ballToTargetAngle<<std::endl;
+        std::cout<<"dynamicOffsetY: "<<ballToTargetAngle<<std::endl; 
+        theWalkToTargetPathPlannerStraightSkill(Pose2f(1.f,1.f,1.f), Pose2f(theFieldBall.positionOnField) - Pose2f(dynamicOffsetX, dynamicOffsetY));
       }
     }
 
@@ -267,8 +284,8 @@ class ApproachAndCarryCard : public ApproachAndCarryCardBase
       action{
         //theLookAtPointSkill(Vector3f(theFieldBall.positionRelative.x(), theFieldBall.positionRelative.y(), 0.f));
 
-        //theGoalTargetSkill(goalTarget);
-        //theSetTargetSkill(chosenTarget);
+        theGoalTargetSkill(goalTarget);
+        theSetTargetSkill(chosenTarget);
         //theLogFloatParameterSkill("HELLO", 0);
         //std::cout<<"Target: ("<<chosenTarget.x()<<", "<<chosenTarget.y()<<")"<<std::endl;
         //theWalkToApproachSkill(chosenTarget, ballOffsetX, ballOffsetY, true);
