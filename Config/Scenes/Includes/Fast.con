@@ -36,6 +36,8 @@ mr KeyStates LogDataProvider Motion
 mr OpponentGoalModel OpponentGoalModelProvider Cognition
 #Striker Potential Field module
 mr StrikerPFModel StrikerPFModelProvider Cognition
+#Striker Ball Carrier module
+mr BallCarrierModel BallCarrierModelProvider Cognition
 
 # Deactivate Upper/Lower inter-thread communication
 mr ObstaclesPerceptorData off

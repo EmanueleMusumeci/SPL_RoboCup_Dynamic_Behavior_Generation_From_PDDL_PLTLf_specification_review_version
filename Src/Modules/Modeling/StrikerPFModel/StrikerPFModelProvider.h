@@ -15,21 +15,27 @@
 #include "Tools/Module/Module.h"
 #include "Representations/Modeling/StrikerPFModel.h"
 #include "Representations/BehaviorControl/Role.h"
+#include "Representations/Communication/GameInfo.h"
 #include "Representations/BehaviorControl/Libraries/LibCheck.h"
 
 MODULE(StrikerPFModelProvider,
 {,
     REQUIRES(LibCheck),
     REQUIRES(Role),
+    REQUIRES(GameInfo),
     PROVIDES(StrikerPFModel),
     LOADS_PARAMETERS(
     {,
       //goalTarget constants
       (bool) GRAPHICAL_DEBUG,                                      /** Show graphical debug in SimRobot */
+      (bool) SHOW_TILES,                                           /** Represent the PF as a tiled floor (otherwise its represented as arrows) */
       (float) GRAPHICAL_NORM_FACTOR,                               /** Multiplicative factor for height of graphical render of potential field node */
       (float) GRAPHICAL_POTENTIAL_UPPER_BOUND,                     /** Graphical upper bound for the color of the potential node */
       (float) GRAPHICAL_POTENTIAL_LOWER_BOUND,                     /** Graphical lower bound for the color of the potential node */
       (float) GRAPHICAL_DRAW_RADIUS,                               /** Max distance of drawn potential nodes */ 
+
+      (float) GRAPHICAL_MIN_MESH_HEIGHT,                           /** Min height of the mesh nodes (if SHOW_TILES is True) */  
+      (float) GRAPHICAL_MAX_MESH_HEIGHT,                           /** Max height of the mesh nodes (if SHOW_TILES is True) */
 
       (bool) GRAPHICAL_ARROW_LENGTH_AS_NORM,                       /** Use norm of the potential node as the length of the arrow */
       (float) GRAPHICAL_ARROW_LENGTH,                              /** Length of the graphical representation of a potential node */

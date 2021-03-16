@@ -51,8 +51,8 @@ void SideConfidenceProvider::update(SideConfidence& sideConfidence)
   draw();
 
   // !
-  if(sideConfidence.mirror)
-    SystemCall::playSound("theFlippingChicken.wav");
+  //if(sideConfidence.mirror)
+    //SystemCall::playSound("theFlippingChicken.wav");
 }
 
 void SideConfidenceProvider::fillRepresentation(SideConfidence& sideConfidence)

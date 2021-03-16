@@ -55,6 +55,7 @@ BHumanStandardMessage::BHumanStandardMessage() :
   passTarget(-1),
   walkingTo(Vector2f::Zero()),
   shootingTo(Vector2f::Zero()),
+  goalTarget(Vector2f::Zero()),
   obstacles(),
   say(0),
   nextTeamTalk(0),
@@ -101,6 +102,7 @@ int BHumanStandardMessage::sizeOfBHumanMessage() const
          + 2 // timeWhenReachBallStriker
          + 2 * 2 // walkingTo
          + 2 * 2 // shootingTo
+         + 2 * 2 // goalTarget
          + 2 // captain, teammateRolesTimestamp
          + 2 // number of obstacles, isPenalized, isUpright, hasGroundContact, requestsNTPMessage, NTP reply bitset
          + 1 // say
@@ -177,6 +179,8 @@ void BHumanStandardMessage::write(void* data) const
   writeVal<int16_t>(data, CLIP_AND_CAST_TO_INT16(walkingTo.y()));
   writeVal<int16_t>(data, CLIP_AND_CAST_TO_INT16(shootingTo.x()));
   writeVal<int16_t>(data, CLIP_AND_CAST_TO_INT16(shootingTo.y()));
+  writeVal<int16_t>(data, CLIP_AND_CAST_TO_INT16(goalTarget.x()));
+  writeVal<int16_t>(data, CLIP_AND_CAST_TO_INT16(goalTarget.y()));
 
   static_assert(Settings::highestValidPlayerNumber <= 6, "This code only works for player numbers up to 6.");
   const uint32_t teammateRolesTimestampDiff = timestamp - std::min(timestamp, teammateRolesTimestamp);
@@ -319,6 +323,8 @@ bool BHumanStandardMessage::read(const void* data)
   walkingTo.y() = readVal<const int16_t>(data);
   shootingTo.x() = readVal<const int16_t>(data);
   shootingTo.y() = readVal<const int16_t>(data);
+  goalTarget.x() = readVal<const int16_t>(data);
+  goalTarget.y() = readVal<const int16_t>(data);
 
   static_assert(Settings::highestValidPlayerNumber <= 6, "This code only works for player numbers up to 6.");
   const uint16_t captainTeammateRolesTimestamp = readVal<const uint16_t>(data);

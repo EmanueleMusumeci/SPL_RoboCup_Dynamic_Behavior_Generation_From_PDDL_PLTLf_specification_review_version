@@ -18,13 +18,18 @@ StrikerPFModelProvider::StrikerPFModelProvider() :
 
 void StrikerPFModelProvider::update(StrikerPFModel& strikerPFModel)
 {
-    if(theRole.role == Role::striker)
+    if(theGameInfo.state == STATE_PLAYING && theRole.role == Role::striker)
     {
-        strikerPFModel.graphical_debug = GRAPHICAL_DEBUG;
+        strikerPFModel.graphical_debug = (GRAPHICAL_DEBUG==1 ? true : false);
+        strikerPFModel.show_tiles = (SHOW_TILES==1 ? true : false);
+
         strikerPFModel.graphical_norm_factor = GRAPHICAL_NORM_FACTOR;
         strikerPFModel.graphical_potential_upper_bound = GRAPHICAL_POTENTIAL_UPPER_BOUND;
         strikerPFModel.graphical_potential_lower_bound = GRAPHICAL_POTENTIAL_LOWER_BOUND;
         strikerPFModel.graphical_draw_radius = GRAPHICAL_DRAW_RADIUS;
+
+        strikerPFModel.graphical_min_mesh_height = GRAPHICAL_MAX_MESH_HEIGHT;
+        strikerPFModel.graphical_max_mesh_height = GRAPHICAL_MIN_MESH_HEIGHT;
 
         strikerPFModel.graphical_arrow_length_as_norm = (GRAPHICAL_ARROW_LENGTH_AS_NORM==1 ? true : false);
         strikerPFModel.graphical_arrow_length = GRAPHICAL_ARROW_LENGTH;

@@ -35,6 +35,7 @@ STREAMABLE(BehaviorStatus, COMMA public BHumanMessageParticle<idBehaviorStatus>
     searcher2,
     searcher3,
     searcher4,
+    approachAndCarry,
     defender,
     defenderCore,
     defenderCoreAU,
@@ -72,6 +73,7 @@ STREAMABLE(BehaviorStatus, COMMA public BHumanMessageParticle<idBehaviorStatus>
   (int)(-1) passTarget,
   (Vector2f)(Vector2f::Zero()) walkingTo,
   (Vector2f)(Vector2f::Zero()) shootingTo,
+  (Vector2f)(Vector2f::Zero()) goalTarget,
 });
 
 inline void BehaviorStatus::operator>>(BHumanMessage& m) const
@@ -82,6 +84,7 @@ inline void BehaviorStatus::operator>>(BHumanMessage& m) const
   m.theBHumanStandardMessage.passTarget = passTarget;
   m.theBHumanStandardMessage.walkingTo = walkingTo;
   m.theBHumanStandardMessage.shootingTo = shootingTo;
+  m.theBHumanStandardMessage.goalTarget = goalTarget;
 }
 
 inline void BehaviorStatus::operator<<(const BHumanMessage& m)
@@ -98,10 +101,12 @@ inline void BehaviorStatus::operator<<(const BHumanMessage& m)
       activity = BehaviorStatus::finished;
     walkingTo = Vector2f::Zero();
     shootingTo = Vector2f::Zero();
+    goalTarget = Vector2f::Zero();
     return;
   }
   activity = static_cast<Activity>(m.theBHumanStandardMessage.activity);
   passTarget = m.theBHumanStandardMessage.passTarget;
   walkingTo = m.theBHumanStandardMessage.walkingTo;
   shootingTo = m.theBHumanStandardMessage.shootingTo;
+  goalTarget = m.theBHumanStandardMessage.goalTarget;
 }

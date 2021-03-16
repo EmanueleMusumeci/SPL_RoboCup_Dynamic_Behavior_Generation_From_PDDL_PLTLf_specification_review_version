@@ -15,6 +15,8 @@
 #include "Representations/BehaviorControl/TeamBehaviorStatus.h"
 #include "Representations/BehaviorControl/Role.h"
 #include "Representations/Modeling/BallModel.h"
+#include "Representations/BehaviorControl/FieldBall.h"
+#include "Representations/BehaviorControl/BallCarrierModel/BallCarrierModel.h"
 #include "Representations/Modeling/TeamPlayersModel.h"
 #include "Representations/Configuration/FieldDimensions.h"
 #include "Representations/Communication/RobotInfo.h"
@@ -40,6 +42,8 @@
 #include "Representations/spqr_representations/FreeCorridors.h"
 #include "Representations/spqr_representations/OurDefinitions.h"
 
+#include "Representations/spqr_representations/PassShare.h"
+
 #include "Tools/Module/Module.h"
 #include <math.h>
 
@@ -47,6 +51,7 @@ MODULE(LibCheckProvider,
 {,
   USES(ActivationGraph),
   REQUIRES(BallModel),
+  REQUIRES(FieldBall),
   REQUIRES(FrameInfo),
   REQUIRES(FieldDimensions),
   REQUIRES(RobotInfo),
@@ -63,12 +68,15 @@ MODULE(LibCheckProvider,
   USES(BallSpecification),
   //StrikerPF
   USES(StrikerPFModel),
+  //BallCarrierModel
+  USES(BallCarrierModel),
   //
   USES(TeamActivationGraph),
   USES(TeamBehaviorStatus),
   USES(TeamData),
   USES(Role),
   USES(RoleAndContext),
+  USES(PassShare),
   PROVIDES(LibCheck),
   LOADS_PARAMETERS(
   {,
@@ -171,11 +179,14 @@ private:
  float gazeToObstacleProjectionDistanceOntoOpponentGroundLine(Obstacle obs);
 
  /** Provides a float value representing a score for each FreeGoalTargetableArea Determined by computeFreeAreas
-  * @param begin left limit of the free targetable area
-  * @param end right limit of the free targetable area
+  * @param leftLimit left limit of the free targetable area
+  * @param rightLimit right limit of the free targetable area
+  * @param poles_weight relative weight in the final utility for the poles
+  * @param opponents_weight relative weight in the final utility for the opponents
+  * @param teammates_weight relative weight in the final utility for the teammates
   * @return value assigned after area evaluation
   * **/
- float areaValueHeuristic(float leftLimit, float rightLimit);
+ float areaValueHeuristic(float leftLimit, float rightLimit, float poles_weight = 1, float opponents_weight = 1, float teammates_weight = 1);
 
   /** Tells whether two segments are overlapping or not
   * @param l1 left limit of first segment
@@ -186,7 +197,7 @@ private:
   * **/
  bool areOverlappingSegmentsOnYAxis (float l1, float r1, float l2, float r2);
 
- /** Provides a vector with the point of beginning and finish of goal areas free from opponent coverage 
+ /** Provides a vector with the point of beginning and finish of goal areas free from opponent coverage
   * @param myPose pose of the robot
   * @param opponents the opponent vector (global coordinates)
   * @return vector of free areas
@@ -204,7 +215,7 @@ private:
   * @param goal The 2D position of the goal (that generates the attractive field)
   * @return std::vector of PFCell structures, containing various info about the potential field cell
   * **/
- std::vector<NodePF> compute_striker_attractive_PF(Vector2f goal, float RO = 1000.f, float Kap = 0.1f, float Kbp = 100.f, 
+ std::vector<NodePF> compute_striker_attractive_PF(Vector2f goal, float RO = 1000.f, float Kap = 0.1f, float Kbp = 100.f,
                                                   float Kr = 100.f, float TEAMMATE_CO = 500.f, float ETA = 1000.f, float GAMMA = 2.f);
 
 
@@ -212,7 +223,7 @@ private:
   * @param goal The 2D position of the goal (that generates the attractive field)
   * @return std::vector of PFCell structures, containing various info about the potential field cell
   * **/
- std::vector<NodePF> compute_striker_repulsive_PF(float RO = 1000.f, float Kap = 0.1f, float Kbp = 100.f, float Kr = 100.f, 
+ std::vector<NodePF> compute_striker_repulsive_PF(float RO = 1000.f, float Kap = 0.1f, float Kbp = 100.f, float Kr = 100.f,
                                                   float TEAMMATE_CO = 500.f, float ETA = 1000.f, float GAMMA = 2.f);
 
  /** Initializes an empty PF
@@ -221,8 +232,8 @@ private:
   * **/
  std::vector<NodePF> initialize_PF(float cell_size);
 
- /** Based on a previous implementation by Vincenzo Suriani, computes the an artificial potential field given a precomputed attractive and 
-  * repulsive field respectively. Allows specifying a maximum cell update radius around the player. 
+ /** Based on a previous implementation by Vincenzo Suriani, computes the an artificial potential field given a precomputed attractive and
+  * repulsive field respectively. Allows specifying a maximum cell update radius around the player.
   * @param obstacles A vector of obstacles that generate the repulsive field
   * @param attractive_field An std::vector containing the precomputed attractive field, it has to be of the same size of repulsive_field
   * @param attractive_field An std::vector containing the precomputed repulsive field, it has to be of the same size of attractive_field
@@ -233,8 +244,10 @@ private:
 
 
  int isTargetToPass;
- 
- 
+
+ float sqrDistanceOfClosestOpponentToPoint(Vector2f p);
+
+
  Pose2f glob2Rel(float x, float y);
  Pose2f rel2Glob(float x, float y);
  Vector2f getSupporterMarkPosition();
@@ -259,6 +272,7 @@ private:
  bool isGoalieInAngle();
  float goalie_displacement;
  float angleToGoal;
+ float angleToBall;
  float angleToMyGoal;
  float penaltyAngle;
  float kickAngle;
@@ -269,6 +283,9 @@ private:
 
  float angleToTarget(float x, float y);   // TODO This is to check orientation wrt to target x = 4500 y = 3000 to left and -3000 to right
  float norm(float x, float y);
- 
+
+ //Maps value from interval [fromIntervalMin, fromIntervalMax] to interval [toIntervalMin, toIntervalMax]
+ float mapToInterval(float value, float fromIntervalMin, float fromIntervalMax, float toIntervalMin, float toIntervalMax);
+
  public: LibCheckProvider();
 };
