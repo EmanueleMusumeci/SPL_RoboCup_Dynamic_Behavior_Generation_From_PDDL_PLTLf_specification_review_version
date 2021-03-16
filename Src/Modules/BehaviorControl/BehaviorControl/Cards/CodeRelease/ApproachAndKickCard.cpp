@@ -127,6 +127,7 @@ class ApproachAndKickCard : public ApproachAndKickCardBase
   // The choice between passing and carrying ball is done further down in the hierarchy.
   bool preconditions() const override
   {
+    
     //std::cout << "pre " << theRobotPose.translation.norm() << '\n';
 
     //choose to kick if there is a clear scoring opportunity (striker close enough to the goal with no opponents in sight)
@@ -144,6 +145,7 @@ class ApproachAndKickCard : public ApproachAndKickCardBase
       //std::cout << "No kick for now" << '\n';
       return false;
     }
+    
   }
 
 
