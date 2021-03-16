@@ -146,6 +146,7 @@ class ApproachAndKickCard : public ApproachAndKickCardBase
       return false;
     }
     
+    
   }
 
 
@@ -225,7 +226,7 @@ class ApproachAndKickCard : public ApproachAndKickCardBase
       action
       {
         theLookAtPointSkill(Vector3f(theFieldBall.positionRelative.x(), theFieldBall.positionRelative.y(), 0.f));
-        theWalkToTargetPathPlannerSkill(Pose2f(1.f,1.f,1.f), Pose2f(theFieldBall.positionOnField - Vector2f( ballOffsetX, 0.f)));
+        theWalkToTargetPathPlannerSkill(Pose2f(0.8f,0.8f,0.8f), Pose2f(theFieldBall.positionOnField - Vector2f( ballOffsetX, 0.f)));
 
         chosenTarget = theLibCheck.goalTarget(false);
         goalTarget = theLibCheck.goalTarget(false);
@@ -248,7 +249,7 @@ class ApproachAndKickCard : public ApproachAndKickCardBase
       }
       action{
         theLookAtPointSkill(Vector3f(theFieldBall.positionRelative.x(), theFieldBall.positionRelative.y(), 0.f));
-        theWalkToTargetPathPlannerStraightSkill(Pose2f(1.f,1.f,1.f), Pose2f(theFieldBall.positionOnField) - Pose2f(ballOffsetX, 50.f));
+        theWalkToTargetPathPlannerStraightSkill(Pose2f(0.8f,0.8f,0.8f), Pose2f(theFieldBall.positionOnField) - Pose2f(ballOffsetX, 50.f));
       }
     }
 
@@ -297,7 +298,7 @@ class ApproachAndKickCard : public ApproachAndKickCardBase
 
         double distanceTarget =  (chosenTarget - theFieldBall.positionOnField).norm();
         // Since we are kicking, we don't want the ball to arrive just on the opponent goal line. So let's add 2 meters.
-        distanceConfirmed = distanceTarget+2000.f;
+        distanceConfirmed = distanceTarget+3000.f;
         //const Angle angleToTarget = calcAngleToTarget(target);
         //std::cout<< "TAR_X:"<<target.x()<<"\tTAR_Y:"<<target.y()<<"\tDISTANCE TO TARGET:"<< distanceTarget<<"\tBallX:"<<theFieldBall.positionRelative.x()<<"\tBallY:"<<theFieldBall.positionRelative.y()<<"\tCHECKx:"<<ballOffsetXRange.isInside(theFieldBall.positionRelative.x())<<"\tCHECKy"<<ballOffsetYRange.isInside(theFieldBall.positionRelative.y())<<"\tyRange:["<<ballOffsetYRange.min<<","<<ballOffsetYRange.max<<"]\tangleToTarget:"<<std::abs(angleToTarget)<<"\tangleTreshold:"<<angle_target_treshold<<"\tNORM:"<<theFieldBall.positionRelative.norm()<<"\n";
 

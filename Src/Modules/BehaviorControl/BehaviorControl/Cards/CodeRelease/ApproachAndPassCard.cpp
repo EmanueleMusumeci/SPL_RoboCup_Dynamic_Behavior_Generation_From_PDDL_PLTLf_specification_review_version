@@ -233,7 +233,7 @@ class ApproachAndPassCard : public ApproachAndPassCardBase
       action
       {
         theLookAtPointSkill(Vector3f(theFieldBall.positionRelative.x(), theFieldBall.positionRelative.y(), 0.f));
-        theWalkToTargetPathPlannerSkill(Pose2f(1.f,1.f,1.f), Pose2f(theFieldBall.positionOnField - Vector2f( ballOffsetX, 0.f)));
+        theWalkToTargetPathPlannerSkill(Pose2f(0.8f,0.8f,0.8f), Pose2f(theFieldBall.positionOnField - Vector2f( ballOffsetX, 0.f)));
 
       }
     }
@@ -255,7 +255,7 @@ class ApproachAndPassCard : public ApproachAndPassCardBase
       action
       {
         theLookAtPointSkill(Vector3f(theFieldBall.positionRelative.x(), theFieldBall.positionRelative.y(), 0.f));
-        theWalkToTargetPathPlannerStraightSkill(Pose2f(1.f,1.f,1.f), Pose2f(theFieldBall.positionOnField) - Pose2f(ballOffsetX, 50.f));
+        theWalkToTargetPathPlannerStraightSkill(Pose2f(0.8f,0.8f,0.8f), Pose2f(theFieldBall.positionOnField) - Pose2f(ballOffsetX, 50.f));
       }
     }
 
