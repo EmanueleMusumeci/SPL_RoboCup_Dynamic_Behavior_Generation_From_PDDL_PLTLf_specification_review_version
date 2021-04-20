@@ -6,6 +6,8 @@
  * @author Arne Hasselbring
  */
 
+#define challenge2
+
 #include "Representations/Communication/GameInfo.h"
 #include "Representations/Communication/TeamInfo.h"
 #include "Tools/BehaviorControl/Framework/Card/Card.h"
@@ -47,8 +49,39 @@ class GameplayCard : public GameplayCardBase
 
   void execute() override
   {
-    
-    // ASSERT(theGameInfo.state == STATE_PLAYING);
+
+#ifdef challenge2
+        if(theRole.role == Role::striker){
+      dealer.deal(striker)->call();
+      setState("C2striker");
+    }else if(theRole.role == Role::goalie){
+      dealer.deal(goalie)->call();
+      setState("goalie");
+    }else if(theRole.role == Role::supporter){
+      dealer.deal(supporter)->call();
+      setState("C2striker");  
+    }else if(theRole.role == Role::jolly){
+      dealer.deal(jolly)->call();
+      setState("C2striker");  
+    }else if(theRole.role == Role::defender){
+      dealer.deal(defender)->call();
+      setState("C2striker");  
+    }else if(theRole.role == Role::searcher_1){
+      dealer.deal(searcher)->call();
+      setState("searcher1");
+    }else if(theRole.role == Role::searcher_2){
+      dealer.deal(searcher)->call();
+      setState("searcher2");
+    }else if(theRole.role == Role::searcher_3){
+      dealer.deal(searcher)->call();
+      setState("searcher3");
+    }else if(theRole.role == Role::searcher_4){
+      dealer.deal(searcher)->call();
+      setState("searcher4");
+    }
+
+#else 
+        // ASSERT(theGameInfo.state == STATE_PLAYING);
     // if(theGameInfo.setPlay != SET_PLAY_NONE)
     // {
     //   if(theGameInfo.kickingTeam == theOwnTeamInfo.teamNumber)
@@ -96,6 +129,7 @@ class GameplayCard : public GameplayCardBase
       dealer.deal(searcher)->call();
       setState("searcher4");
     }
+#endif
   }
 
   void reset() override
