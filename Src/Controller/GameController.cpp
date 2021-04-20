@@ -523,34 +523,19 @@ void GameController::placeDefensivePlayers(int minRobot)
 
 void GameController::placeSecondChallenge2021(int minRobot)
 {
-  static const Pose2f poses[2][numOfFieldPlayers] =
-  {
-    {
-      Pose2f(0.f, -fieldDimensions.centerCircleRadius - footLength, 0.f),
-      Pose2f(0.f, fieldDimensions.xPosOwnPenaltyArea + safeDistance, fieldDimensions.yPosRightGoal / 2.f),
-      Pose2f(0.f, fieldDimensions.xPosOwnPenaltyArea + safeDistance, (fieldDimensions.yPosLeftPenaltyArea + fieldDimensions.yPosLeftSideline) / 2.f),
-      Pose2f(0.f, fieldDimensions.xPosOwnPenaltyArea + safeDistance, (fieldDimensions.yPosRightPenaltyArea + fieldDimensions.yPosRightSideline) / 2.f)
-    },
-    {
-      Pose2f(-pi, fieldDimensions.centerCircleRadius + footLength, 0.f),
-      Pose2f(-pi, fieldDimensions.xPosOpponentPenaltyArea - safeDistance, fieldDimensions.yPosLeftGoal / 2.f),
-      Pose2f(-pi, fieldDimensions.xPosOpponentPenaltyArea - safeDistance, (fieldDimensions.yPosRightPenaltyArea + fieldDimensions.yPosRightSideline) / 2.f),
-      Pose2f(-pi, fieldDimensions.xPosOpponentPenaltyArea - safeDistance, (fieldDimensions.yPosLeftPenaltyArea + fieldDimensions.yPosLeftSideline) / 2.f)
-    }
-  };
-  /*std::cout<<"ROBOTS VECTOR:\n"<<robots<<"\n";
-  std::cout<<"ROBOTS 1:"<<robots[1].lastPose.translation.x()<<" "<<robots[1].lastPose.translation.y()<<"\n";
-  std::cout<<"ROBOTS 2:"<<robots[2].lastPose.translation.x()<<" "<<robots[2].lastPose.translation.y()<<"\n";
-  std::cout<<"ROBOTS 6:"<<robots[6].lastPose.translation.x()<<" "<<robots[6].lastPose.translation.y()<<"\n";
-  std::cout<<"ROBOTS 7:"<<robots[7].lastPose.translation.x()<<" "<<robots[7].lastPose.translation.y()<<"\n";
-  std::cout<<"ROBOTS 8:"<<robots[8].lastPose.translation.x()<<" "<<robots[8].lastPose.translation.y()<<"\n";*/
   int robot_random_identifier = Random::uniformInt(1,3);
-  if(robot_random_identifier == 1)
+  if(robot_random_identifier == 1){
     placeRobot(1,1400,-612-550,M_PI/2);
-  else if (robot_random_identifier ==2)
+    SimulatedRobot::moveBall(Vector3f(1400,-612-550+300,M_PI/2), true);
+  }
+  else if (robot_random_identifier ==2){
     placeRobot(1,2000,-1225-550,M_PI/2);
-  else 
+    SimulatedRobot::moveBall(Vector3f(2000,-1225-550+300,M_PI/2), true);
+  }
+  else {
     placeRobot(1,2600,-1225-612-550,M_PI/2);
+    SimulatedRobot::moveBall(Vector3f(2600,-1225-612-550+300,M_PI/2), true);
+  }
   robot_random_identifier = Random::uniformInt(1,3);
   if(robot_random_identifier == 1)
     placeRobot(2,2600,612+550,-M_PI/2);  
@@ -561,7 +546,6 @@ void GameController::placeSecondChallenge2021(int minRobot)
   placeRobot(6,1400,0,M_PI/2);
   placeRobot(7,2000,0,M_PI/2);
   placeRobot(8,2600,0,M_PI/2);
-
 }
 
 
