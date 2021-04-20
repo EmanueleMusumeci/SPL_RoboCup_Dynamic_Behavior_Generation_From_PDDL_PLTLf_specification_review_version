@@ -292,7 +292,7 @@ bool GameController::handleManualPlacementCommand(const std::string& command)
     return true;
   }
   
-  else if(command == "secondChallenge2021Placement")
+  else if(command == "ballPassingChallenge2021RandomPlacement")
   {
     //placeGoalie(0);
     if(gameInfo.kickingTeam == 1)
@@ -523,7 +523,6 @@ void GameController::placeDefensivePlayers(int minRobot)
 
 void GameController::placeSecondChallenge2021(int minRobot)
 {
-  std::cout<<"NUMERO numOfFieldPlayers="<<numOfFieldPlayers<<"\n";
   static const Pose2f poses[2][numOfFieldPlayers] =
   {
     {
@@ -539,12 +538,12 @@ void GameController::placeSecondChallenge2021(int minRobot)
       Pose2f(-pi, fieldDimensions.xPosOpponentPenaltyArea - safeDistance, (fieldDimensions.yPosLeftPenaltyArea + fieldDimensions.yPosLeftSideline) / 2.f)
     }
   };
-  std::cout<<"ROBOTS VECTOR:\n"<<robots<<"\n";
+  /*std::cout<<"ROBOTS VECTOR:\n"<<robots<<"\n";
   std::cout<<"ROBOTS 1:"<<robots[1].lastPose.translation.x()<<" "<<robots[1].lastPose.translation.y()<<"\n";
   std::cout<<"ROBOTS 2:"<<robots[2].lastPose.translation.x()<<" "<<robots[2].lastPose.translation.y()<<"\n";
   std::cout<<"ROBOTS 6:"<<robots[6].lastPose.translation.x()<<" "<<robots[6].lastPose.translation.y()<<"\n";
   std::cout<<"ROBOTS 7:"<<robots[7].lastPose.translation.x()<<" "<<robots[7].lastPose.translation.y()<<"\n";
-  std::cout<<"ROBOTS 8:"<<robots[8].lastPose.translation.x()<<" "<<robots[8].lastPose.translation.y()<<"\n";
+  std::cout<<"ROBOTS 8:"<<robots[8].lastPose.translation.x()<<" "<<robots[8].lastPose.translation.y()<<"\n";*/
   int robot_random_identifier = Random::uniformInt(1,3);
   if(robot_random_identifier == 1)
     placeRobot(1,1400,-612-550,M_PI/2);
@@ -562,20 +561,7 @@ void GameController::placeSecondChallenge2021(int minRobot)
   placeRobot(6,1400,0,M_PI/2);
   placeRobot(7,2000,0,M_PI/2);
   placeRobot(8,2600,0,M_PI/2);
-  /*robots[0].lastPose = Pose2f(0.f, 0.f, 0.f);
-  robots[1].lastPose = Pose2f(0.f, 0.f, 0.f);
-  robots[2].lastPose = Pose2f(0.f, 0.f, 0.f);
-  robots[3].lastPose = Pose2f(0.f, 0.f, 0.f);
-    // Move all field players that are not in their own half or in the center circle.
-  /*for(int i = minRobot; i < minRobot + numOfFieldPlayers; ++i)
-  {
-    Robot& r = robots[i];
-    if(r.info.penalty != PENALTY_NONE)
-      continue;
-    r.manuallyPlaced = true;
-    placeFromSet(i, minRobot, poses[i < numOfRobots / 2 ? 1 : 0]);
-  }*/
-  // Move all field players that are not in their own half.
+
 }
 
 
@@ -888,7 +874,7 @@ void GameController::addCompletion(std::set<std::string>& completion) const
     "set",
     "playing",
     "finished",
-    "secondChallenge2021Placement",
+    "ballPassingChallenge2021RandomPlacement",
     "competitionTypeNormal",
     "competitionTypeMixedTeam",
     "competitionPhasePlayoff",
