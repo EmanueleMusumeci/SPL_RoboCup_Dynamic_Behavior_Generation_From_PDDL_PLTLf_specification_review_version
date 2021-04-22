@@ -1,2 +1,3 @@
-call Includes/Normal
+#call Includes/Normal
+call Includes/Fast
 gc ballPassingChallenge2021RandomPlacement

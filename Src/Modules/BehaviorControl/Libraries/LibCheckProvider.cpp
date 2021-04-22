@@ -300,6 +300,19 @@ libCheck.goalTarget = [this](bool shootASAP) -> Vector2f {
     return goalTarget(shootASAP);
   };
 
+
+libCheck.C2OwnField = [this]() -> bool {
+  return C2OwnField();
+};
+
+libCheck.C2PassingArea = [this]() -> bool {
+  return C2PassingArea();
+};
+
+libCheck.C2ReceiverArea = [this]() -> bool {
+  return C2ReceiverArea();
+};
+
   libCheck.glob2Rel = [&](float x, float y) -> Pose2f
   {
       Vector2f result;
@@ -2387,3 +2400,95 @@ float LibCheckProvider::sqrDistanceOfClosestOpponentToPoint(Vector2f p) {
   }
   return minSqrDist;
 }
+
+  ///////////////////////////////////
+  // Functions for the Challenge 2 //
+  ///////////////////////////////////
+
+  bool LibCheckProvider::C2OwnField() {
+    float y_ball = theFieldBall.positionOnField.y();
+    float y_nao = theRobotPose.translation.y();
+
+    if ((y_ball / y_nao) < 0) return false;
+    return true;
+  }
+
+
+  bool LibCheckProvider::C2PassingArea() {
+
+    float passAreaExtension_y = 500.f;
+
+    float robot_width = 150.f;
+
+    float distanceToBorder_x = 0.f;
+    float distanceToBorder_y = 0.f;    
+
+    Pose2f globBall = rel2Glob(theBallModel.estimate.position.x(),theBallModel.estimate.position.y());
+    float x_ball = globBall.translation.x(); 
+    float y_ball = globBall.translation.y(); 
+
+    float x_1, x_2, x_3, x_4, y_1, y_2;
+
+    if (y_ball < 0) y_ball = -y_ball;
+    if (x_ball < 0) x_ball = -x_ball;
+
+    y_1 = 550.f + distanceToBorder_y;
+    y_2 = y_1 + passAreaExtension_y;
+
+    x_1 = 1400.f + robot_width + distanceToBorder_x;
+    x_2 = 2000.f - robot_width - distanceToBorder_x;
+    x_3 = 2000.f + robot_width + distanceToBorder_x;
+    x_4 = 2600.f - robot_width - distanceToBorder_x;
+    
+    if (y_ball < y_2 && y_ball > y_1) {
+      if ((x_ball < x_2 && x_ball > x_1) || (x_ball < x_4 && x_ball > x_3)) {
+        return true;
+      }
+      else return false;
+    }
+    else return false;
+
+  }
+
+
+  bool LibCheckProvider::C2ReceiverArea() {
+
+    float passAreaExtension_y = 500.f;
+    float receiverAreaExtension_y = 400.f;
+
+    float robot_width = 150.f;
+
+    float distanceToBorder_x = 0.f;
+    float distanceToBorder_y = 0.f; 
+
+    Pose2f globBall = rel2Glob(theBallModel.estimate.position.x(),theBallModel.estimate.position.y());
+    float x_ball = globBall.translation.x(); 
+    float y_ball = globBall.translation.y(); 
+
+    float x_nao = theRobotPose.translation.x();
+    float y_nao = theRobotPose.translation.y();
+
+    float x_1, x_2, x_3, x_4, y_1, y_2;
+
+    if (y_nao < 0) y_nao = -y_nao;
+    if (x_nao < 0) x_nao = -x_nao;
+    if (x_ball < 0) x_ball = -x_ball;
+
+
+    y_1 = 550.f + passAreaExtension_y + distanceToBorder_y;
+    y_2 = y_1 + receiverAreaExtension_y;
+
+    x_1 = 1400.f + robot_width + distanceToBorder_x;
+    x_2 = 2000.f - robot_width - distanceToBorder_x;
+    x_3 = 2000.f + robot_width + distanceToBorder_x;
+    x_4 = 2600.f - robot_width - distanceToBorder_x;
+
+    if (y_nao < y_2 && y_nao > y_1) {
+      if ((x_nao < x_2 && x_nao > x_1 && x_ball < 2000.f) || (x_nao < x_4 && x_nao > x_3 && x_ball > 2000.f)) {
+        return true;
+      }
+      else return false;
+    }
+    else return false;
+
+  }

@@ -6,7 +6,7 @@
  * - a ball search behavior card
  * - a skill for getting behind the ball
  *
- * @author Arne Hasselbring
+ * @author Tommaso Carlini & Graziano Specchi
  */
 
 // TODO: Scrivere il behaviour

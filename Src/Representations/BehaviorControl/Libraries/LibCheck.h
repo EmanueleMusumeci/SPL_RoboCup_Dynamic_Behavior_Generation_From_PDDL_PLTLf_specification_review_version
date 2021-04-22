@@ -124,6 +124,12 @@ STREAMABLE(LibCheck,
   FUNCTION(bool(Vector2f point)) obstacleExistsAroundPoint;
   FUNCTION(float()) defenderDynamicY;
 
+
+  FUNCTION(bool()) C2OwnField;
+  FUNCTION(bool()) C2PassingArea;
+  FUNCTION(bool()) C2ReceiverArea;
+
+
   FUNCTION(bool(int)) strikerPassCommonConditions,
 
 

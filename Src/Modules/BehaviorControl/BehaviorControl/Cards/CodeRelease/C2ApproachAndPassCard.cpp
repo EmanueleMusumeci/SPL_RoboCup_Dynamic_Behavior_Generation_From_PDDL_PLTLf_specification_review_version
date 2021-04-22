@@ -25,7 +25,6 @@
 #include "Representations/BehaviorControl/BallCarrierModel/BallCarrierModel.h"
 #include "Tools/Math/BHMath.h"
 
-
 #include "Platform/SystemCall.h"
 #include <string>
 
@@ -95,23 +94,13 @@ class C2ApproachAndPassCard : public C2ApproachAndPassCardBase
   // or to carry the ball alone for the moment
   bool preconditions() const override
   {
-    //needless to say, if we don't have a pass avaliable we can't pass
-    if (thePassShare.readyPass == 0) {
-      //std::cout << "No pass available, can't pass" << '\n';
-      return false;
-    }
 
-    //if there is a pass pass we run the conditions in libcheck
-    //to decide whether to actually do it or not
-    bool shouldPass = theLibCheck.strikerPassCommonConditions(0);
-    if (shouldPass) {
-      //std::cout << "Pass conditions are go" << '\n';
-      return true;
-    }
-    else {
-      //std::cout << "Maybe it's better to play by myself for now" << '\n';
-      return false;
-    }
+    bool passingArea = theLibCheck.C2PassingArea();
+    bool ownField = theLibCheck.C2OwnField();
+    float distance = theLibCheck.distance(theRobotPose.translation, theFieldBall.positionOnField);
+
+    if (!passingArea || !ownField || distance > 500.f) return false;
+    else return true;
   }
 
   //These conditions check when there is no good pass available anymore (or, indirectly, when the pass has been performed already)
@@ -162,6 +151,7 @@ class C2ApproachAndPassCard : public C2ApproachAndPassCardBase
     {
       transition
       {
+        goto wait;
         if(state_time > initialWaitTime)
         {
           goto turnToBall;
@@ -171,6 +161,18 @@ class C2ApproachAndPassCard : public C2ApproachAndPassCardBase
       action
       {
         theLookForwardSkill();
+        theStandSkill();
+      }
+    }
+
+    state(wait)
+    {
+      transition
+      {
+      }
+
+      action
+      {
         theStandSkill();
       }
     }

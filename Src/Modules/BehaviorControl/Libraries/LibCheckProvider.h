@@ -287,5 +287,18 @@ private:
  //Maps value from interval [fromIntervalMin, fromIntervalMax] to interval [toIntervalMin, toIntervalMax]
  float mapToInterval(float value, float fromIntervalMin, float fromIntervalMax, float toIntervalMin, float toIntervalMax);
 
+ // return true if the ball is on the same area of the robot, false otherwise
+ // the area is the y-value of the field
+ bool C2OwnField();
+
+ // return TRUE if the ball is inside a passingArea defined arbitrarly by
+ // imposing parameters in LibCheckProvider.cpp
+ bool C2PassingArea();
+
+ // return TRUE if the robot is inside a receiverArea defined arbitrarly by
+ // imposing parameters in LibCheckProvider.cpp
+ bool C2ReceiverArea();
+
  public: LibCheckProvider();
+
 };

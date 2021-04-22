@@ -1,13 +1,12 @@
 /**
- * @file ApproachAndKickCard.cpp
+ * @file C2GoToReceiverPositionCard.cpp
  *
- * This file implements a behavior for approaching the ball and kick it to a given target.
+ * This file implements a behavior for reaching a receiver 
+ * position, evaluated according to the ball position on the field
  *
- * @author Emanuele Antonioni
+ * @author Tommaso Carlini & Graziano Specchi
  */
  
-// TODO: Scrivere il behaviour
-
 #include "Representations/BehaviorControl/FieldBall.h"
 #include "Representations/BehaviorControl/Skills.h"
 #include "Representations/Configuration/FieldDimensions.h"
@@ -54,103 +53,110 @@ class C2GoToReceiverPositionCard : public C2GoToReceiverPositionCardBase
 {
   bool preconditions() const override
   {
-    return true;
+
+    bool ownField = theLibCheck.C2OwnField();
+
+    if (ownField) return false;
+    else return true;
   }
 
   bool postconditions() const override
   {
-    return false;
+    bool ownField = theLibCheck.C2OwnField();
+
+    if (ownField) return true;
   }
 
   option
   {
-    theActivitySkill(BehaviorStatus::defender);
-
     initial_state(start)
     {
       transition
       {
-        if(theRole.role == Role::searcher_1 || theRole.role == Role::searcher_2 || theRole.role == Role::searcher_4)
-          goto searchForBall;
-        
-        if(std::abs(theRobotPose.rotation.toDegrees()) > 15 ){
-            goto walkToPoint_near;
-        }
-        if(theLibCheck.distance(theRobotPose, Pose2f(theFieldDimensions.xPosOwnGroundline + 1000.f, -500.f)) > positionTh){
-            goto walkToPoint_far;
-        }
-          
+        goto wallkToReceiverPosition;           
       }
 
       action
       {
-        theLookAtPointSkill(Vector3f(theFieldBall.teamPositionRelative.x(), theFieldBall.teamPositionRelative.y(), 0.f));
-        theStandSkill();
+
       }
     }
 
     
-    state(walkToPoint_far)
+    state(wallkToReceiverPosition)
     {
       transition
       {
-        
-        if(theRole.role == Role::searcher_1 || theRole.role == Role::searcher_2 || theRole.role == Role::searcher_4)
-          goto searchForBall;
-        
+        bool receiverArea = theLibCheck.C2ReceiverArea();
 
-        if(theLibCheck.distance(theRobotPose, Pose2f(theFieldDimensions.xPosOwnGroundline + 1000.f, -500.f)) <= smallPositionTh){
-            goto walkToPoint_near;
-        }
+        if (receiverArea) goto turnAround;
       }
 
       action
       {
         theLookAtPointSkill(Vector3f(theFieldBall.teamPositionRelative.x(), theFieldBall.teamPositionRelative.y(), 0.f));
-        theWalkToTargetPathPlannerSkill(Pose2f(1.f,1.f,1.f), Pose2f(theFieldDimensions.xPosOwnGroundline + 1000.f, -1000.f));
+        float target_x, target_y;
+        target_y = 1100.f;
+
+        float ball_x = theFieldBall.positionOnField.x();
+
+        if (ball_x < 0) ball_x = -ball_x;
+
+        if (ball_x < 2000.f) target_x = 1700.f;
+        else target_x = 2300.f;
+
+        if (theRobotPose.translation.x() < 0) target_x = -target_x; 
+        if (theRobotPose.translation.y() < 0) target_y = -target_y; 
+
+        theWalkToTargetPathPlannerSkill(Pose2f(1.f,1.f,1.f), Pose2f(target_x, target_y));
         
       }
     }
 
-    state(walkToPoint_near){
-      transition{
-        
-        if(theRole.role == Role::searcher_1 || theRole.role == Role::searcher_2 || theRole.role == Role::searcher_4)
-          goto searchForBall;
-        
-        if(theLibCheck.distance(theRobotPose, Pose2f(theFieldDimensions.xPosOwnGroundline + 1000.f, -500.f)) <= 100){
-            if(std::abs(theRobotPose.rotation.toDegrees()) < 10 ){
-                goto start;
-            }
-            
-        }
+    state(turnAround){
+        float angleTargetTreshold = 0.2;
+
+        float target_x;
+        float ball_x = theFieldBall.positionOnField.x();
+
+        if (ball_x < 0) ball_x = -ball_x;
+
+        if (ball_x < 2000.f) target_x = 1700.f;
+        else target_x = 2300.f;
+
+        if (theRobotPose.translation.x() < 0) target_x = -target_x;
+
+        Pose2f chosenTarget = Pose2f(target_x,0.f);
+
+        const Angle angleToTarget = calcAngleToTarget(chosenTarget); 
+      transition
+      {
+        if(std::abs(angleToTarget) < angleTargetTreshold) goto waitForBall; 
       }
       action{
         theLookAtPointSkill(Vector3f(theFieldBall.teamPositionRelative.x(), theFieldBall.teamPositionRelative.y(), 0.f));
-        theWalkToTargetPathPlannerStraightSkill(Pose2f(1.f,1.f,1.f), Pose2f(theFieldDimensions.xPosOwnGroundline + 1000.f, -1000.f));
+        float rotation_speed = .5f;
+        if (angleToTarget < 0) rotation_speed = -rotation_speed;
+        theWalkAtRelativeSpeedSkill(Pose2f(rotation_speed, 0.f,0.f));
       }
     }
-    
-    
-    state(searchForBall)
-    {
+
+    state(waitForBall){
       transition
       {
-        if(theFieldBall.ballWasSeen())
-          goto start;
-      }
+        float x_ball = theFieldBall.positionOnField.x();
+        float x_nao = theRobotPose.translation.x();
 
-      action
-      {
-        theLookForwardSkill();
-        theWalkAtRelativeSpeedSkill(Pose2f(walkSpeed, 0.f, 0.f));
+        if (x_ball < 0) x_ball = -x_ball;
+        if (x_nao < 0) x_nao = -x_nao;
+
+
+        if ((x_ball < 2000.f && x_nao > 2000.f) || (x_ball > 2000.f && x_nao < 2000.f)) goto start;
+      }
+      action{
+        theStandSkill();
       }
     }
-  }
-
-  Angle calcAngleToGoal() const
-  {
-    return (theRobotPose.inversePose * Vector2f(theFieldDimensions.xPosOpponentGroundline, 0.f)).angle();
   }
 
   Angle calcAngleToTarget(Pose2f target) const

@@ -3,7 +3,7 @@
  *
  * This file implements nothing.
  *
- * @author Arne Hasselbring
+ * @author Tommaso Carlini & Graziano Specchi
  */
 
 // TODO: Scrivere il behaviour
