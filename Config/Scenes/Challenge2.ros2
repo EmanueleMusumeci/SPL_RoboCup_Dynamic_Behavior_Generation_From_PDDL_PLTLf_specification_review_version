@@ -22,6 +22,12 @@
         <Rotation z="90degree"/> 
         </Body>
 
+
+            
+    </Compound>
+
+    <Compound name="extras">
+
         <Body ref="Nao" name="robot7">
         <Translation x="1.4" y="0" z="320mm"/>
         <Rotation z="90degree"/>
@@ -37,10 +43,7 @@
         <Rotation z="90degree"/>
         <Set name="NaoColor" value="dblue"/>
         </Body>
-            
-    </Compound>
 
-    <Compound name="extras">
     </Compound>
 
     <Compound name="balls">

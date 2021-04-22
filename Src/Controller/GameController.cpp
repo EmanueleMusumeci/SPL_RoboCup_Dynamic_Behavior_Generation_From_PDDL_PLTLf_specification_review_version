@@ -543,9 +543,9 @@ void GameController::placeSecondChallenge2021(int minRobot)
     placeRobot(2,2000,1225+550,-M_PI/2);
   else
     placeRobot(2,1400,1225+612+550,-M_PI/2);
-  placeRobot(6,1400,0,M_PI/2);
-  placeRobot(7,2000,0,M_PI/2);
-  placeRobot(8,2600,0,M_PI/2);
+  //placeRobot(6,1400,0,M_PI/2);
+  //placeRobot(7,2000,0,M_PI/2);
+  //placeRobot(8,2600,0,M_PI/2);
 }
 
 
