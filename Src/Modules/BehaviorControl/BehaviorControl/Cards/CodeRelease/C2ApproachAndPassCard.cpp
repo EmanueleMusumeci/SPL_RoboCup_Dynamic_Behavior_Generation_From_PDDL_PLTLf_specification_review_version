@@ -1,13 +1,14 @@
 /**
- * @file ApproachAndPass.cpp
+ * @file C2ApproachAndPassCard.cpp
  *
  * This file implements a behavior for passing the ball to a given target.
  * This is a slightly modified version of the ApproachAndKickCard.
- *
- * @author <A href="mailto:musumeci.1653885@studenti.uniroma1.it">Emanuele Musumeci</A>
+ *d
+ * @author Tommaso Carlini & Graziano Specchi
  */
  
 // TODO: Scrivere il behaviour
+
 
 #include "Representations/BehaviorControl/BehaviorStatus.h"
 #include "Representations/BehaviorControl/FieldBall.h"

@@ -21,6 +21,8 @@ CARD(GameplayCard,
   REQUIRES(OwnTeamInfo),
   LOADS_PARAMETERS(
   {,
+
+#ifndef challenge2
     (DeckOfCards<CardRegistry>) ownKickoff,
     (DeckOfCards<CardRegistry>) opponentKickoff,
     (DeckOfCards<CardRegistry>) ownFreeKick,
@@ -32,6 +34,11 @@ CARD(GameplayCard,
     (DeckOfCards<CardRegistry>) jolly,
     (DeckOfCards<CardRegistry>) goalie,
     (DeckOfCards<CardRegistry>) searcher,
+#else 
+    (DeckOfCards<CardRegistry>) C2striker,
+    (DeckOfCards<CardRegistry>) goalie,
+    (DeckOfCards<CardRegistry>) searcher,
+#endif
   }),
 });
 
@@ -51,21 +58,12 @@ class GameplayCard : public GameplayCardBase
   {
 
 #ifdef challenge2
-        if(theRole.role == Role::striker){
-      dealer.deal(striker)->call();
+    if(theRole.role == Role::striker){
+      dealer.deal(C2striker)->call();
       setState("C2striker");
     }else if(theRole.role == Role::goalie){
       dealer.deal(goalie)->call();
       setState("goalie");
-    }else if(theRole.role == Role::supporter){
-      dealer.deal(supporter)->call();
-      setState("C2striker");  
-    }else if(theRole.role == Role::jolly){
-      dealer.deal(jolly)->call();
-      setState("C2striker");  
-    }else if(theRole.role == Role::defender){
-      dealer.deal(defender)->call();
-      setState("C2striker");  
     }else if(theRole.role == Role::searcher_1){
       dealer.deal(searcher)->call();
       setState("searcher1");
