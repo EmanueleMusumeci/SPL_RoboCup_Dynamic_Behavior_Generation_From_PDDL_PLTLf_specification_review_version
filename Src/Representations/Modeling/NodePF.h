@@ -26,17 +26,18 @@ STREAMABLE(NodePF,
    * @param begin 
    */
   
-  NodePF(Vector2f position, Vector2f potential);
+  NodePF(Vector2f position, Vector2f potential, float cell_size);
 
   /** Verifies that the model contains valid values. */
   void verify() const,
 
   (Vector2f)(Vector2f::Zero()) potential,       /** Node computed potential */
   (Vector2f)(Vector2f::Zero()) position,        /** Node position */
+  (float) cell_size,                       /** PF cell size */
 
 });
 
 //Inline Constructor
-inline NodePF::NodePF(Vector2f position, Vector2f potential):
+inline NodePF::NodePF(Vector2f position, Vector2f potential, float cell_size):
 position(position),
 potential(potential) {}

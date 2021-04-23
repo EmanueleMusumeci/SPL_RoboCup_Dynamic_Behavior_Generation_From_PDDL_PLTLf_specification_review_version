@@ -48,26 +48,26 @@ void StrikerPFModelProvider::update(StrikerPFModel& strikerPFModel)
 
         if(last_potential_field_update == 0.f)
         {
-            strikerPFModel.potential_field = theLibCheck.initialize_PF(CELL_SIZE);
+            strikerPFModel.potential_field = theLibPotentialFields.initializePF(CELL_SIZE);
         }
 
         //MIGHT AS WELL USE SOME SMARTER CRITERION
         if(current_time - last_attractive_field_update > ATTRACTIVE_FIELD_DELAY)
         {
-            strikerPFModel.attractive_field = theLibCheck.compute_striker_attractive_PF(theLibCheck.goalTarget(false), RO, Kap, Kbp, Kr, TEAMMATE_CO, ETA, GAMMA);
+            strikerPFModel.attractive_field = theLibPotentialFields.computeStrikerAttractivePF(theLibCheck.goalTarget(false), RO, Kap, Kbp, Kr, TEAMMATE_CO, ETA, GAMMA);
             last_attractive_field_update = Time::getCurrentSystemTime();
         }
 
         if(current_time - last_repulsive_field_update > REPULSIVE_FIELD_DELAY)
         {
-            strikerPFModel.repulsive_field = theLibCheck.compute_striker_repulsive_PF(RO, Kap, Kbp, Kr, TEAMMATE_CO, ETA, GAMMA);
+            strikerPFModel.repulsive_field = theLibPotentialFields.computeStrikerRepulsivePF(RO, Kap, Kbp, Kr, TEAMMATE_CO, ETA, GAMMA);
             last_repulsive_field_update = Time::getCurrentSystemTime();
         }
         
         if(current_time - last_potential_field_update > POTENTIAL_FIELD_DELAY)
         {
             //Potential field using the goalTarget with shootASAP mode set to false
-            strikerPFModel.potential_field = theLibCheck.computePF(strikerPFModel.attractive_field, strikerPFModel.repulsive_field, CELL_SIZE);
+            strikerPFModel.potential_field = theLibPotentialFields.computePF(strikerPFModel.attractive_field, strikerPFModel.repulsive_field, CELL_SIZE);
             last_potential_field_update = Time::getCurrentSystemTime();
             /*std::cout<<strikerPFModel.potential_field.size()<<std::endl;
             for(const auto node: strikerPFModel.potential_field)
@@ -78,4 +78,4 @@ void StrikerPFModelProvider::update(StrikerPFModel& strikerPFModel)
     }
 }
 
-MAKE_MODULE(StrikerPFModelProvider, modeling)
+//MAKE_MODULE(StrikerPFModelProvider, modeling)

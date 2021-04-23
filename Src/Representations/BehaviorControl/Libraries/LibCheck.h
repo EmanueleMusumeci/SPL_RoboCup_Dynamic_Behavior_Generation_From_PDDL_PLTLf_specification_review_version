@@ -76,20 +76,6 @@ STREAMABLE(LibCheck,
   /** Provides the better point to shoot at inside the goal **/
   FUNCTION(Vector2f(bool shootASAP)) goalTarget;
 
-  /** Computes the attractive field for the striker **/
-  FUNCTION(std::vector<NodePF>(Vector2f goal, float RO, float Kap, float Kbp, float Kr,
-                                                    float TEAMMATE_CO, float ETA, float GAMMA)) compute_striker_attractive_PF;
-
-  /** Computes the repulsive field for the striker **/
-  FUNCTION(std::vector<NodePF>(float RO, float Kap, float Kbp, float Kr,
-                                                    float TEAMMATE_CO, float ETA, float GAMMA)) compute_striker_repulsive_PF;
-
-  /** Initializes an empty PF **/
-  FUNCTION(std::vector<NodePF>(float cell_size)) initialize_PF;
-
-  /** Computes an artificial potential field based on the provided attractive and repulsive fields **/
-  FUNCTION(std::vector<NodePF>(std::vector<NodePF> attractive_field, std::vector<NodePF> repulsive_field, float cell_size)) computePF;
-
   FUNCTION(float(float value, float fromIntervalMin, float fromIntervalMax, float toIntervalMin, float toIntervalMax)) mapToInterval;
 
   /** Performs checks for the team behavior */

@@ -20,7 +20,7 @@
  *
  * This representation is used only for debugging purposes
  * 
- * Struct containing modeling info about the opponent goal targetable areas
+ * Struct containing modeling info about the computed artificial potential field
  */
 
 STREAMABLE(StrikerPFModel,

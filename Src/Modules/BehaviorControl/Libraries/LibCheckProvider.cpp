@@ -991,125 +991,6 @@ libCheck.strikerPassShare = [&] () -> std::tuple<int,int,Pose2f>
   libCheck.goaliePosition = updateGoalie();
   libCheck.jollyPosition = Vector2f(theFieldDimensions.yPosLeftGoal, theFieldDimensions.yPosRightGoal);
 
-  libCheck.initialize_PF = [&](float cell_size) -> std::vector<NodePF>
-  {
-    std::vector<NodePF> potential_field;
-    //init obstacle model
-    int d = cell_size;
-    for(int i=SPQR::FIELD_DIMENSION_X; i>-SPQR::FIELD_DIMENSION_X; i-= d) //TODO parametrize
-    {
-        for(int j=SPQR::FIELD_DIMENSION_Y; j>-SPQR::FIELD_DIMENSION_Y; j-= d)
-        {
-            potential_field.push_back( NodePF(Vector2f( i-d/2,j-d/2 ), Vector2f()) );
-            if(i==SPQR::FIELD_DIMENSION_X - 300) potential_field.push_back( NodePF(Vector2f( i,j), Vector2f()) );
-            if(i== -SPQR::FIELD_DIMENSION_X + 300) potential_field.push_back( NodePF(Vector2f( i,j), Vector2f()) );
-            if(j== SPQR::FIELD_DIMENSION_Y - 300) potential_field.push_back( NodePF(Vector2f( i,j), Vector2f()) );
-            if(j== -SPQR::FIELD_DIMENSION_Y + 300) potential_field.push_back( NodePF(Vector2f( i,j), Vector2f()) );
-            if(i>=SPQR::FIELD_DIMENSION_X-(SPQR::FIELD_DIMENSION_X/50) && j<=800 && j >= -800) potential_field.push_back( NodePF(Vector2f( i,j), Vector2f()) );
-        }
-    }
-    return potential_field;
-  };
-
-  libCheck.compute_striker_attractive_PF = [&] (Vector2f goal, float RO = 1000.f,
-                                                    float Kap = 0.1f, float Kbp = 100.f, float Kr = 100.f,
-                                                    float TEAMMATE_CO = 500.f, float ETA = 1000.f, float GAMMA = 2.f) -> std::vector<NodePF>
-  {
-
-      //Attractive potential field toward the center of the soccer field + Repulsive potential field written as an opposite-attractive component
-      std::vector<NodePF> attractive_field(theStrikerPFModel.potential_field.size());
-
-      for(unsigned int i=0; i<attractive_field.size(); ++i)
-      {
-        Vector2f current_cell_pos = theStrikerPFModel.potential_field.at(i).position;
-
-        Vector2f tmp_err = goal - current_cell_pos;
-
-        if( tmp_err.norm() <= RO)
-        {
-          Vector2f conic_field = Vector2f(Kap * tmp_err.x(), Kap * tmp_err.y());
-          attractive_field.at(i) = NodePF(Vector2f(current_cell_pos.x(), current_cell_pos.y()),conic_field);
-        }
-        else
-        {
-          Vector2f quadratic_field = Vector2f((Kbp/tmp_err.norm()) * tmp_err.x(), (Kbp/tmp_err.norm()) * tmp_err.y());
-          attractive_field.at(i) = NodePF(Vector2f(current_cell_pos.x(), current_cell_pos.y()),quadratic_field);
-        }
-      }
-
-      return attractive_field;
-  };
-
-  libCheck.compute_striker_repulsive_PF = [&](float RO = 1000.f, float Kap = 0.1f, float Kbp = 100.f, float Kr = 100.f,
-                                                    float TEAMMATE_CO = 500.f, float ETA = 1000.f, float GAMMA = 2.f) -> std::vector<NodePF>
-  {
-
-    Vector2f my_pos = theRobotPose.translation;
-
-    //Build a vector out of all obstacles, including OPPONENTS and TEAMMATES, excluding POLES
-    std::vector<Vector2f> repulsive_obstacles;
-    for(auto obs : theTeamPlayersModel.obstacles)
-    {
-      /*NOTICE: poles are added statically (a priori) by the vision system
-        so the 4 goal poles will always be in the obstacle list*/
-      switch(obs.type)
-      {
-        case Obstacle::Type::goalpost:
-        {
-          break;
-        }
-        default:
-        {
-          repulsive_obstacles.push_back(obs.center);
-          //std::cout<<"Obs: ("<<obs.center.x()<<", "<<obs.center.y()<<")"<<std::endl;
-          break;
-        }
-      }
-    }
-
-    //Repulsive potential field from other robots and/or regions of the field
-    std::vector<NodePF> repulsive_field(theStrikerPFModel.potential_field.size());
-
-    for(unsigned int i=0; i<repulsive_field.size(); ++i)
-    {
-        Vector2f current_cell_pos = theStrikerPFModel.potential_field.at(i).position;
-
-        repulsive_field.at(i) = NodePF(Vector2f(current_cell_pos.x(),current_cell_pos.y()), Vector2f(0,0));
-
-        for(unsigned int r=0; r<repulsive_obstacles.size(); ++r)
-        {
-
-            //if(r == (uint) theRobotInfo.number-1) continue;
-            if (repulsive_obstacles.at(r).x() == 0 || repulsive_obstacles.at(r).y() == 0) continue;
-
-            Vector2f tmp_err = repulsive_obstacles.at(r) - current_cell_pos;
-            if( (tmp_err).norm() < ETA)
-            {
-                float tmp_eta = (repulsive_obstacles.at(r)-my_pos).norm();
-
-                Vector2f tmp_rep = repulsive_obstacles.at(r)-my_pos;
-
-
-                repulsive_field.at(i).potential += Vector2f( -tmp_rep * (Kr/GAMMA) * pow(1000*(1/tmp_eta)-(1/ETA),GAMMA-1) * (1/tmp_err.norm()));
-                /// original else bbody
-                /// repulsive_field.at(i)  += (Kr/GAMMA) * pow(1000*(1/tmp_eta)-(1/ETA),GAMMA-1) * (-tmp_rep*(1/tmp_err.translation.absFloat()));
-
-            }
-            else
-            {
-                repulsive_field.at(i).potential += Vector2f(0.f, 0.f);
-            }
-        }
-    }
-
-    return repulsive_field;
-  };
-
-  libCheck.computePF = [&](std::vector<NodePF> attractive_field, std::vector<NodePF> repulsive_field, float cell_size) -> std::vector<NodePF>
-  {
-    return computePF(attractive_field, repulsive_field, cell_size);
-  };
-
   libCheck.angleForDefender  = angleToTarget(libCheck.defenderPosition.x(), libCheck.defenderPosition.y());
   libCheck.angleForSupporter = angleToTarget(libCheck.supporterPosition.x(), libCheck.supporterPosition.y());
   //libCheck.angleForJolly = angleToTarget(libCheck.jollyPosition.x(), libCheck.jollyPosition.y());
@@ -1414,9 +1295,21 @@ Pose2f LibCheckProvider::refineTarget(Pose2f t, float d){
 float LibCheckProvider::mapToInterval(float value, float fromIntervalMin, float fromIntervalMax, float toIntervalMin, float toIntervalMax) {
   float fromIntervalSize = fromIntervalMax - fromIntervalMin;
   float toIntervalSize = toIntervalMax - toIntervalMin;
-  if(value > fromIntervalMax) return toIntervalMax;
-  else if (value<fromIntervalMin) return toIntervalMin;
-  else return toIntervalMin + (value - fromIntervalMin) * toIntervalSize / fromIntervalSize;
+  if(value >= fromIntervalMax)
+  {
+    //std::cout<<"value ("<<value<<") >= fromIntervalMax ("<<fromIntervalMax<<")"<<std::endl;
+    return toIntervalMax;
+  }
+  else if (value <= fromIntervalMin)
+  {
+    //std::cout<<"value ("<<value<<") <= fromIntervalMin ("<<fromIntervalMin<<")"<<std::endl;
+    return toIntervalMin;
+  }
+  else
+  {
+    //std::cout<<"toIntervalMin + (value - fromIntervalMin) * toIntervalSize / fromIntervalSize: " << toIntervalMin + (value - fromIntervalMin) * toIntervalSize / fromIntervalSize<<std::endl;
+    return toIntervalMin + (value - fromIntervalMin) * toIntervalSize / fromIntervalSize;
+  }
 }
 
 //@author Emanuele Musumeci
@@ -2238,136 +2131,6 @@ float LibCheckProvider::angleToTarget(float x, float y)
     return (atan2f(relativePosition.translation.y(), relativePosition.translation.x()));
 
     //return glob2Rel(x, y).translation.angle();
-}
-
-std::vector<NodePF> LibCheckProvider::initialize_PF(float cell_size)
-{
-  std::vector<NodePF> potential_field;
-  //init obstacle model
-  int d = cell_size;
-  for(int i=SPQR::FIELD_DIMENSION_X; i>-SPQR::FIELD_DIMENSION_X; i-= d) //TODO parametrize
-  {
-      for(int j=SPQR::FIELD_DIMENSION_Y; j>-SPQR::FIELD_DIMENSION_Y; j-= d)
-      {
-          potential_field.push_back( NodePF(Vector2f( i-d/2,j-d/2 ), Vector2f()) );
-          if(i==SPQR::FIELD_DIMENSION_X - 300) potential_field.push_back( NodePF(Vector2f( i,j), Vector2f()) );
-          if(i== -SPQR::FIELD_DIMENSION_X + 300) potential_field.push_back( NodePF(Vector2f( i,j), Vector2f()) );
-          if(j== SPQR::FIELD_DIMENSION_Y - 300) potential_field.push_back( NodePF(Vector2f( i,j), Vector2f()) );
-          if(j== -SPQR::FIELD_DIMENSION_Y + 300) potential_field.push_back( NodePF(Vector2f( i,j), Vector2f()) );
-          if(i>=SPQR::FIELD_DIMENSION_X-(SPQR::FIELD_DIMENSION_X/50) && j<=800 && j >= -800) potential_field.push_back( NodePF(Vector2f( i,j), Vector2f()) );
-      }
-  }
-  return potential_field;
-}
-
-std::vector<NodePF> LibCheckProvider::compute_striker_attractive_PF(Vector2f goal, float RO, float Kap, float Kbp, float Kr, float TEAMMATE_CO, float ETA, float GAMMA)
-{
-
-  //Attractive potential field toward the goalTarget
-  std::vector<NodePF> attractive_field(theStrikerPFModel.potential_field.size());
-
-  for(unsigned int i=0; i<attractive_field.size(); ++i)
-  {
-    Vector2f current_cell_pos = theStrikerPFModel.potential_field.at(i).position;
-
-    Vector2f tmp_err = goal - current_cell_pos;
-
-    if( tmp_err.norm() <= RO)
-    {
-      Vector2f conic_field = Vector2f(Kap * tmp_err.x(), Kap * tmp_err.y());
-      attractive_field.at(i) = NodePF(Vector2f(current_cell_pos.x(), current_cell_pos.y()),conic_field);
-    }
-    else
-    {
-      Vector2f quadratic_field = Vector2f((Kbp/tmp_err.norm()) * tmp_err.x(), (Kbp/tmp_err.norm()) * tmp_err.y());
-      attractive_field.at(i) = NodePF(Vector2f(current_cell_pos.x(), current_cell_pos.y()),quadratic_field);
-    }
-  }
-
-  return attractive_field;
-}
-
-std::vector<NodePF> LibCheckProvider::compute_striker_repulsive_PF(float RO, float Kap, float Kbp, float Kr, float TEAMMATE_CO, float ETA, float GAMMA) {
-
-  Vector2f my_pos = theRobotPose.translation;
-
-  //Build a vector out of all obstacles, including OPPONENTS and TEAMMATES, excluding POLES
-  std::vector<Vector2f> repulsive_obstacles;
-  for(auto obs : theTeamPlayersModel.obstacles)
-  {
-    /*NOTICE: poles are added statically (a priori) by the vision system
-      so the 4 goal poles will always be in the obstacle list*/
-    switch(obs.type)
-    {
-      case Obstacle::Type::goalpost:
-      {
-        break;
-      }
-      default:
-      {
-        repulsive_obstacles.push_back(obs.center);
-        break;
-      }
-    }
-  }
-
-  //Repulsive potential field from other robots and/or regions of the field, written as an opposite-attractive component
-  std::vector<NodePF> repulsive_field(theStrikerPFModel.potential_field.size());
-
-  for(unsigned int i=0; i<repulsive_field.size(); ++i)
-  {
-      Vector2f current_cell_pos = theStrikerPFModel.potential_field.at(i).position;
-
-      repulsive_field.at(i) = NodePF(Vector2f(current_cell_pos.x(),current_cell_pos.y()), Vector2f(0,0));
-
-      for(unsigned int r=0; r<repulsive_obstacles.size(); ++r)
-      {
-
-          if(r == (uint) theRobotInfo.number-1) continue;
-          if (repulsive_obstacles.at(r).x() == 0 || repulsive_obstacles.at(r).y() == 0) continue;
-
-          Vector2f tmp_err = repulsive_obstacles.at(r) - current_cell_pos;
-          if( (tmp_err).norm() < ETA)
-          {
-              float tmp_eta = (repulsive_obstacles.at(r)-my_pos).norm();
-
-              Vector2f tmp_rep = repulsive_obstacles.at(r)-my_pos;
-
-
-              repulsive_field.at(i).potential += Vector2f( -tmp_rep * (Kr/GAMMA) * pow(1000*(1/tmp_eta)-(1/ETA),GAMMA-1) * (1/tmp_err.norm()));
-              /// original else bbody
-              /// repulsive_field.at(i)  += (Kr/GAMMA) * pow(1000*(1/tmp_eta)-(1/ETA),GAMMA-1) * (-tmp_rep*(1/tmp_err.translation.absFloat()));
-
-          }
-          else
-          {
-              repulsive_field.at(i).potential += Vector2f(0.f, 0.f);
-          }
-      }
-  }
-
-  return repulsive_field;
-}
-
-std::vector<NodePF> LibCheckProvider::computePF(std::vector<NodePF> attractive_field, std::vector<NodePF> repulsive_field, float cell_size)
-{
-
-  std::vector<NodePF> potential_field = initialize_PF(cell_size);
-
-///////////////////////////////
-//NOTICE: can be parallelized//
-///////////////////////////////
-
-  for(unsigned int p=0; p<potential_field.size(); ++p)
-  {
-    potential_field.at(p).potential = (attractive_field.at(p).potential + repulsive_field.at(p).potential);
-  }
-
-  //attractive_field.clear();
-  //repulsive_field.clear();
-  //potential_field.clear();
-
-  return potential_field;
 }
 
 //a simple auxiliary for strikerPassCommonConditions that gives the squared distance of the closest opponent to any given point

@@ -27,7 +27,7 @@ void loadModuleParameters(Streamable& parameters, const char* moduleName, const 
     name = fileName;
   if(prefix)
     name = prefix + name;
-  //std::cout << "Sto caricando: " << name << std::endl;
+  std::cout << "Loading module: " << name << std::endl;
   InMapFile stream(name);
   ASSERT(stream.exists());
   stream >> parameters;

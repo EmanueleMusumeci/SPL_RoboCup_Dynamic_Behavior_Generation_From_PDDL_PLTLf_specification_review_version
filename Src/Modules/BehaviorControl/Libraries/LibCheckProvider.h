@@ -28,14 +28,13 @@
 #include "Representations/Modeling/RobotPose.h"
 #include "Representations/Modeling/ObstacleModel.h"
 #include "Representations/Modeling/TeamBallModel.h"
-//RECENTLY ADDED
+
 //Goal targeting system
 #include "Representations/Modeling/OpponentGoalModel.h"
-#include "Representations/Configuration/BallSpecification.h"
-//Striker potential field
-#include "Representations/Modeling/NodePF.h"
-#include "Representations/Modeling/StrikerPFModel.h"
 //
+
+#include "Representations/Configuration/BallSpecification.h"
+
 #include "Representations/spqr_representations/RoleAndContext.h"
 
 #include "Representations/spqr_representations/ConfigurationParameters.h"
@@ -66,8 +65,6 @@ MODULE(LibCheckProvider,
   //Goal targeting system
   USES(OpponentGoalModel),
   USES(BallSpecification),
-  //StrikerPF
-  USES(StrikerPFModel),
   //BallCarrierModel
   USES(BallCarrierModel),
   //
@@ -210,38 +207,6 @@ private:
   * @return the Vector2f of the position selected to shoot
   * **/
  Vector2f goalTarget (bool shootASAP);
-
- /** Computes the attractive field for the striker
-  * @param goal The 2D position of the goal (that generates the attractive field)
-  * @return std::vector of PFCell structures, containing various info about the potential field cell
-  * **/
- std::vector<NodePF> compute_striker_attractive_PF(Vector2f goal, float RO = 1000.f, float Kap = 0.1f, float Kbp = 100.f,
-                                                  float Kr = 100.f, float TEAMMATE_CO = 500.f, float ETA = 1000.f, float GAMMA = 2.f);
-
-
- /** Computes the repulsive field for the striker
-  * @param goal The 2D position of the goal (that generates the attractive field)
-  * @return std::vector of PFCell structures, containing various info about the potential field cell
-  * **/
- std::vector<NodePF> compute_striker_repulsive_PF(float RO = 1000.f, float Kap = 0.1f, float Kbp = 100.f, float Kr = 100.f,
-                                                  float TEAMMATE_CO = 500.f, float ETA = 1000.f, float GAMMA = 2.f);
-
- /** Initializes an empty PF
-  * @param cell_size Side length of a discretized potential field cell
-  * @return std::vector of NodePF with null potential
-  * **/
- std::vector<NodePF> initialize_PF(float cell_size);
-
- /** Based on a previous implementation by Vincenzo Suriani, computes the an artificial potential field given a precomputed attractive and
-  * repulsive field respectively. Allows specifying a maximum cell update radius around the player.
-  * @param obstacles A vector of obstacles that generate the repulsive field
-  * @param attractive_field An std::vector containing the precomputed attractive field, it has to be of the same size of repulsive_field
-  * @param attractive_field An std::vector containing the precomputed repulsive field, it has to be of the same size of attractive_field
-  * @param radius Maximum distance of the computed cells (cells that further away will not be updated). If left to 0.f, the whole field will be computed
-  * @return std::vector of PFCell structures, containing various info about the potential field cell
-  * **/
- std::vector<NodePF> computePF (std::vector<NodePF> attractive_field, std::vector<NodePF> repulsive_field, float cell_size);
-
 
  int isTargetToPass;
 
