@@ -17,4 +17,4 @@ walkKickRequest = {
   kickType = none;
   kickLeg = left;
 };
-"BehaviorControl/playing, GameControlCard, GameplayCard/supporter, SupporterCoreCardSentinel/moveAroundObstacle, Activity, WalkToTargetPathPlanner, LookLeftAndRight/s_3"
+"BehaviorControl/playing, GameControlCard, GameplayCard/supporter, SupporterCoreCardSentinel/moveAroundObstacle, Activity, WalkToTargetPathPlanner, LookLeftAndRight/s_1"
