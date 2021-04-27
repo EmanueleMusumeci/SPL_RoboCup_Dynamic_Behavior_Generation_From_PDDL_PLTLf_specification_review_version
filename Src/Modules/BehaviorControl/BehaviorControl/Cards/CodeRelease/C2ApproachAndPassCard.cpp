@@ -287,17 +287,19 @@ class C2ApproachAndPassCard : public C2ApproachAndPassCardBase
       transition
       {
         Pose2f point = theLibCheck.C2EvaluateTarget();
+        point = theLibCheck.glob2Rel(point.translation.x(), point.translation.y());
+        point = theLibCheck.rel2Glob(point.translation.x()-150.f, point.translation.y()+85.f);
         const Angle angleToTarget = calcAngleToTarget(point);
         float angle_threshold = .1f;
-        std::cout << "current Y:\t" << theFieldBall.positionRelative.y() << '\n';
+        //std::cout << "current Y:\t" << theFieldBall.positionRelative.y() << '\n';
         if (RangeY.isInside((theFieldBall.positionRelative.y()))) {
-          std::cout << "y OK\t current X:\t" << theFieldBall.positionRelative.x() << '\n';
+          //std::cout << "y OK\t current X:\t" << theFieldBall.positionRelative.x() << '\n';
           if (RangeX.isInside((theFieldBall.positionRelative.x()))) {
-            std::cout << "x OK\t current angle: \t" << angleToTarget << '\n';
+            //std::cout << "x OK\t current angle: \t" << angleToTarget << '\n';
             if (std::abs(angleToTarget) < angle_threshold) {
-              std::cout << "angolo Ok\n";
-              goto wait;
-              //goto kick;
+              std::cout << "Passaggio\n";
+              //goto wait;
+              goto kick;
             }
           }
         }
@@ -354,12 +356,12 @@ class C2ApproachAndPassCard : public C2ApproachAndPassCardBase
         float y_ball = ball.translation.y();         
 
         x_ball = x_ball - 150.f;
-        y_ball = y_ball + 80.f;
+        y_ball = y_ball + 85.f;
 
         Pose2f globBall = theLibCheck.rel2Glob(x_ball, y_ball);
         Pose2f target = Pose2f(angle, globBall.translation.x(), globBall.translation.y());
         theLookAtPointSkill(Vector3f(theFieldBall.positionRelative.x(), theFieldBall.positionRelative.y(), 0.f));
-        theWalkToTargetPathPlannerSkill(Pose2f(0.2f, 0.2f, 0.2f), target);
+        theWalkToTargetPathPlannerSkill(Pose2f(0.3f, 0.3f, 0.3f), target);
       }
     }
 
@@ -379,6 +381,7 @@ class C2ApproachAndPassCard : public C2ApproachAndPassCardBase
       {
         if ( not alreadyEnqueued){
             alreadyEnqueued = true;
+            distanceConfirmed = 2600.f;
             std::string distanceTargetString = std::to_string(int(distanceConfirmed/1000.f));
             SystemCall::say("PASSING TO DISTANCE");
             SystemCall::say(distanceTargetString.c_str());
