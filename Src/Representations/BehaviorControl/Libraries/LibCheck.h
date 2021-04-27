@@ -128,6 +128,11 @@ STREAMABLE(LibCheck,
   FUNCTION(bool()) C2OwnField;
   FUNCTION(bool()) C2PassingArea;
   FUNCTION(bool()) C2ReceiverArea;
+  FUNCTION(int()) C2WhichCorridor;
+  FUNCTION(Pose2f()) C2EvaluateTarget;
+  FUNCTION(Pose2f()) C2EvaluateApproach;
+  FUNCTION(float()) C2AngleToTarget;
+  FUNCTION(float()) C2AngleToTarget_bis;
 
 
   FUNCTION(bool(int)) strikerPassCommonConditions,

@@ -9,6 +9,7 @@
  */
 #include "Platform/Nao/SoundPlayer.h"
 #include "LibCheckProvider.h"
+#include <math.h>
 #include <iostream>
 #include <algorithm>
 #define SQ(x) x*x
@@ -300,7 +301,6 @@ libCheck.goalTarget = [this](bool shootASAP) -> Vector2f {
     return goalTarget(shootASAP);
   };
 
-
 libCheck.C2OwnField = [this]() -> bool {
   return C2OwnField();
 };
@@ -311,6 +311,26 @@ libCheck.C2PassingArea = [this]() -> bool {
 
 libCheck.C2ReceiverArea = [this]() -> bool {
   return C2ReceiverArea();
+};
+
+libCheck.C2WhichCorridor = [this]() -> int {
+  return C2WhichCorridor();
+};
+
+libCheck.C2EvaluateTarget = [this]() -> Pose2f {
+  return C2EvaluateTarget();
+};
+
+libCheck.C2EvaluateApproach = [this]() -> Pose2f {
+  return C2EvaluateApproach();
+};
+
+libCheck.C2AngleToTarget = [this]() -> float {
+  return C2AngleToTarget();
+};
+
+libCheck.C2AngleToTarget_bis = [this]() -> float {
+  return C2AngleToTarget_bis();
 };
 
   libCheck.glob2Rel = [&](float x, float y) -> Pose2f
@@ -2423,11 +2443,10 @@ float LibCheckProvider::sqrDistanceOfClosestOpponentToPoint(Vector2f p) {
     float distanceToBorder_x = 0.f;
     float distanceToBorder_y = 0.f;    
 
-    Pose2f globBall = rel2Glob(theBallModel.estimate.position.x(),theBallModel.estimate.position.y());
-    float x_ball = globBall.translation.x(); 
-    float y_ball = globBall.translation.y(); 
+    float x_ball = theFieldBall.positionOnField.x(); 
+    float y_ball = theFieldBall.positionOnField.y();
 
-    float x_1, x_2, x_3, x_4, y_1, y_2;
+    float x_b, x_B, x_1L, x_1R, x_2L, x_2R, x_3L, x_3R, y_1, y_2;
 
     if (y_ball < 0) y_ball = -y_ball;
     if (x_ball < 0) x_ball = -x_ball;
@@ -2435,13 +2454,40 @@ float LibCheckProvider::sqrDistanceOfClosestOpponentToPoint(Vector2f p) {
     y_1 = 550.f + distanceToBorder_y;
     y_2 = y_1 + passAreaExtension_y;
 
-    x_1 = 1400.f + robot_width + distanceToBorder_x;
-    x_2 = 2000.f - robot_width - distanceToBorder_x;
-    x_3 = 2000.f + robot_width + distanceToBorder_x;
-    x_4 = 2600.f - robot_width - distanceToBorder_x;
+    x_b = 800.f + distanceToBorder_x;
+    x_1L = 1400.f - robot_width + distanceToBorder_x;
+    x_1R = 1400.f + robot_width + distanceToBorder_x;
+    x_2L = 2000.f - robot_width - distanceToBorder_x;
+    x_2R = 2000.f + robot_width + distanceToBorder_x;
+    x_3L = 2600.f - robot_width - distanceToBorder_x;
+    x_3R = 2600.f + robot_width - distanceToBorder_x;
+    x_B = 3200.f - distanceToBorder_x;
+
+    float x_1, x_2;
+
+    int corridor = C2WhichCorridor();
+
+    switch (corridor) {
+      case 0:
+        x_1 = x_b;
+        x_2 = x_1L;
+        break;
+      case 1:
+        x_1 = x_1R;
+        x_2 = x_2L;
+        break;
+      case 2:
+        x_1 = x_2R;
+        x_2 = x_3L;
+        break;
+      case 3:
+        x_1 = x_3R;
+        x_2 = x_B;
+        break;
+    } 
     
     if (y_ball < y_2 && y_ball > y_1) {
-      if ((x_ball < x_2 && x_ball > x_1) || (x_ball < x_4 && x_ball > x_3)) {
+      if (x_ball < x_2 && x_ball > x_1) {
         return true;
       }
       else return false;
@@ -2468,7 +2514,7 @@ float LibCheckProvider::sqrDistanceOfClosestOpponentToPoint(Vector2f p) {
     float x_nao = theRobotPose.translation.x();
     float y_nao = theRobotPose.translation.y();
 
-    float x_1, x_2, x_3, x_4, y_1, y_2;
+    float x_b, x_B, x_1L, x_1R, x_2L, x_2R, x_3L, x_3R, y_1, y_2;
 
     if (y_nao < 0) y_nao = -y_nao;
     if (x_nao < 0) x_nao = -x_nao;
@@ -2478,17 +2524,155 @@ float LibCheckProvider::sqrDistanceOfClosestOpponentToPoint(Vector2f p) {
     y_1 = 550.f + passAreaExtension_y + distanceToBorder_y;
     y_2 = y_1 + receiverAreaExtension_y;
 
-    x_1 = 1400.f + robot_width + distanceToBorder_x;
-    x_2 = 2000.f - robot_width - distanceToBorder_x;
-    x_3 = 2000.f + robot_width + distanceToBorder_x;
-    x_4 = 2600.f - robot_width - distanceToBorder_x;
+    x_b = 800.f + distanceToBorder_x;
+    x_1L = 1400.f - robot_width - distanceToBorder_x;
+    x_1R = 1400.f + robot_width + distanceToBorder_x;
+    x_2L = 2000.f - robot_width - distanceToBorder_x;
+    x_2R = 2000.f + robot_width + distanceToBorder_x;
+    x_3L = 2600.f - robot_width - distanceToBorder_x;
+    x_3R = 2600.f + robot_width + distanceToBorder_x;
+    x_B = 3200.f - distanceToBorder_x;
+
+    float x_1, x_2;
+
+    int corridor = C2WhichCorridor();
+
+    switch (corridor) {
+      case 0:
+        x_1 = x_b;
+        x_2 = x_1L;
+        break;
+      case 1:
+        x_1 = x_1R;
+        x_2 = x_2L;
+        break;
+      case 2:
+        x_1 = x_2R;
+        x_2 = x_3L;
+        break;
+      case 3:
+        x_1 = x_3R;
+        x_2 = x_B;
+        break;
+    } 
 
     if (y_nao < y_2 && y_nao > y_1) {
-      if ((x_nao < x_2 && x_nao > x_1 && x_ball < 2000.f) || (x_nao < x_4 && x_nao > x_3 && x_ball > 2000.f)) {
+      if (x_nao < x_2 && x_nao > x_1) {
         return true;
       }
       else return false;
     }
     else return false;
 
+  }
+
+  int LibCheckProvider::C2WhichCorridor() {
+ 
+    float x_ball = theFieldBall.positionOnField.x(); 
+
+    if (x_ball < 0) x_ball = -x_ball;
+
+    if (x_ball < 1400.f) return 0;
+    if (x_ball < 2000.f) return 1;
+    if (x_ball < 2600.f) return 2;
+    
+    return 3;   
+  }
+
+  Pose2f LibCheckProvider::C2EvaluateTarget() {
+    
+    int corridor = C2WhichCorridor();
+
+    float x_target, y_target;
+
+    y_target = 0.f;
+
+    switch (corridor) {
+      case 0:
+        x_target = 1025.f;
+        break;
+      case 1:
+        x_target = 1700.f;
+        break;
+      case 2:
+        x_target = 2300.f;
+        break;
+      case 3:
+        x_target = 2975.f;
+        break;
+    } 
+
+    if (theRobotPose.translation.x() < 0) x_target = -x_target;
+
+    return Pose2f(x_target, y_target);
+  }
+
+  Pose2f LibCheckProvider::C2EvaluateApproach() {
+
+    float x_offset, y_offset;
+
+    Pose2f target = C2EvaluateTarget();
+
+    float x_nao = theRobotPose.translation.x();
+    float y_nao = theRobotPose.translation.y();
+
+    float x_ball = theFieldBall.positionOnField.x(); 
+    float y_ball = theFieldBall.positionOnField.y();
+
+    if (x_nao < 0) x_nao = -x_nao;
+    if (x_ball < 0) x_ball = -x_ball;
+
+    float angle = C2AngleToTarget();
+
+    //if (std::abs(radiansToDegree(angle)) < 90.f) y_offset = 180.f * cos(angle);
+    //else y_offset = -180.f * std::abs(sin(angle));
+
+    y_offset = 180.f * cos(angle);
+
+    //if (angle < 0.f) x_offset = -180.f * sin(angle);
+    //else x_offset = 180.f * sin(angle);
+
+    x_offset = 180.f * sin(angle);
+
+    Pose2f offset = Pose2f(x_offset, y_offset);
+
+    return offset;
+
+  }
+
+  float LibCheckProvider::C2AngleToTarget() {
+
+    Pose2f target = C2EvaluateTarget();
+
+    float x_target = target.translation.x();
+    float y_target = target.translation.y();
+
+    float x_ball = theFieldBall.positionOnField.x(); 
+    float y_ball = theFieldBall.positionOnField.y();
+
+    float diff_x = x_ball - x_target;
+    float diff_y = y_ball - y_target;
+
+    float angle = atan2f(diff_x, diff_y);
+
+    return angle;
+  }
+
+
+  float LibCheckProvider::C2AngleToTarget_bis() {
+
+    Pose2f target = C2EvaluateTarget();
+
+    float x_target = target.translation.x();
+    float y_target = target.translation.y();
+
+    float x_ball = theFieldBall.positionOnField.x(); 
+    float y_ball = theFieldBall.positionOnField.y();
+
+    float diff_x = x_target - x_ball;
+    float diff_y = y_target - y_ball;
+
+    float angle = atan2f(diff_y, diff_x);
+
+    return angle;
   }

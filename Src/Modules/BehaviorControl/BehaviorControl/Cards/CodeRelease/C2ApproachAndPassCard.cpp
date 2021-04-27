@@ -67,8 +67,11 @@ CARD(C2ApproachAndPassCard,
     (float)(100.f) ballYThreshold,
     (float)(180.f) ballOffsetX,
     (float)(450.f) ballXnearTh,
-    (Rangef)({170.f, 190.f}) ballOffsetXRange,
-    (Rangef)({-350.f, 350.f}) approachYRange,
+    (Rangef)({180.f, 180.f}) ballOffsetXRange,
+    (Rangef)({-250.f, 250.f}) approachXRange,
+    (Rangef)({-250.f, 250.f}) approachYRange,
+    (Rangef)({100.f, 200.f}) RangeX,
+    (Rangef)({-150.f, -75.f}) RangeY,
     (Rangef)({-150.f, 150.f}) smallApproachYRange,
     (Rangef)({150.f, 300.f}) smallApproachXRange,
     (float)(-75.f) ballOffsetY,
@@ -99,7 +102,8 @@ class C2ApproachAndPassCard : public C2ApproachAndPassCardBase
     bool ownField = theLibCheck.C2OwnField();
     float distance = theLibCheck.distance(theRobotPose.translation, theFieldBall.positionOnField);
 
-    if (!passingArea || !ownField || distance > 500.f) return false;
+    //if (!passingArea || !ownField || distance > 500.f) return false;
+    if (!ownField) return false;
     else return true;
   }
 
@@ -151,7 +155,7 @@ class C2ApproachAndPassCard : public C2ApproachAndPassCardBase
     {
       transition
       {
-        goto wait;
+        //goto wait;
         if(state_time > initialWaitTime)
         {
           goto turnToBall;
@@ -173,6 +177,12 @@ class C2ApproachAndPassCard : public C2ApproachAndPassCardBase
 
       action
       {
+
+        //Pose2f offset = theLibCheck.C2EvaluateApproach();
+        //float angle = theLibCheck.C2AngleToTarget();
+
+        //std::cout << "Offset " << offset.translation.x() << '\t' << offset.translation.y() << '\n';
+        //std::cout << "angolo " << theLibCheck.radiansToDegree(angle) << '\n';
         theStandSkill();
       }
     }
@@ -191,7 +201,7 @@ class C2ApproachAndPassCard : public C2ApproachAndPassCardBase
       action
       {
         theLookForwardSkill();
-        theWalkAtRelativeSpeedSkill(Pose2f(walkSpeed, 0.f, 0.f));
+        //theWalkAtRelativeSpeedSkill(Pose2f(walkSpeed, 0.f, 0.f));
       }
     }
 
@@ -226,20 +236,22 @@ class C2ApproachAndPassCard : public C2ApproachAndPassCardBase
         {
           goto searchForBall;
         }
-        if(theFieldBall.positionOnField.x() - ballOffsetX > theRobotPose.translation.x()){
-          if(theFieldBall.positionOnField.x() < theRobotPose.translation.x() + ballXnearTh){
-            if(approachYRange.isInside(theFieldBall.positionOnField.y() - theRobotPose.translation.y())){
+        if (approachYRange.isInside(theFieldBall.positionOnField.y() - theRobotPose.translation.y())) {
+          if (approachXRange.isInside(theFieldBall.positionOnField.x() - theRobotPose.translation.x())) {} 
               goto walkToBall_near;
-            }
-          }
         }
       }
 
       action
       {
-        theLookAtPointSkill(Vector3f(theFieldBall.positionRelative.x(), theFieldBall.positionRelative.y(), 0.f));
-        theWalkToTargetPathPlannerSkill(Pose2f(0.8f,0.8f,0.8f), Pose2f(theFieldBall.positionOnField - Vector2f( ballOffsetX, 0.f)));
+        float angle = theLibCheck.C2AngleToTarget_bis();
+        Pose2f point = theLibCheck.C2EvaluateTarget();
+        Pose2f offset = theLibCheck.C2EvaluateApproach();
+        Pose2f target = Pose2f(angle, theFieldBall.positionOnField + offset.translation);
 
+        //std::cout << target.translation.x() << '\t' <<  target.translation.y() << '\n';
+        theLookAtPointSkill(Vector3f(theFieldBall.positionRelative.x(), theFieldBall.positionRelative.y(), 0.f));
+        theWalkToTargetPathPlannerSkill(Pose2f(0.8f,0.8f,0.8f), target);
       }
     }
 
@@ -252,15 +264,21 @@ class C2ApproachAndPassCard : public C2ApproachAndPassCardBase
           goto searchForBall;
         }
 
-        if(smallApproachXRange.isInside(theFieldBall.positionRelative.x())
-            && smallApproachYRange.isInside(theFieldBall.positionRelative.y())){
-                goto approachToPass;
-              }
+        if (approachYRange.isInside((theFieldBall.positionOnField.y() - theRobotPose.translation.y())*1.3)){
+          if (approachXRange.isInside((theFieldBall.positionOnField.x() - theRobotPose.translation.x())*1.3)) {
+            goto approachToPass;
+            //std::cout << "ghello\n";
+          }
+        }
       }
       action
       {
+        float angle = theLibCheck.C2AngleToTarget_bis();
+        Pose2f offset = theLibCheck.C2EvaluateApproach();
+        Pose2f target = Pose2f(angle, theFieldBall.positionOnField + offset.translation);
+
         theLookAtPointSkill(Vector3f(theFieldBall.positionRelative.x(), theFieldBall.positionRelative.y(), 0.f));
-        theWalkToTargetPathPlannerStraightSkill(Pose2f(0.8f,0.8f,0.8f), Pose2f(theFieldBall.positionOnField) - Pose2f(ballOffsetX, 50.f));
+        theWalkToTargetPathPlannerSkill(Pose2f(0.5f,0.5f,0.5f), target);
       }
     }
 
@@ -268,7 +286,25 @@ class C2ApproachAndPassCard : public C2ApproachAndPassCardBase
     state(approachToPass){
       transition
       {
-        const Angle angleToTarget = calcAngleToTarget(thePassShare.passTarget.translation);
+        Pose2f point = theLibCheck.C2EvaluateTarget();
+        const Angle angleToTarget = calcAngleToTarget(point);
+        float angle_threshold = .1f;
+        std::cout << "current Y:\t" << theFieldBall.positionRelative.y() << '\n';
+        if (RangeY.isInside((theFieldBall.positionRelative.y()))) {
+          std::cout << "y OK\t current X:\t" << theFieldBall.positionRelative.x() << '\n';
+          if (RangeX.isInside((theFieldBall.positionRelative.x()))) {
+            std::cout << "x OK\t current angle: \t" << angleToTarget << '\n';
+            if (std::abs(angleToTarget) < angle_threshold) {
+              std::cout << "angolo Ok\n";
+              goto wait;
+              //goto kick;
+            }
+          }
+        }
+
+        /*
+        Pose2f point = theLibCheck.C2EvaluateTarget();
+        const Angle angleToTarget = calcAngleToTarget(point);
         if(!theFieldBall.ballWasSeen(ballNotSeenTimeout))
         {
           goto searchForBall;
@@ -285,20 +321,45 @@ class C2ApproachAndPassCard : public C2ApproachAndPassCardBase
         if(std::abs(angleToTarget) < angle_target_treshold && ballOffsetXRange.isInside(theFieldBall.positionRelative.x())
             && ballOffsetYRange.isInside(theFieldBall.positionRelative.y())){
                 goto kick;
-        }
+        }*/
       }
 
       action
       {
         //Set the BehaviorStatus to the current PassShare
-        theLookAtPointSkill(Vector3f(theFieldBall.positionRelative.x(), theFieldBall.positionRelative.y(), 0.f));
-        Vector2f passTarget = thePassShare.passTarget.translation;
-        double distanceTarget =  (passTarget - theFieldBall.positionOnField).norm();
-        distanceConfirmed = distanceTarget;
-        //const Angle angleToTarget = calcAngleToTarget(passTarget);
-        //std::cout<< "TAR_X:"<<passTarget.x()<<"\tTAR_Y:"<<passTarget.y()<<"\tDISTANCE TO TARGET:"<< distanceTarget<<"\tBallX:"<<theFieldBall.positionRelative.x()<<"\tBallY:"<<theFieldBall.positionRelative.y()<<"\tCHECKx:"<<ballOffsetXRange.isInside(theFieldBall.positionRelative.x())<<"\tCHECKy"<<ballOffsetYRange.isInside(theFieldBall.positionRelative.y())<<"\tyRange:["<<ballOffsetYRange.min<<","<<ballOffsetYRange.max<<"]\tangleToTarget:"<<std::abs(angleToTarget)<<"\tangleTreshold:"<<angle_target_treshold<<"\tNORM:"<<theFieldBall.positionRelative.norm()<<"\n";
+        /*theLookAtPointSkill(Vector3f(theFieldBall.positionRelative.x(), theFieldBall.positionRelative.y(), 0.f));
 
-        theWalkToApproachSkill(passTarget, ballOffsetX, ballOffsetY, true);
+        float angle = theLibCheck.C2AngleToTarget_bis();
+        Pose2f passTarget = Pose2f(angle, theLibCheck.C2EvaluateTarget().translation);
+        double distanceTarget =  2000; //(passTarget - theFieldBall.positionOnField).norm();
+        distanceConfirmed = distanceTarget;
+        float x_offset, y_offset;
+        Pose2f offset = theLibCheck.C2EvaluateApproach();
+        x_offset = offset.translation.x();
+        y_offset = offset.translation.y();
+
+        theWalkToApproachSkill(passTarget, x_offset, y_offset, true);
+
+
+
+        float angle = theLibCheck.C2AngleToTarget_bis();
+        Pose2f offset = theLibCheck.C2EvaluateApproach();
+        Pose2f target = Pose2f(angle, theFieldBall.positionOnField + offset.translation/6);
+        theLookAtPointSkill(Vector3f(theFieldBall.positionRelative.x(), theFieldBall.positionRelative.y(), 0.f));
+        theWalkToTargetPathPlannerStraightSkill(Pose2f(0.4f,0.4f,0.4f), target);*/
+
+        float angle = theLibCheck.C2AngleToTarget_bis();
+        Pose2f ball = theFieldBall.positionRelative;
+        float x_ball = ball.translation.x();         
+        float y_ball = ball.translation.y();         
+
+        x_ball = x_ball - 150.f;
+        y_ball = y_ball + 80.f;
+
+        Pose2f globBall = theLibCheck.rel2Glob(x_ball, y_ball);
+        Pose2f target = Pose2f(angle, globBall.translation.x(), globBall.translation.y());
+        theLookAtPointSkill(Vector3f(theFieldBall.positionRelative.x(), theFieldBall.positionRelative.y(), 0.f));
+        theWalkToTargetPathPlannerSkill(Pose2f(0.2f, 0.2f, 0.2f), target);
       }
     }
 
@@ -333,7 +394,7 @@ class C2ApproachAndPassCard : public C2ApproachAndPassCardBase
 
   bool isAligned(Pose2f target_pose)
   {
-    return calcAngleToTarget(target_pose)< alignThreshold;
+    return calcAngleToTarget(target_pose) < alignThreshold;
   }
 
   Angle calcAngleToTarget(Pose2f target) const

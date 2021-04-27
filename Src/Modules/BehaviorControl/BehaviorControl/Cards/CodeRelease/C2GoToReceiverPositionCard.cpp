@@ -102,10 +102,8 @@ class C2GoToReceiverPositionCard : public C2GoToReceiverPositionCardBase
 
         if (ball_x < 0) ball_x = -ball_x;
 
-        if (ball_x < 2000.f) target_x = 1700.f;
-        else target_x = 2300.f;
+        target_x = theLibCheck.C2EvaluateTarget().translation.x();    
 
-        if (theRobotPose.translation.x() < 0) target_x = -target_x; 
         if (theRobotPose.translation.y() < 0) target_y = -target_y; 
 
         theWalkToTargetPathPlannerSkill(Pose2f(1.f,1.f,1.f), Pose2f(target_x, target_y));
@@ -124,9 +122,7 @@ class C2GoToReceiverPositionCard : public C2GoToReceiverPositionCardBase
         if (ball_x < 2000.f) target_x = 1700.f;
         else target_x = 2300.f;
 
-        if (theRobotPose.translation.x() < 0) target_x = -target_x;
-
-        Pose2f chosenTarget = Pose2f(target_x,0.f);
+        Pose2f chosenTarget = theLibCheck.C2EvaluateTarget();
 
         const Angle angleToTarget = calcAngleToTarget(chosenTarget); 
       transition
@@ -151,7 +147,7 @@ class C2GoToReceiverPositionCard : public C2GoToReceiverPositionCardBase
         if (x_nao < 0) x_nao = -x_nao;
 
 
-        if ((x_ball < 2000.f && x_nao > 2000.f) || (x_ball > 2000.f && x_nao < 2000.f)) goto start;
+        if (!theLibCheck.C2ReceiverArea()) goto start;
       }
       action{
         theStandSkill();

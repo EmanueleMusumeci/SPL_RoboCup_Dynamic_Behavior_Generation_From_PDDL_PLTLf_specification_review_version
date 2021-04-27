@@ -299,6 +299,23 @@ private:
  // imposing parameters in LibCheckProvider.cpp
  bool C2ReceiverArea();
 
+ // return the corridor in which the pass should be performed
+ // 0 -> Corridor closer to the midfield
+ // 4 -> Corridor closer to the goal 
+ int C2WhichCorridor();
+
+ // return the midpoint in the corridor
+ Pose2f C2EvaluateTarget();
+
+ // evaluates the offsets to approach the ball properly
+ Pose2f C2EvaluateApproach();
+
+ // evaluate the angle of the ball wrt target
+ float C2AngleToTarget();
+
+ // evaluate the angle of the nao wrt target
+ float C2AngleToTarget_bis();
+
  public: LibCheckProvider();
 
 };
