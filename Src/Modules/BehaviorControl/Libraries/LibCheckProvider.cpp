@@ -2669,10 +2669,13 @@ float LibCheckProvider::sqrDistanceOfClosestOpponentToPoint(Vector2f p) {
     float x_ball = theFieldBall.positionOnField.x(); 
     float y_ball = theFieldBall.positionOnField.y();
 
+    //x_target = (x_target + x_ball)/2;
+    //y_target = (y_target + y_ball)/2;
+
     float diff_x = x_target - x_ball;
     float diff_y = y_target - y_ball;
 
-    float angle = atan2f(diff_y, diff_x);
+    float angle = atan2f(diff_y, diff_x/2);
 
     return angle;
   }
