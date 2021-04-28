@@ -89,6 +89,27 @@ class C2GoToReceiverPositionCard : public C2GoToReceiverPositionCardBase
       {
         bool receiverArea = theLibCheck.C2ReceiverArea();
 
+        float target_x, target_y;
+        target_y = 1100.f;
+
+        float ball_x = theFieldBall.positionOnField.x();
+
+        if (ball_x < 0) ball_x = -ball_x;
+
+        target_x = theLibCheck.C2EvaluateTarget().translation.x();    
+
+        if (theRobotPose.translation.y() < 0) target_y = -target_y; 
+        
+        
+        Pose2f relativeTarget = theLibCheck.glob2Rel(target_x, target_y);
+        float relativeTargetX = relativeTarget.translation.x();        
+        float relativeTargetY = relativeTarget.translation.y();        
+        //std::cout<<"Relative target x:"<<relativeTargetX<<"\n";
+
+        if(relativeTargetX < 0 and std::abs(relativeTargetY<700.f)){
+            //std::cout<<"SKIPPO!\n";
+            goto turnAntiAround;
+        }
         if (receiverArea) goto turnAround;
       }
 
@@ -136,7 +157,87 @@ class C2GoToReceiverPositionCard : public C2GoToReceiverPositionCardBase
         theWalkAtRelativeSpeedSkill(Pose2f(rotation_speed, 0.f,0.f));
       }
     }
+    
+    state(turnAntiAround){
+        float angleTargetTreshold = 0.2;
 
+        float target_x;
+        float ball_x = theFieldBall.positionOnField.x();
+
+        if (ball_x < 0) ball_x = -ball_x;
+
+        if (ball_x < 2000.f) target_x = 1700.f;
+        else target_x = 2300.f;
+
+        float yReceiverArea = 1100.f;
+        
+        
+        if(theRobotPose.translation.y()<0) yReceiverArea = -yReceiverArea;
+        
+        Pose2f actuallyChosenTarget = theLibCheck.C2EvaluateTarget();
+        Pose2f chosenTarget = Pose2f(actuallyChosenTarget.translation.x(),yReceiverArea);
+        
+        Pose2f relativeChosenTarget = theLibCheck.glob2Rel(chosenTarget.translation.x(), chosenTarget.translation.y());
+        
+        
+        chosenTarget = theLibCheck.rel2Glob(-relativeChosenTarget.translation.x(), -relativeChosenTarget.translation.y());
+        
+        const Angle angleToTarget = calcAngleToTarget(chosenTarget); 
+        //const Angle oppositeAngleToTarget = -angleToTarget; 
+        //std::cout<<"ANGLE \t"<<angleToTarget<<"\n";
+        //std::cout<<"ANGLE AFTER MINOS \t"<<oppositeAngleToTarget<<"\n";
+      transition
+      {
+        if(std::abs(angleToTarget) < angleTargetTreshold) goto walkBack; 
+      }
+      action{
+        theLookAtPointSkill(Vector3f(theFieldBall.teamPositionRelative.x(), theFieldBall.teamPositionRelative.y(), 0.f));
+        float rotation_speed = .5f;
+        //if (angleToTarget < 0) rotation_speed = -rotation_speed;
+        theWalkAtRelativeSpeedSkill(Pose2f(rotation_speed, 0.f,0.f));
+      }
+    }
+    
+    state(walkBack){
+          transition{
+            float angleTargetTreshold = 0.2;
+
+            float target_x;
+            float ball_x = theFieldBall.positionOnField.x();
+
+            if (ball_x < 0) ball_x = -ball_x;
+
+            if (ball_x < 2000.f) target_x = 1700.f;
+            else target_x = 2300.f;
+
+            float yReceiverArea = 1100.f;
+            
+            
+            if(theRobotPose.translation.y()<0) yReceiverArea = -yReceiverArea;
+            
+            Pose2f actuallyChosenTarget = theLibCheck.C2EvaluateTarget();
+            Pose2f chosenTarget = Pose2f(actuallyChosenTarget.translation.x(),yReceiverArea);
+            
+            Pose2f relativeChosenTarget = theLibCheck.glob2Rel(chosenTarget.translation.x(), chosenTarget.translation.y());
+            
+            
+            chosenTarget = theLibCheck.rel2Glob(-relativeChosenTarget.translation.x(), -relativeChosenTarget.translation.y());
+            float distanceToChosenTarget = (theRobotPose.translation - chosenTarget.translation).norm();
+            const Angle angleToTarget = calcAngleToTarget(chosenTarget); 
+            if(relativeChosenTarget.translation.x() > 0){
+                //std::cout<<"SKIPPO!\n";
+                goto wallkToReceiverPosition;
+            }
+        
+            if((not(std::abs(angleToTarget) < angleTargetTreshold)) and distanceToChosenTarget>300.f) goto turnAntiAround; 
+            if(distanceToChosenTarget>750.f) goto turnAntiAround;
+        }
+        action{
+            theWalkAtRelativeSpeedSkill(Pose2f(0.f, -1.f,0.f));
+        }
+    
+    
+    }
     state(waitForBall){
       transition
       {
@@ -153,6 +254,7 @@ class C2GoToReceiverPositionCard : public C2GoToReceiverPositionCardBase
         theStandSkill();
       }
     }
+
   }
 
   Angle calcAngleToTarget(Pose2f target) const

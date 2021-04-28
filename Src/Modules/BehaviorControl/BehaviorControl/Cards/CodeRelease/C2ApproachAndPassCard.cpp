@@ -361,7 +361,7 @@ class C2ApproachAndPassCard : public C2ApproachAndPassCardBase
         Pose2f globBall = theLibCheck.rel2Glob(x_ball, y_ball);
         Pose2f target = Pose2f(angle, globBall.translation.x(), globBall.translation.y());
         theLookAtPointSkill(Vector3f(theFieldBall.positionRelative.x(), theFieldBall.positionRelative.y(), 0.f));
-        theWalkToTargetPathPlannerSkill(Pose2f(0.3f, 0.3f, 0.3f), target);
+        theWalkToTargetPathPlannerSkill(Pose2f(0.6f, 0.6f, 0.6f), target);
       }
     }
 
