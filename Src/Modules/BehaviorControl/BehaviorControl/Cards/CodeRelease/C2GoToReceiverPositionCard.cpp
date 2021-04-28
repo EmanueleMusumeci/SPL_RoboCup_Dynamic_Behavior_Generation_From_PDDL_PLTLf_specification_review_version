@@ -127,6 +127,9 @@ class C2GoToReceiverPositionCard : public C2GoToReceiverPositionCardBase
 
         if (theRobotPose.translation.y() < 0) target_y = -target_y; 
 
+        float x_diff = target_x - ball_x;
+        //target_x = target_x + x_diff/2;
+
         theWalkToTargetPathPlannerSkill(Pose2f(1.f,1.f,1.f), Pose2f(target_x, target_y));
         
       }

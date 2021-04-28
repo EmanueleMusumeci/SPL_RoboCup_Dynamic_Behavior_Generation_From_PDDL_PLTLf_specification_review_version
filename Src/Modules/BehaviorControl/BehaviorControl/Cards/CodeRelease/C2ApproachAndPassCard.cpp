@@ -23,6 +23,7 @@
 #include "Representations/BehaviorControl/Libraries/LibCheck.h"
 #include "Representations/Modeling/TeamPlayersModel.h"
 #include "Representations/BehaviorControl/BallCarrierModel/BallCarrierModel.h"
+#include "Representations/Communication/TeamData.h"
 #include "Tools/Math/BHMath.h"
 
 #include "Platform/SystemCall.h"
@@ -54,6 +55,7 @@ CARD(C2ApproachAndPassCard,
   REQUIRES(RobotPose),
   REQUIRES(BallCarrierModel),
   USES(BehaviorStatus),
+  USES(TeamData),
 
   REQUIRES(GameInfo),
 
@@ -304,52 +306,10 @@ class C2ApproachAndPassCard : public C2ApproachAndPassCardBase
           }
         }
 
-        /*
-        Pose2f point = theLibCheck.C2EvaluateTarget();
-        const Angle angleToTarget = calcAngleToTarget(point);
-        if(!theFieldBall.ballWasSeen(ballNotSeenTimeout))
-        {
-          goto searchForBall;
-        }
-
-        if(theFieldBall.positionRelative.norm() < 0 ){
-          goto turnToBall;
-        }
-
-        if(!smallApproachXRange.isInside(theFieldBall.positionRelative.x())){
-          goto walkToBall_far;
-        }
-
-        if(std::abs(angleToTarget) < angle_target_treshold && ballOffsetXRange.isInside(theFieldBall.positionRelative.x())
-            && ballOffsetYRange.isInside(theFieldBall.positionRelative.y())){
-                goto kick;
-        }*/
       }
 
       action
       {
-        //Set the BehaviorStatus to the current PassShare
-        /*theLookAtPointSkill(Vector3f(theFieldBall.positionRelative.x(), theFieldBall.positionRelative.y(), 0.f));
-
-        float angle = theLibCheck.C2AngleToTarget_bis();
-        Pose2f passTarget = Pose2f(angle, theLibCheck.C2EvaluateTarget().translation);
-        double distanceTarget =  2000; //(passTarget - theFieldBall.positionOnField).norm();
-        distanceConfirmed = distanceTarget;
-        float x_offset, y_offset;
-        Pose2f offset = theLibCheck.C2EvaluateApproach();
-        x_offset = offset.translation.x();
-        y_offset = offset.translation.y();
-
-        theWalkToApproachSkill(passTarget, x_offset, y_offset, true);
-
-
-
-        float angle = theLibCheck.C2AngleToTarget_bis();
-        Pose2f offset = theLibCheck.C2EvaluateApproach();
-        Pose2f target = Pose2f(angle, theFieldBall.positionOnField + offset.translation/6);
-        theLookAtPointSkill(Vector3f(theFieldBall.positionRelative.x(), theFieldBall.positionRelative.y(), 0.f));
-        theWalkToTargetPathPlannerStraightSkill(Pose2f(0.4f,0.4f,0.4f), target);*/
-
         float angle = theLibCheck.C2AngleToTarget_bis();
         Pose2f ball = theFieldBall.positionRelative;
         float x_ball = ball.translation.x();         
@@ -361,7 +321,7 @@ class C2ApproachAndPassCard : public C2ApproachAndPassCardBase
         Pose2f globBall = theLibCheck.rel2Glob(x_ball, y_ball);
         Pose2f target = Pose2f(angle, globBall.translation.x(), globBall.translation.y());
         theLookAtPointSkill(Vector3f(theFieldBall.positionRelative.x(), theFieldBall.positionRelative.y(), 0.f));
-        theWalkToTargetPathPlannerSkill(Pose2f(0.6f, 0.6f, 0.6f), target);
+        theWalkToTargetPathPlannerSkill(Pose2f(0.8f, 0.8f, 0.8f), target);
       }
     }
 
@@ -382,6 +342,8 @@ class C2ApproachAndPassCard : public C2ApproachAndPassCardBase
         if ( not alreadyEnqueued){
             alreadyEnqueued = true;
             distanceConfirmed = 2600.f;
+
+            std::cout << theTeamData.teammates.at(0).theRobotPose.translation.x() << '\t' << theTeamData.teammates.at(0).theRobotPose.translation.y() << '\n';
             std::string distanceTargetString = std::to_string(int(distanceConfirmed/1000.f));
             SystemCall::say("PASSING TO DISTANCE");
             SystemCall::say(distanceTargetString.c_str());
