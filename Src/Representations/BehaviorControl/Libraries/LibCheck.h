@@ -124,7 +124,7 @@ STREAMABLE(LibCheck,
   FUNCTION(bool(Vector2f point)) obstacleExistsAroundPoint;
   FUNCTION(float()) defenderDynamicY;
 
-
+  FUNCTION(Vector3f(Pose2f targetPoint1, Pose2f targetPoint2, Pose2f feedbackPoint1, Pose2f feedbackPoint2)) getError;
   FUNCTION(bool()) C2OwnField;
   FUNCTION(bool()) C2PassingArea;
   FUNCTION(bool()) C2ReceiverArea;

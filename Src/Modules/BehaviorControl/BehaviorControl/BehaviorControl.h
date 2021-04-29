@@ -23,6 +23,8 @@
 #include "Representations/MotionControl/HeadMotionRequest.h"
 #include "Representations/MotionControl/MotionRequest.h"
 #include "Representations/Infrastructure/SensorData/JointSensorData.h"
+#include "Representations/Sensing/RobotModel.h"
+#include "Representations/Modeling/TeamBallModel.h"
 #include "Tools/Module/Module.h"
 #include "Tools/Streams/Enum.h"
 #include <string>

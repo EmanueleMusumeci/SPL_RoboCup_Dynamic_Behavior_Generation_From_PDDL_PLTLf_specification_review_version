@@ -244,7 +244,7 @@ private:
 
 
  int isTargetToPass;
-
+ Vector3f getError(Pose2f targetPoint1, Pose2f targetPoint2, Pose2f feedbackPoint1, Pose2f feedbackPoint2);
  float sqrDistanceOfClosestOpponentToPoint(Vector2f p);
 
 
