@@ -209,7 +209,7 @@ private:
  Vector2f goalTarget (bool shootASAP);
 
  int isTargetToPass;
-
+ Vector3f getError(Pose2f targetPoint1, Pose2f targetPoint2, Pose2f feedbackPoint1, Pose2f feedbackPoint2);
  float sqrDistanceOfClosestOpponentToPoint(Vector2f p);
 
 
@@ -252,5 +252,38 @@ private:
  //Maps value from interval [fromIntervalMin, fromIntervalMax] to interval [toIntervalMin, toIntervalMax]
  float mapToInterval(float value, float fromIntervalMin, float fromIntervalMax, float toIntervalMin, float toIntervalMax);
 
+ // return true if the ball is on the same area of the robot, false otherwise
+ // the area is the y-value of the field
+ bool C2OwnField();
+
+ // return TRUE if the ball is inside a passingArea defined arbitrarly by
+ // imposing parameters in LibCheckProvider.cpp
+ bool C2PassingArea();
+
+ // return TRUE if the robot is inside a receiverArea defined arbitrarly by
+ // imposing parameters in LibCheckProvider.cpp
+ bool C2ReceiverArea();
+
+ // return the corridor in which the pass should be performed
+ // 0 -> Corridor closer to the midfield
+ // 4 -> Corridor closer to the goal 
+ int C2WhichCorridor();
+
+ // return the midpoint in the corridor
+ Pose2f C2EvaluateTarget(int role);
+
+ // evaluates the offsets to approach the ball properly
+ Pose2f C2EvaluateApproach(Pose2f target);
+
+ // evaluate the angle of the ball wrt target
+ float C2AngleBetween(Pose2f p1, Pose2f p2, bool inverse);
+
+ // evaluate the angle of the ball wrt target
+ float C2AngleToTarget();
+
+ // evaluate the angle of the nao wrt target
+ float C2AngleToTarget_bis();
+
  public: LibCheckProvider();
+
 };

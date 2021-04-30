@@ -13,9 +13,10 @@
 #include "Tools/Settings.h"
 #include "Tools/Streams/InStreams.h"
 #include "Tools/Math/Eigen.h"
+#include "Tools/Math/Random.h"
 #include <limits>
 #include <algorithm>
-
+#include <iostream>
 const float GameController::footLength = 120.f;
 const float GameController::safeDistance = 150.f;
 const float GameController::dropHeight = 350.f;
@@ -290,6 +291,17 @@ bool GameController::handleManualPlacementCommand(const std::string& command)
       placeDefensivePlayers(1);
     return true;
   }
+  
+  else if(command == "ballPassingChallenge2021RandomPlacement")
+  {
+    //placeGoalie(0);
+    if(gameInfo.kickingTeam == 1)
+      placeSecondChallenge2021(0);
+    else
+      placeSecondChallenge2021(0);
+    return true;
+  }
+  
   else if(command == "manualPlacementSecondTeam")
   {
     placeGoalie(numOfRobots / 2);
@@ -409,6 +421,16 @@ void GameController::placeGoalie(int robot)
                : Pose2f(0.f, fieldDimensions.xPosOwnGroundline + safeDistance, 0.f);
 }
 
+void GameController::placeRobot(int robot,  float x, float y, float rotation)
+{
+  Robot& r = robots[robot];
+  if(r.info.penalty != PENALTY_NONE)
+    return;
+  r.manuallyPlaced = true;
+  r.lastPose = Pose2f(rotation,x,y);
+  
+}
+
 void GameController::placeFromSet(int robot, int minRobot, const Pose2f* poses)
 {
   // For finding a manual placement pose, it is determined which
@@ -498,6 +520,34 @@ void GameController::placeDefensivePlayers(int minRobot)
     placeFromSet(i, minRobot, poses[i < numOfRobots / 2 ? 1 : 0]);
   }
 }
+
+void GameController::placeSecondChallenge2021(int minRobot)
+{
+  int robot_random_identifier = Random::uniformInt(1,3);
+  if(robot_random_identifier == 1){
+    placeRobot(1,1400,-612-550,M_PI/2);
+    SimulatedRobot::moveBall(Vector3f(1400,-612-550+300,M_PI/2), true);
+  }
+  else if (robot_random_identifier ==2){
+    placeRobot(1,2000,-1225-550,M_PI/2);
+    SimulatedRobot::moveBall(Vector3f(2000,-1225-550+300,M_PI/2), true);
+  }
+  else {
+    placeRobot(1,2600,-1225-612-550,M_PI/2);
+    SimulatedRobot::moveBall(Vector3f(2600,-1225-612-550+300,M_PI/2), true);
+  }
+  robot_random_identifier = Random::uniformInt(1,3);
+  if(robot_random_identifier == 1)
+    placeRobot(2,2600,612+550,-M_PI/2);  
+  else if (robot_random_identifier ==2)
+    placeRobot(2,2000,1225+550,-M_PI/2);
+  else
+    placeRobot(2,1400,1225+612+550,-M_PI/2);
+  //placeRobot(6,1400,0,M_PI/2);
+  //placeRobot(7,2000,0,M_PI/2);
+  //placeRobot(8,2600,0,M_PI/2);
+}
+
 
 void GameController::checkIllegalPositioning(int robot)
 {
@@ -808,6 +858,7 @@ void GameController::addCompletion(std::set<std::string>& completion) const
     "set",
     "playing",
     "finished",
+    "ballPassingChallenge2021RandomPlacement",
     "competitionTypeNormal",
     "competitionTypeMixedTeam",
     "competitionPhasePlayoff",

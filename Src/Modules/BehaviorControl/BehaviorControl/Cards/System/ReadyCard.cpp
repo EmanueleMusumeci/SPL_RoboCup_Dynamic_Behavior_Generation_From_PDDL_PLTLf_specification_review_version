@@ -122,7 +122,7 @@ class ReadyCard : public ReadyCardBase
       {
         
         theLookLeftAndRightSkill();
-        theWalkToTargetPathPlannerSkill(Pose2f(1.f,1.f,1.f), theLibCheck.myReadyPosition());
+        theWalkToTargetPathPlannerSkill(Pose2f(0.8f,0.8f,0.8f), theLibCheck.myReadyPosition());
         }
     }//end of goToPosition
 

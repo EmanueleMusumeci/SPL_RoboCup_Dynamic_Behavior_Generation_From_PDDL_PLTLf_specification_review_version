@@ -51,7 +51,7 @@ STREAMABLE(KickRequest,
     kickForward, // SIMULATOR: Very very strong kick ( it covers more than half of the field ). 
 		 // REAL: it is too imprecise, because the robot doesn't control the ball position when he turn its head before the kick.
 
-    powerKick,   // It raises runtime error.
+    //powerKick,   // It raises runtime error.
 
     lobKick,     // SIMULATOR: 10% of the times the robot falls when he is trying to kick the ball. 
 		 // REAL: to be tested

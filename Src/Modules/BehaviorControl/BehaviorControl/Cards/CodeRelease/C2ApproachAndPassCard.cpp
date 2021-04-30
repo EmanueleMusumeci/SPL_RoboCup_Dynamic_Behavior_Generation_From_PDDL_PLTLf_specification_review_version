@@ -1,11 +1,14 @@
 /**
- * @file ApproachAndPass.cpp
+ * @file C2ApproachAndPassCard.cpp
  *
  * This file implements a behavior for passing the ball to a given target.
  * This is a slightly modified version of the ApproachAndKickCard.
- *
- * @author <A href="mailto:musumeci.1653885@studenti.uniroma1.it">Emanuele Musumeci</A>
+ *d
+ * @author Tommaso Carlini & Graziano Specchi
  */
+ 
+// TODO: Scrivere il behaviour
+
 
 #include "Representations/BehaviorControl/BehaviorStatus.h"
 #include "Representations/BehaviorControl/FieldBall.h"
@@ -20,15 +23,15 @@
 #include "Representations/BehaviorControl/Libraries/LibCheck.h"
 #include "Representations/Modeling/TeamPlayersModel.h"
 #include "Representations/BehaviorControl/BallCarrierModel/BallCarrierModel.h"
+#include "Representations/Communication/TeamData.h"
 #include "Tools/Math/BHMath.h"
-
 
 #include "Platform/SystemCall.h"
 #include <string>
 
 //TODO: Investigate and fix oscillation problem
 
-CARD(ApproachAndPassCard,
+CARD(C2ApproachAndPassCard,
 {,
   CALLS(InWalkKick),
   CALLS(LookForward),
@@ -52,6 +55,7 @@ CARD(ApproachAndPassCard,
   REQUIRES(RobotPose),
   REQUIRES(BallCarrierModel),
   USES(BehaviorStatus),
+  USES(TeamData),
 
   REQUIRES(GameInfo),
 
@@ -65,8 +69,11 @@ CARD(ApproachAndPassCard,
     (float)(100.f) ballYThreshold,
     (float)(180.f) ballOffsetX,
     (float)(450.f) ballXnearTh,
-    (Rangef)({170.f, 190.f}) ballOffsetXRange,
-    (Rangef)({-350.f, 350.f}) approachYRange,
+    (Rangef)({180.f, 180.f}) ballOffsetXRange,
+    (Rangef)({-250.f, 250.f}) approachXRange,
+    (Rangef)({-250.f, 250.f}) approachYRange,
+    (Rangef)({100.f, 200.f}) RangeX,
+    (Rangef)({-150.f, -75.f}) RangeY,
     (Rangef)({-150.f, 150.f}) smallApproachYRange,
     (Rangef)({150.f, 300.f}) smallApproachXRange,
     (float)(-75.f) ballOffsetY,
@@ -80,7 +87,7 @@ CARD(ApproachAndPassCard,
 });
 
 
-class ApproachAndPassCard : public ApproachAndPassCardBase
+class C2ApproachAndPassCard : public C2ApproachAndPassCardBase
 {
   // These two variables are used in order to let the robot say through PlaySound what is the distance from the target.
   double distanceConfirmed = 0.0;
@@ -92,23 +99,14 @@ class ApproachAndPassCard : public ApproachAndPassCardBase
   // or to carry the ball alone for the moment
   bool preconditions() const override
   {
-    //needless to say, if we don't have a pass avaliable we can't pass
-    if (thePassShare.readyPass == 0) {
-      //std::cout << "No pass available, can't pass" << '\n';
-      return false;
-    }
 
-    //if there is a pass pass we run the conditions in libcheck
-    //to decide whether to actually do it or not
-    bool shouldPass = theLibCheck.strikerPassCommonConditions(0);
-    if (shouldPass) {
-      //std::cout << "Pass conditions are go" << '\n';
-      return true;
-    }
-    else {
-      //std::cout << "Maybe it's better to play by myself for now" << '\n';
-      return false;
-    }
+    bool passingArea = theLibCheck.C2PassingArea();
+    bool ownField = theLibCheck.C2OwnField();
+    float distance = theLibCheck.distance(theRobotPose.translation, theFieldBall.positionOnField);
+
+    //if (!passingArea || !ownField || distance > 500.f) return false;
+    if (!ownField || !passingArea) return false;
+    else return true;
   }
 
   //These conditions check when there is no good pass available anymore (or, indirectly, when the pass has been performed already)
@@ -159,6 +157,7 @@ class ApproachAndPassCard : public ApproachAndPassCardBase
     {
       transition
       {
+        //goto wait;
         if(state_time > initialWaitTime)
         {
           goto turnToBall;
@@ -168,6 +167,26 @@ class ApproachAndPassCard : public ApproachAndPassCardBase
       action
       {
         theLookForwardSkill();
+        theStandSkill();
+      }
+    }
+
+    state(wait)
+    {
+      transition
+      {
+      }
+
+      action
+      {
+
+        Pose2f test = theLibCheck.C2EvaluateApproach(theLibCheck.C2EvaluateTarget(0));
+
+        //Pose2f offset = theLibCheck.C2EvaluateApproach();
+        //float angle = theLibCheck.C2AngleToTarget();
+
+        //std::cout << "Offset " << offset.translation.x() << '\t' << offset.translation.y() << '\n';
+        //std::cout << "angolo " << theLibCheck.radiansToDegree(angle) << '\n';
         theStandSkill();
       }
     }
@@ -186,7 +205,7 @@ class ApproachAndPassCard : public ApproachAndPassCardBase
       action
       {
         theLookForwardSkill();
-        theWalkAtRelativeSpeedSkill(Pose2f(walkSpeed, 0.f, 0.f));
+        //theWalkAtRelativeSpeedSkill(Pose2f(walkSpeed, 0.f, 0.f));
       }
     }
 
@@ -221,20 +240,25 @@ class ApproachAndPassCard : public ApproachAndPassCardBase
         {
           goto searchForBall;
         }
-        if(theFieldBall.positionOnField.x() - ballOffsetX > theRobotPose.translation.x()){
-          if(theFieldBall.positionOnField.x() < theRobotPose.translation.x() + ballXnearTh){
-            if(approachYRange.isInside(theFieldBall.positionOnField.y() - theRobotPose.translation.y())){
+        if (approachYRange.isInside(theFieldBall.positionOnField.y() - theRobotPose.translation.y())) {
+          if (approachXRange.isInside(theFieldBall.positionOnField.x() - theRobotPose.translation.x())) {} 
               goto walkToBall_near;
-            }
-          }
         }
       }
 
       action
       {
-        theLookAtPointSkill(Vector3f(theFieldBall.positionRelative.x(), theFieldBall.positionRelative.y(), 0.f));
-        theWalkToTargetPathPlannerSkill(Pose2f(0.8f,0.8f,0.8f), Pose2f(theFieldBall.positionOnField - Vector2f( ballOffsetX, 0.f)));
+        Pose2f ballPose = Pose2f(theFieldBall.positionOnField);
+        Pose2f targetPose = theLibCheck.C2EvaluateTarget(0);
 
+        float angle = theLibCheck.C2AngleBetween(targetPose, ballPose, false);
+
+        Pose2f offset = theLibCheck.C2EvaluateApproach(targetPose);
+        Pose2f target = Pose2f(angle, theFieldBall.positionOnField + offset.translation);
+
+        //std::cout << target.translation.x() << '\t' <<  target.translation.y() << '\n';
+        theLookAtPointSkill(Vector3f(theFieldBall.positionRelative.x(), theFieldBall.positionRelative.y(), 0.f));
+        theWalkToTargetPathPlannerSkill(Pose2f(0.8f,0.8f,0.8f), target);
       }
     }
 
@@ -247,15 +271,23 @@ class ApproachAndPassCard : public ApproachAndPassCardBase
           goto searchForBall;
         }
 
-        if(smallApproachXRange.isInside(theFieldBall.positionRelative.x())
-            && smallApproachYRange.isInside(theFieldBall.positionRelative.y())){
-                goto approachToPass;
-              }
+        if (approachYRange.isInside((theFieldBall.positionOnField.y() - theRobotPose.translation.y())*1.3)){
+          if (approachXRange.isInside((theFieldBall.positionOnField.x() - theRobotPose.translation.x())*1.3)) {
+            goto approachToPass;
+            //std::cout << "ghello\n";
+          }
+        }
       }
       action
       {
+        Pose2f ballPose = Pose2f(theFieldBall.positionOnField);
+        Pose2f targetPose = theLibCheck.C2EvaluateTarget(0);
+        float angle = theLibCheck.C2AngleBetween(targetPose, ballPose, false);
+        Pose2f offset = theLibCheck.C2EvaluateApproach(targetPose);
+        Pose2f target = Pose2f(angle, theFieldBall.positionOnField + offset.translation);
+
         theLookAtPointSkill(Vector3f(theFieldBall.positionRelative.x(), theFieldBall.positionRelative.y(), 0.f));
-        theWalkToTargetPathPlannerStraightSkill(Pose2f(0.8f,0.8f,0.8f), Pose2f(theFieldBall.positionOnField) - Pose2f(ballOffsetX, 50.f));
+        theWalkToTargetPathPlannerSkill(Pose2f(0.5f,0.5f,0.5f), target);
       }
     }
 
@@ -263,37 +295,42 @@ class ApproachAndPassCard : public ApproachAndPassCardBase
     state(approachToPass){
       transition
       {
-        const Angle angleToTarget = calcAngleToTarget(thePassShare.passTarget.translation);
-        if(!theFieldBall.ballWasSeen(ballNotSeenTimeout))
-        {
-          goto searchForBall;
+        Pose2f point = theLibCheck.C2EvaluateTarget(0);
+        point = theLibCheck.glob2Rel(point.translation.x(), point.translation.y());
+        point = theLibCheck.rel2Glob(point.translation.x()-150.f, point.translation.y()+85.f);
+        const Angle angleToTarget = calcAngleToTarget(point);
+        float angle_threshold = .1f;
+        //std::cout << "current Y:\t" << theFieldBall.positionRelative.y() << '\n';
+        if (RangeY.isInside((theFieldBall.positionRelative.y()))) {
+          //std::cout << "y OK\t current X:\t" << theFieldBall.positionRelative.x() << '\n';
+          if (RangeX.isInside((theFieldBall.positionRelative.x()))) {
+            //std::cout << "x OK\t current angle: \t" << angleToTarget << '\n';
+            if (std::abs(angleToTarget) < angle_threshold) {
+              std::cout << "Passaggio\n";
+              //goto wait;
+              goto kick;
+            }
+          }
         }
 
-        if(theFieldBall.positionRelative.norm() < 0 ){
-          goto turnToBall;
-        }
-
-        if(!smallApproachXRange.isInside(theFieldBall.positionRelative.x())){
-          goto walkToBall_far;
-        }
-
-        if(std::abs(angleToTarget) < angle_target_treshold && ballOffsetXRange.isInside(theFieldBall.positionRelative.x())
-            && ballOffsetYRange.isInside(theFieldBall.positionRelative.y())){
-                goto kick;
-        }
       }
 
       action
       {
-        //Set the BehaviorStatus to the current PassShare
-        theLookAtPointSkill(Vector3f(theFieldBall.positionRelative.x(), theFieldBall.positionRelative.y(), 0.f));
-        Vector2f passTarget = thePassShare.passTarget.translation;
-        double distanceTarget =  (passTarget - theFieldBall.positionOnField).norm();
-        distanceConfirmed = distanceTarget;
-        //const Angle angleToTarget = calcAngleToTarget(passTarget);
-        //std::cout<< "TAR_X:"<<passTarget.x()<<"\tTAR_Y:"<<passTarget.y()<<"\tDISTANCE TO TARGET:"<< distanceTarget<<"\tBallX:"<<theFieldBall.positionRelative.x()<<"\tBallY:"<<theFieldBall.positionRelative.y()<<"\tCHECKx:"<<ballOffsetXRange.isInside(theFieldBall.positionRelative.x())<<"\tCHECKy"<<ballOffsetYRange.isInside(theFieldBall.positionRelative.y())<<"\tyRange:["<<ballOffsetYRange.min<<","<<ballOffsetYRange.max<<"]\tangleToTarget:"<<std::abs(angleToTarget)<<"\tangleTreshold:"<<angle_target_treshold<<"\tNORM:"<<theFieldBall.positionRelative.norm()<<"\n";
+        Pose2f ballPose = Pose2f(theFieldBall.positionOnField);
+        Pose2f targetPose = theLibCheck.C2EvaluateTarget(0);
+        //float angle = theLibCheck.C2AngleToTarget_bis();
+        float angle = theLibCheck.C2AngleBetween(targetPose, ballPose, false);        Pose2f ball = theFieldBall.positionRelative;
+        float x_ball = ball.translation.x();         
+        float y_ball = ball.translation.y();         
 
-        theWalkToApproachSkill(passTarget, ballOffsetX, ballOffsetY, true);
+        x_ball = x_ball - 150.f;
+        y_ball = y_ball + 85.f;
+
+        Pose2f globBall = theLibCheck.rel2Glob(x_ball, y_ball);
+        Pose2f target = Pose2f(angle, globBall.translation.x(), globBall.translation.y());
+        theLookAtPointSkill(Vector3f(theFieldBall.positionRelative.x(), theFieldBall.positionRelative.y(), 0.f));
+        theWalkToTargetPathPlannerSkill(Pose2f(0.8f, 0.8f, 0.8f), target);
       }
     }
 
@@ -313,10 +350,13 @@ class ApproachAndPassCard : public ApproachAndPassCardBase
       {
         if ( not alreadyEnqueued){
             alreadyEnqueued = true;
+            distanceConfirmed = 2600.f;
+
+            //std::cout << theTeamData.teammates.at(0).theRobotPose.translation.x() << '\t' << theTeamData.teammates.at(0).theRobotPose.translation.y() << '\n';
             std::string distanceTargetString = std::to_string(int(distanceConfirmed/1000.f));
-            SystemCall::say("PASSING TO DISTANCE");
-            SystemCall::say(distanceTargetString.c_str());
-            SystemCall::say("METERS");
+            //SystemCall::say("PASSING TO DISTANCE");
+            //SystemCall::say(distanceTargetString.c_str());
+            //SystemCall::say("METERS");
 
         }
         theLookAtPointSkill(Vector3f(theFieldBall.positionRelative.x(), theFieldBall.positionRelative.y(), 0.f));
@@ -328,7 +368,7 @@ class ApproachAndPassCard : public ApproachAndPassCardBase
 
   bool isAligned(Pose2f target_pose)
   {
-    return calcAngleToTarget(target_pose)< alignThreshold;
+    return calcAngleToTarget(target_pose) < alignThreshold;
   }
 
   Angle calcAngleToTarget(Pose2f target) const
@@ -343,4 +383,4 @@ class ApproachAndPassCard : public ApproachAndPassCardBase
   }
 };
 
-MAKE_CARD(ApproachAndPassCard);
+MAKE_CARD(C2ApproachAndPassCard);

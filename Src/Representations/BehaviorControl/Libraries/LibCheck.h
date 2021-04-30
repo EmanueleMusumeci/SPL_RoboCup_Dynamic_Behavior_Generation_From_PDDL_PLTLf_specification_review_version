@@ -111,9 +111,22 @@ STREAMABLE(LibCheck,
   FUNCTION(bool(Vector2f point)) obstacleExistsAroundPoint;
   FUNCTION(float()) defenderDynamicY;
 
-  FUNCTION(bool(int)) strikerPassCommonConditions;
 
-  FUNCTION(float(Vector2f p1, Vector2f p2)) angleBetweenPoints, 
+  FUNCTION(float(Vector2f p1, Vector2f p2)) angleBetweenPoints;
+
+  FUNCTION(Vector3f(Pose2f targetPoint1, Pose2f targetPoint2, Pose2f feedbackPoint1, Pose2f feedbackPoint2)) getError;
+  FUNCTION(bool()) C2OwnField;
+  FUNCTION(bool()) C2PassingArea;
+  FUNCTION(bool()) C2ReceiverArea;
+  FUNCTION(int()) C2WhichCorridor;
+  FUNCTION(Pose2f(int role)) C2EvaluateTarget;
+  FUNCTION(Pose2f(Pose2f target)) C2EvaluateApproach;
+  FUNCTION(float(Pose2f p1, Pose2f p2, bool inverse)) C2AngleBetween;
+  FUNCTION(float()) C2AngleToTarget;
+  FUNCTION(float()) C2AngleToTarget_bis;
+
+
+  FUNCTION(bool(int)) strikerPassCommonConditions,
 
 
   (bool) isGoalieInStartingPosition,

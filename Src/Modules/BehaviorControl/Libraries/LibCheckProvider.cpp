@@ -9,6 +9,7 @@
  */
 #include "Platform/Nao/SoundPlayer.h"
 #include "LibCheckProvider.h"
+#include <math.h>
 #include <iostream>
 #include <algorithm>
 #define SQ(x) x*x
@@ -305,6 +306,96 @@ Return a Vector2f containing the chosen target based on the selected mode. There
 libCheck.goalTarget = [this](bool shootASAP) -> Vector2f {
     return goalTarget(shootASAP);
   };
+
+libCheck.C2OwnField = [this]() -> bool {
+  return C2OwnField();
+};
+
+libCheck.C2PassingArea = [this]() -> bool {
+  return C2PassingArea();
+};
+
+libCheck.C2ReceiverArea = [this]() -> bool {
+  return C2ReceiverArea();
+};
+
+libCheck.C2WhichCorridor = [this]() -> int {
+  return C2WhichCorridor();
+};
+
+libCheck.C2EvaluateTarget = [this](int role) -> Pose2f {
+  return C2EvaluateTarget(role);
+};
+
+libCheck.C2EvaluateApproach = [this](Pose2f target) -> Pose2f {
+  return C2EvaluateApproach(target);
+};
+
+libCheck.C2AngleBetween = [this](Pose2f p1, Pose2f p2, bool inverse) -> float {
+  return C2AngleBetween(p1, p2, inverse);
+};
+
+libCheck.C2AngleToTarget = [this]() -> float {
+  return C2AngleToTarget();
+};
+
+libCheck.C2AngleToTarget_bis = [this]() -> float {
+  return C2AngleToTarget_bis();
+};
+
+libCheck.getError = [&](Pose2f targetPoint1, Pose2f targetPoint2, Pose2f feedbackPoint1, Pose2f feedbackPoint2) -> Vector3f
+  {
+    Vector3f error;
+
+    // --------------------Calculate error in theta------------------------ 
+      Vector2f target_vec(targetPoint2.translation.x() - targetPoint1.translation.x(), targetPoint2.translation.y() - targetPoint1.translation.y());
+      Vector2f feedback_vec(feedbackPoint2.translation.x()-feedbackPoint1.translation.x(), feedbackPoint2.translation.y() - feedbackPoint1.translation.y());
+
+      float dot = target_vec.dot(feedback_vec);
+      float det = target_vec.x()*feedback_vec.y() - target_vec.y()*feedback_vec.x();
+      error.z() = -(atan2( det, dot ) * 180)/pi; 
+
+
+    // --------------------Get Contact Distance------------------------  
+        // Equation of the line in the form of Ax + By + C = 0
+        
+        float A = -(targetPoint2.translation.y() - targetPoint1.translation.y()) / (targetPoint2.translation.x() - targetPoint1.translation.x());
+        float B = 1;
+        float C = -(targetPoint1.translation.y() + A*targetPoint1.translation.x());
+        // Estimated Point of contact
+        float x1 = feedbackPoint2.translation.x();
+        float y1 = feedbackPoint2.translation.y();
+
+        // Calculate perpendicular distance from the point to the line d = |A*x_1 + B*y_1 + C| / (A^2 + B^2)^(1/2)
+        error.y() = (A*x1 + B*y1 + C) / sqrt(pow(A,2) + pow(B,2));
+
+    // -------------------- Get Closest point on ball velocity vector --------------------
+        float m1 = (targetPoint2.translation.y() - targetPoint1.translation.y()) / (targetPoint2.translation.x() - targetPoint1.translation.x());
+        float m2 = (targetPoint2.translation.y() - feedbackPoint2.translation.y()) / (targetPoint2.translation.x()-feedbackPoint2.translation.x());
+        float d = sqrt(pow((targetPoint2-feedbackPoint2).translation.x(), 2) + pow((targetPoint2-feedbackPoint2).translation.y(), 2)) * cos(atan2( m2-m1, (1+(m1*m2)) ));
+        float m = (targetPoint2.translation.y() - targetPoint1.translation.y()) / (targetPoint2.translation.x() - targetPoint1.translation.x());
+        Pose2f pointOnLine, point1, point2;
+
+        point1.translation.y() = targetPoint2.translation.y() + ((m*d)/sqrt(1+pow(m,2)));
+        point2.translation.y() = targetPoint2.translation.y() - ((m*d)/sqrt(1+pow(m,2)));
+        point1.translation.x() = targetPoint2.translation.x() - (targetPoint2.translation.y() - point1.translation.y())/m;
+        point2.translation.x() = targetPoint2.translation.x() - (targetPoint2.translation.y() - point2.translation.y())/m;
+        
+        if ((pow((point2-feedbackPoint2).translation.x(),2) + pow((point2-feedbackPoint2).translation.y(),2)) < (pow((point1-feedbackPoint2).translation.x(),2) + pow((point1-feedbackPoint2).translation.y(),2))) {
+            pointOnLine = point2;
+        } else { 
+            pointOnLine = point1;
+        }
+
+    if (theTeamBallModel.position.x() > pointOnLine.translation.x()) {
+        error.x() = sqrt(pow((pointOnLine-theTeamBallModel.position).translation.x(), 2)+pow((pointOnLine-theTeamBallModel.position).translation.y(), 2));
+    }else {
+        error.x() = -sqrt(pow((pointOnLine-theTeamBallModel.position).translation.x(), 2)+pow((pointOnLine-theTeamBallModel.position).translation.y(), 2));
+    }
+
+    return error;
+  };
+  
 
   libCheck.glob2RelWithAngle = [&](float theta, float x, float y) -> Pose2f
   {
@@ -2167,3 +2258,345 @@ float LibCheckProvider::sqrDistanceOfClosestOpponentToPoint(Vector2f p) {
   }
   return minSqrDist;
 }
+
+  ///////////////////////////////////
+  // Functions for the Challenge 2 //
+  ///////////////////////////////////
+
+  bool LibCheckProvider::C2OwnField() {
+    float y_ball = theFieldBall.positionOnField.y();
+    float y_nao = theRobotPose.translation.y();
+
+    if ((y_ball / y_nao) < 0) return false;
+    return true;
+  }
+
+
+  bool LibCheckProvider::C2PassingArea() {
+
+    float passAreaExtension_y = 500.f;
+
+    float robot_width = 150.f;
+
+    float distanceToBorder_x = 0.f;
+    float distanceToBorder_y = 0.f;    
+
+    float x_ball = theFieldBall.positionOnField.x(); 
+    float y_ball = theFieldBall.positionOnField.y();
+
+    float x_b, x_B, x_1L, x_1R, x_2L, x_2R, x_3L, x_3R, y_1, y_2;
+
+    if (y_ball < 0) y_ball = -y_ball;
+    if (x_ball < 0) x_ball = -x_ball;
+
+    y_1 = 550.f + distanceToBorder_y;
+    y_2 = y_1 + passAreaExtension_y;
+
+    x_b = 800.f + distanceToBorder_x;
+    x_1L = 1400.f - robot_width + distanceToBorder_x;
+    x_1R = 1400.f + robot_width + distanceToBorder_x;
+    x_2L = 2000.f - robot_width - distanceToBorder_x;
+    x_2R = 2000.f + robot_width + distanceToBorder_x;
+    x_3L = 2600.f - robot_width - distanceToBorder_x;
+    x_3R = 2600.f + robot_width - distanceToBorder_x;
+    x_B = 3200.f - distanceToBorder_x;
+
+    float x_1, x_2;
+
+    int corridor = C2WhichCorridor();
+
+    switch (corridor) {
+      case 0:
+        x_1 = x_b;
+        x_2 = x_1L;
+        break;
+      case 1:
+        x_1 = x_1R;
+        x_2 = x_2L;
+        break;
+      case 2:
+        x_1 = x_2R;
+        x_2 = x_3L;
+        break;
+      case 3:
+        x_1 = x_3R;
+        x_2 = x_B;
+        break;
+    } 
+    
+    if (y_ball < y_2 && y_ball > y_1) {
+      if (x_ball < x_2 && x_ball > x_1) {
+        return true;
+      }
+      else return false;
+    }
+    else return false;
+
+  }
+
+
+  bool LibCheckProvider::C2ReceiverArea() {
+
+    float passAreaExtension_y = 500.f;
+    float receiverAreaExtension_y = 400.f;
+
+    float robot_width = 150.f;
+
+    float distanceToBorder_x = 0.f;
+    float distanceToBorder_y = 0.f; 
+
+    Pose2f globBall = rel2Glob(theBallModel.estimate.position.x(),theBallModel.estimate.position.y());
+    float x_ball = globBall.translation.x(); 
+    float y_ball = globBall.translation.y(); 
+
+    float x_nao = theRobotPose.translation.x();
+    float y_nao = theRobotPose.translation.y();
+
+    float x_b, x_B, x_1L, x_1R, x_2L, x_2R, x_3L, x_3R, y_1, y_2;
+
+    if (y_nao < 0) y_nao = -y_nao;
+    if (x_nao < 0) x_nao = -x_nao;
+    if (x_ball < 0) x_ball = -x_ball;
+
+
+    y_1 = 550.f + passAreaExtension_y + distanceToBorder_y;
+    y_2 = y_1 + receiverAreaExtension_y;
+
+    x_b = 800.f + distanceToBorder_x;
+    x_1L = 1400.f - robot_width - distanceToBorder_x;
+    x_1R = 1400.f + robot_width + distanceToBorder_x;
+    x_2L = 2000.f - robot_width - distanceToBorder_x;
+    x_2R = 2000.f + robot_width + distanceToBorder_x;
+    x_3L = 2600.f - robot_width - distanceToBorder_x;
+    x_3R = 2600.f + robot_width + distanceToBorder_x;
+    x_B = 3200.f - distanceToBorder_x;
+
+    float x_1, x_2;
+
+    int corridor = C2WhichCorridor();
+
+    switch (corridor) {
+      case 0:
+        x_1 = x_b;
+        x_2 = x_1L;
+        break;
+      case 1:
+        x_1 = x_1R;
+        x_2 = x_2L;
+        break;
+      case 2:
+        x_1 = x_2R;
+        x_2 = x_3L;
+        break;
+      case 3:
+        x_1 = x_3R;
+        x_2 = x_B;
+        break;
+    } 
+
+    if (y_nao < y_2 && y_nao > y_1) {
+      if (x_nao < x_2 && x_nao > x_1) {
+        return true;
+      }
+      else return false;
+    }
+    else return false;
+
+  }
+
+  int LibCheckProvider::C2WhichCorridor() {
+ 
+    float x_ball = theFieldBall.positionOnField.x(); 
+
+    if (x_ball < 0) x_ball = -x_ball;
+
+    if (x_ball < 1400.f) return 0;
+    if (x_ball < 2000.f) return 1;
+    if (x_ball < 2600.f) return 2;
+    
+    return 3;   
+  }
+
+  Pose2f LibCheckProvider::C2EvaluateTarget(int role) {
+    
+    int corridor = C2WhichCorridor();
+
+    float x_target, y_target;
+
+    y_target = 0.f;
+
+    switch (corridor) {
+      case 0:
+        x_target = 1025.f;
+        break;
+      case 1:
+        x_target = 1700.f;
+        break;
+      case 2:
+        x_target = 2300.f;
+        break;
+      case 3:
+        x_target = 2975.f;
+        break;
+    } 
+
+    if (theRobotPose.translation.x() < 0) x_target = -x_target;
+
+    float x_ball = theFieldBall.positionOnField.x();
+    float y_nao = theRobotPose.translation.y();
+
+    switch (role) {
+      case 0: // Striker
+        x_target = x_target - (x_target - x_ball)/2;
+        break;
+      case 1: // Carrier
+        y_target = 700.f;
+        break;
+      case 2: // Receiver
+        x_target = x_target + (x_target - x_ball)/2;
+        y_target = 1100.f;
+        break;
+    }
+    
+    if (y_nao < 0) y_target = -y_target;
+
+    return Pose2f(x_target, y_target);
+  }
+
+  Pose2f LibCheckProvider::C2EvaluateApproach(Pose2f target) {
+
+    float x_offset, y_offset;
+
+    float x_nao = theRobotPose.translation.x();
+    float y_nao = theRobotPose.translation.y();
+
+    float x_ball = theFieldBall.positionOnField.x(); 
+    float y_ball = theFieldBall.positionOnField.y();
+
+    if (x_nao < 0) x_nao = -x_nao;
+    if (x_ball < 0) x_ball = -x_ball;
+
+    Pose2f ballPose = Pose2f(theFieldBall.positionOnField);
+    float angle = C2AngleBetween(ballPose, target, true);
+
+    y_offset = 180.f * cos(angle);
+    x_offset = 180.f * sin(angle);
+
+    Pose2f offset = Pose2f(x_offset, y_offset);
+
+    return offset;
+
+  }
+
+  float LibCheckProvider::C2AngleBetween(Pose2f p1, Pose2f p2, bool inverse) {
+
+    float p1_x, p1_y, p2_x, p2_y, diff_x, diff_y;
+
+    p1_x = p1.translation.x();
+    p1_y = p1.translation.y();
+    p2_x = p2.translation.x();
+    p2_y = p2.translation.y();
+
+    if (inverse) {
+      diff_y = p1_x - p2_x;
+      diff_x = p1_y - p2_y;
+    }
+    else {
+      diff_x = p1_x - p2_x;
+      diff_y = p1_y - p2_y;
+    }
+
+    return atan2f(diff_y, diff_x);
+  }
+
+  float LibCheckProvider::C2AngleToTarget() {
+
+    Pose2f target = C2EvaluateTarget(0);
+
+    float x_target = target.translation.x();
+    float y_target = target.translation.y();
+
+    float x_ball = theFieldBall.positionOnField.x(); 
+    float y_ball = theFieldBall.positionOnField.y();
+
+    float diff_x = x_ball - x_target;
+    float diff_y = y_ball - y_target;
+
+    float angle = atan2f(diff_x, diff_y);
+
+    return angle;
+  }
+
+
+  float LibCheckProvider::C2AngleToTarget_bis() {
+
+    Pose2f target = C2EvaluateTarget(0);
+
+    float x_target = target.translation.x();
+    float y_target = target.translation.y();
+
+    float x_ball = theFieldBall.positionOnField.x(); 
+    float y_ball = theFieldBall.positionOnField.y();
+
+    float diff_x = x_target - x_ball;
+    float diff_y = y_target - y_ball;
+
+    float angle = atan2f(diff_y, diff_x/2);
+
+    return angle;
+  }
+  
+  
+      
+  Vector3f LibCheckProvider::getError(Pose2f targetPoint1, Pose2f targetPoint2, Pose2f feedbackPoint1, Pose2f feedbackPoint2)
+    {
+      Vector3f error;
+
+        // --------------------Calculate error in theta------------------------ 
+          Vector2f target_vec(targetPoint2.translation.x() - targetPoint1.translation.x(), targetPoint2.translation.y() - targetPoint1.translation.y());
+          Vector2f feedback_vec(feedbackPoint2.translation.x()-feedbackPoint1.translation.x(), feedbackPoint2.translation.y() - feedbackPoint1.translation.y());
+
+          float dot = target_vec.dot(feedback_vec);
+          float det = target_vec.x()*feedback_vec.y() - target_vec.y()*feedback_vec.x();
+          error.z() = -(atan2( det, dot ) * 180)/pi; 
+
+      // --------------------Get Contact Distance------------------------  
+          // Equation of the line in the form of Ax + By + C = 0
+          
+          float A = -(targetPoint2.translation.y() - targetPoint1.translation.y()) / (targetPoint2.translation.x() - targetPoint1.translation.x());
+          float B = 1;
+          float C = -(targetPoint1.translation.y() + A*targetPoint1.translation.x());
+          // Estimated Point of contact
+          float x1 = feedbackPoint2.translation.x();
+          float y1 = feedbackPoint2.translation.y();
+
+          // Calculate perpendicular distance from the point to the line d = |A*x_1 + B*y_1 + C| / (A^2 + B^2)^(1/2)
+          error.y() = (A*x1 + B*y1 + C) / sqrt(pow(A,2) + pow(B,2));
+
+      // -------------------- Get Closest point on ball velocity vector --------------------
+          float m1 = (theTeamBallModel.position.y() - targetPoint1.translation.y()) / (theTeamBallModel.position.x() - targetPoint1.translation.x());
+          float m2 = (theTeamBallModel.position.y() - feedbackPoint2.translation.y()) / (theTeamBallModel.position.x()-feedbackPoint2.translation.x());
+          float d = sqrt(pow((Pose2f(theTeamBallModel.position)-feedbackPoint2).translation.x(), 2) + pow((Pose2f(theTeamBallModel.position)-feedbackPoint2).translation.y(), 2)) * cos(atan2( m2-m1, (1+(m1*m2)) ));
+          float m = (theTeamBallModel.position.y() - targetPoint1.translation.y()) / (theTeamBallModel.position.x() - targetPoint1.translation.x());
+          Pose2f pointOnLine, point1, point2;
+
+          point1.translation.y() = theTeamBallModel.position.y() + ((m*d)/sqrt(1+pow(m,2)));
+          point2.translation.y() = theTeamBallModel.position.y() - ((m*d)/sqrt(1+pow(m,2)));
+          point1.translation.x() = theTeamBallModel.position.x() - (theTeamBallModel.position.y() - point1.translation.y())/m;
+          point2.translation.x() = theTeamBallModel.position.x() - (theTeamBallModel.position.y() - point2.translation.y())/m;
+          
+          if ((pow((point2-feedbackPoint2).translation.x(),2) + pow((point2-feedbackPoint2).translation.y(),2)) < (pow((point1-feedbackPoint2).translation.x(),2) + pow((point1-feedbackPoint2).translation.y(),2))) {
+              pointOnLine = point2;
+          } else { 
+              pointOnLine = point1;
+          }
+
+      if (theTeamBallModel.position.x() > pointOnLine.translation.x()) {
+          error.x() = sqrt(pow((pointOnLine-theTeamBallModel.position).translation.x(), 2)+pow((pointOnLine-theTeamBallModel.position).translation.y(), 2));
+      }else {
+          error.x() = -sqrt(pow((pointOnLine-theTeamBallModel.position).translation.x(), 2)+pow((pointOnLine-theTeamBallModel.position).translation.y(), 2));
+      }
+
+      return error;
+
+    }

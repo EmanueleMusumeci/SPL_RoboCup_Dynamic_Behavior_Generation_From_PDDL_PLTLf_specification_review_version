@@ -248,6 +248,17 @@ private:
    */
   void placeGoalie(int robot);
 
+
+  /** Graziano
+   * Manually place a robot if required.
+   * @param robot The robot number of the robot to place (any between 0 and 9).
+   * @param x 
+   * @param y 
+   * @param rotation 
+   */
+  void placeRobot(int robot,  float x, float y, float rotation);
+
+
   /**
    * Move a field player to a new pose from a set of possible poses.
    * Pick the pose the teammates would not pick.
@@ -262,6 +273,12 @@ private:
    * @param minRobot The number of the first robot to place (1 or numOfRobots/2+1).
    */
   void placeOffensivePlayers(int minRobot);
+
+  /**
+   * Manually place the field players for the second challenge 2021.
+   * @param minRobot The number of the first robot to place (1 or numOfRobots/2+1).
+   */
+  void placeSecondChallenge2021(int minRobot);
 
   /**
    * Manually place the field players of the defensive team if required.

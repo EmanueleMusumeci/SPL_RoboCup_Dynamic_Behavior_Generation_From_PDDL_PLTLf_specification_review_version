@@ -6,6 +6,8 @@
  * @author Arne Hasselbring
  */
 
+#define challenge1
+
 #include "Representations/Communication/GameInfo.h"
 #include "Representations/Communication/TeamInfo.h"
 #include "Tools/BehaviorControl/Framework/Card/Card.h"
@@ -19,6 +21,8 @@ CARD(GameplayCard,
   REQUIRES(OwnTeamInfo),
   LOADS_PARAMETERS(
   {,
+
+#ifndef challenge1
     (DeckOfCards<CardRegistry>) ownKickoff,
     (DeckOfCards<CardRegistry>) opponentKickoff,
     (DeckOfCards<CardRegistry>) ownFreeKick,
@@ -29,6 +33,12 @@ CARD(GameplayCard,
     (DeckOfCards<CardRegistry>) supporter,
     (DeckOfCards<CardRegistry>) jolly,
     (DeckOfCards<CardRegistry>) goalie,
+    (DeckOfCards<CardRegistry>) searcher,
+#else 
+    (DeckOfCards<CardRegistry>) C1striker,
+    (DeckOfCards<CardRegistry>) goalie,
+    (DeckOfCards<CardRegistry>) searcher,
+#endif
   }),
 });
 
@@ -46,8 +56,13 @@ class GameplayCard : public GameplayCardBase
 
   void execute() override
   {
-    
-    // ASSERT(theGameInfo.state == STATE_PLAYING);
+
+#ifdef challenge1
+      dealer.deal(C1striker)->call();
+      setState("C1striker");
+
+#else 
+        // ASSERT(theGameInfo.state == STATE_PLAYING);
     // if(theGameInfo.setPlay != SET_PLAY_NONE)
     // {
     //   if(theGameInfo.kickingTeam == theOwnTeamInfo.teamNumber)
@@ -67,7 +82,7 @@ class GameplayCard : public GameplayCardBase
     //   setState("normalPlay");
     // }
 //  std::cout<<theRole.role <<std::endl;
-    if(theRole.role == Role::striker || theRole.role == Role::searcher_3){
+    if(theRole.role == Role::striker){
       dealer.deal(striker)->call();
       setState("striker");
     }else if(theRole.role == Role::goalie){
@@ -79,10 +94,23 @@ class GameplayCard : public GameplayCardBase
     }else if(theRole.role == Role::jolly){
       dealer.deal(jolly)->call();
       setState("jolly");  
-    }else{
+    }else if(theRole.role == Role::defender){
       dealer.deal(defender)->call();
       setState("defender");  
+    }else if(theRole.role == Role::searcher_1){
+      dealer.deal(searcher)->call();
+      setState("searcher1");
+    }else if(theRole.role == Role::searcher_2){
+      dealer.deal(searcher)->call();
+      setState("searcher2");
+    }else if(theRole.role == Role::searcher_3){
+      dealer.deal(searcher)->call();
+      setState("searcher3");
+    }else if(theRole.role == Role::searcher_4){
+      dealer.deal(searcher)->call();
+      setState("searcher4");
     }
+#endif
   }
 
   void reset() override
