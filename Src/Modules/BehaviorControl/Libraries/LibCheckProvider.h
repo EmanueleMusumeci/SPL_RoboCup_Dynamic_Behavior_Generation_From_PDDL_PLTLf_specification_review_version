@@ -305,10 +305,13 @@ private:
  int C2WhichCorridor();
 
  // return the midpoint in the corridor
- Pose2f C2EvaluateTarget();
+ Pose2f C2EvaluateTarget(int role);
 
  // evaluates the offsets to approach the ball properly
- Pose2f C2EvaluateApproach();
+ Pose2f C2EvaluateApproach(Pose2f target);
+
+ // evaluate the angle of the ball wrt target
+ float C2AngleBetween(Pose2f p1, Pose2f p2, bool inverse);
 
  // evaluate the angle of the ball wrt target
  float C2AngleToTarget();

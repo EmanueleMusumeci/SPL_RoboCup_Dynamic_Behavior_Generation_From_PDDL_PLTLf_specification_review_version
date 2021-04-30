@@ -317,12 +317,16 @@ libCheck.C2WhichCorridor = [this]() -> int {
   return C2WhichCorridor();
 };
 
-libCheck.C2EvaluateTarget = [this]() -> Pose2f {
-  return C2EvaluateTarget();
+libCheck.C2EvaluateTarget = [this](int role) -> Pose2f {
+  return C2EvaluateTarget(role);
 };
 
-libCheck.C2EvaluateApproach = [this]() -> Pose2f {
-  return C2EvaluateApproach();
+libCheck.C2EvaluateApproach = [this](Pose2f target) -> Pose2f {
+  return C2EvaluateApproach(target);
+};
+
+libCheck.C2AngleBetween = [this](Pose2f p1, Pose2f p2, bool inverse) -> float {
+  return C2AngleBetween(p1, p2, inverse);
 };
 
 libCheck.C2AngleToTarget = [this]() -> float {
@@ -2633,7 +2637,7 @@ float LibCheckProvider::sqrDistanceOfClosestOpponentToPoint(Vector2f p) {
     return 3;   
   }
 
-  Pose2f LibCheckProvider::C2EvaluateTarget() {
+  Pose2f LibCheckProvider::C2EvaluateTarget(int role) {
     
     int corridor = C2WhichCorridor();
 
@@ -2658,14 +2662,30 @@ float LibCheckProvider::sqrDistanceOfClosestOpponentToPoint(Vector2f p) {
 
     if (theRobotPose.translation.x() < 0) x_target = -x_target;
 
+    float x_ball = theFieldBall.positionOnField.x();
+    float y_nao = theRobotPose.translation.y();
+
+    switch (role) {
+      case 0: // Striker
+        x_target = x_target - (x_target - x_ball)/2;
+        break;
+      case 1: // Carrier
+        y_target = 700.f;
+        break;
+      case 2: // Receiver
+        x_target = x_target + (x_target - x_ball)/2;
+        y_target = 1100.f;
+        break;
+    }
+    
+    if (y_nao < 0) y_target = -y_target;
+
     return Pose2f(x_target, y_target);
   }
 
-  Pose2f LibCheckProvider::C2EvaluateApproach() {
+  Pose2f LibCheckProvider::C2EvaluateApproach(Pose2f target) {
 
     float x_offset, y_offset;
-
-    Pose2f target = C2EvaluateTarget();
 
     float x_nao = theRobotPose.translation.x();
     float y_nao = theRobotPose.translation.y();
@@ -2676,16 +2696,10 @@ float LibCheckProvider::sqrDistanceOfClosestOpponentToPoint(Vector2f p) {
     if (x_nao < 0) x_nao = -x_nao;
     if (x_ball < 0) x_ball = -x_ball;
 
-    float angle = C2AngleToTarget();
-
-    //if (std::abs(radiansToDegree(angle)) < 90.f) y_offset = 180.f * cos(angle);
-    //else y_offset = -180.f * std::abs(sin(angle));
+    Pose2f ballPose = Pose2f(theFieldBall.positionOnField);
+    float angle = C2AngleBetween(ballPose, target, true);
 
     y_offset = 180.f * cos(angle);
-
-    //if (angle < 0.f) x_offset = -180.f * sin(angle);
-    //else x_offset = 180.f * sin(angle);
-
     x_offset = 180.f * sin(angle);
 
     Pose2f offset = Pose2f(x_offset, y_offset);
@@ -2694,9 +2708,30 @@ float LibCheckProvider::sqrDistanceOfClosestOpponentToPoint(Vector2f p) {
 
   }
 
+  float LibCheckProvider::C2AngleBetween(Pose2f p1, Pose2f p2, bool inverse) {
+
+    float p1_x, p1_y, p2_x, p2_y, diff_x, diff_y;
+
+    p1_x = p1.translation.x();
+    p1_y = p1.translation.y();
+    p2_x = p2.translation.x();
+    p2_y = p2.translation.y();
+
+    if (inverse) {
+      diff_y = p1_x - p2_x;
+      diff_x = p1_y - p2_y;
+    }
+    else {
+      diff_x = p1_x - p2_x;
+      diff_y = p1_y - p2_y;
+    }
+
+    return atan2f(diff_y, diff_x);
+  }
+
   float LibCheckProvider::C2AngleToTarget() {
 
-    Pose2f target = C2EvaluateTarget();
+    Pose2f target = C2EvaluateTarget(0);
 
     float x_target = target.translation.x();
     float y_target = target.translation.y();
@@ -2715,16 +2750,13 @@ float LibCheckProvider::sqrDistanceOfClosestOpponentToPoint(Vector2f p) {
 
   float LibCheckProvider::C2AngleToTarget_bis() {
 
-    Pose2f target = C2EvaluateTarget();
+    Pose2f target = C2EvaluateTarget(0);
 
     float x_target = target.translation.x();
     float y_target = target.translation.y();
 
     float x_ball = theFieldBall.positionOnField.x(); 
     float y_ball = theFieldBall.positionOnField.y();
-
-    //x_target = (x_target + x_ball)/2;
-    //y_target = (y_target + y_ball)/2;
 
     float diff_x = x_target - x_ball;
     float diff_y = y_target - y_ball;

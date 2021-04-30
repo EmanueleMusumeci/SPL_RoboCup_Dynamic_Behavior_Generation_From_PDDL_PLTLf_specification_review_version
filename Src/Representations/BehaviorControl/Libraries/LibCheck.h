@@ -129,8 +129,9 @@ STREAMABLE(LibCheck,
   FUNCTION(bool()) C2PassingArea;
   FUNCTION(bool()) C2ReceiverArea;
   FUNCTION(int()) C2WhichCorridor;
-  FUNCTION(Pose2f()) C2EvaluateTarget;
-  FUNCTION(Pose2f()) C2EvaluateApproach;
+  FUNCTION(Pose2f(int role)) C2EvaluateTarget;
+  FUNCTION(Pose2f(Pose2f target)) C2EvaluateApproach;
+  FUNCTION(float(Pose2f p1, Pose2f p2, bool inverse)) C2AngleBetween;
   FUNCTION(float()) C2AngleToTarget;
   FUNCTION(float()) C2AngleToTarget_bis;
 

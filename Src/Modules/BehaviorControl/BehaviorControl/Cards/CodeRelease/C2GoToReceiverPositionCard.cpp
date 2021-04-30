@@ -149,9 +149,10 @@ class C2GoToReceiverPositionCard : public C2GoToReceiverPositionCardBase
 
         if (ball_x < 0) ball_x = -ball_x;
 
-        target_x = theLibCheck.C2EvaluateTarget().translation.x();    
+        target_x = theLibCheck.C2EvaluateTarget(2).translation.x(); 
+        target_y = theLibCheck.C2EvaluateTarget(2).translation.y();   
 
-        if (theRobotPose.translation.y() < 0) target_y = -target_y; 
+        //if (theRobotPose.translation.y() < 0) target_y = -target_y; 
         
         
         Pose2f relativeTarget = theLibCheck.glob2Rel(target_x, target_y);
@@ -177,14 +178,14 @@ class C2GoToReceiverPositionCard : public C2GoToReceiverPositionCardBase
 
         if (ball_x < 0) ball_x = -ball_x;
 
-        target_x = theLibCheck.C2EvaluateTarget().translation.x();    
+        target_x = theLibCheck.C2EvaluateTarget(2).translation.x();    
 
         if (theRobotPose.translation.y() < 0) target_y = -target_y; 
 
         float x_diff = target_x - ball_x;
         //target_x = target_x + x_diff/2;
 
-        theWalkToTargetPathPlannerSkill(Pose2f(1.f,1.f,1.f), Pose2f(target_x, target_y));
+        theWalkToTargetPathPlannerSkill(Pose2f(1.f,1.f,1.f), theLibCheck.C2EvaluateTarget(2));
         
       }
     }
@@ -200,7 +201,7 @@ class C2GoToReceiverPositionCard : public C2GoToReceiverPositionCardBase
         if (ball_x < 2000.f) target_x = 1700.f;
         else target_x = 2300.f;
 
-        Pose2f chosenTarget = theLibCheck.C2EvaluateTarget();
+        Pose2f chosenTarget = theLibCheck.C2EvaluateTarget(2);
 
         const Angle angleToTarget = calcAngleToTarget(chosenTarget); 
       transition
@@ -288,8 +289,9 @@ class C2GoToReceiverPositionCard : public C2GoToReceiverPositionCardBase
         float yReceiverArea = 1100.f;
         if(theRobotPose.translation.y()<0) yReceiverArea = -yReceiverArea;
 
-        Pose2f actuallyChosenTarget = theLibCheck.C2EvaluateTarget();
-        Pose2f chosenTarget = Pose2f(actuallyChosenTarget.translation.x(),yReceiverArea);
+        Pose2f actuallyChosenTarget = theLibCheck.C2EvaluateTarget(2);
+        //Pose2f chosenTarget = Pose2f(actuallyChosenTarget.translation.x(),yReceiverArea);
+        Pose2f chosenTarget = actuallyChosenTarget;
         float distanceToChosenTarget = (theRobotPose.translation - chosenTarget.translation).norm();
 
         if(distanceToChosenTarget>750.f) goto wallkToReceiverPosition;
@@ -306,9 +308,10 @@ class C2GoToReceiverPositionCard : public C2GoToReceiverPositionCardBase
         
         
         if(theRobotPose.translation.y()<0) yReceiverArea = -yReceiverArea;
-        std::cout<<"Y : "<<yReceiverArea<<"\n";
-        Pose2f actuallyChosenTarget = theLibCheck.C2EvaluateTarget();
-        Pose2f chosenTarget = Pose2f(actuallyChosenTarget.translation.x(),yReceiverArea);
+        //std::cout<<"Y : "<<yReceiverArea<<"\n";
+        Pose2f actuallyChosenTarget = theLibCheck.C2EvaluateTarget(2);
+        //Pose2f chosenTarget = Pose2f(actuallyChosenTarget.translation.x(),yReceiverArea);
+        Pose2f chosenTarget = actuallyChosenTarget;
         Pose2f relativeChosenTarget = theLibCheck.glob2Rel(chosenTarget.translation.x(), chosenTarget.translation.y());
 
         
@@ -339,9 +342,9 @@ class C2GoToReceiverPositionCard : public C2GoToReceiverPositionCardBase
             
             if(theRobotPose.translation.y()<0) yReceiverArea = -yReceiverArea;
             
-            Pose2f actuallyChosenTarget = theLibCheck.C2EvaluateTarget();
-            Pose2f chosenTarget = Pose2f(actuallyChosenTarget.translation.x(),yReceiverArea);
-            
+            Pose2f actuallyChosenTarget = theLibCheck.C2EvaluateTarget(2);
+            //Pose2f chosenTarget = Pose2f(actuallyChosenTarget.translation.x(),yReceiverArea);
+            Pose2f chosenTarget = actuallyChosenTarget;
             Pose2f relativeChosenTarget = theLibCheck.glob2Rel(chosenTarget.translation.x(), chosenTarget.translation.y());
             
             

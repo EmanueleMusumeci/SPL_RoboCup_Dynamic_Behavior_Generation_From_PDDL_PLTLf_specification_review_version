@@ -105,7 +105,7 @@ class C2ApproachAndPassCard : public C2ApproachAndPassCardBase
     float distance = theLibCheck.distance(theRobotPose.translation, theFieldBall.positionOnField);
 
     //if (!passingArea || !ownField || distance > 500.f) return false;
-    if (!ownField) return false;
+    if (!ownField || !passingArea) return false;
     else return true;
   }
 
@@ -180,6 +180,8 @@ class C2ApproachAndPassCard : public C2ApproachAndPassCardBase
       action
       {
 
+        Pose2f test = theLibCheck.C2EvaluateApproach(theLibCheck.C2EvaluateTarget(0));
+
         //Pose2f offset = theLibCheck.C2EvaluateApproach();
         //float angle = theLibCheck.C2AngleToTarget();
 
@@ -246,9 +248,12 @@ class C2ApproachAndPassCard : public C2ApproachAndPassCardBase
 
       action
       {
-        float angle = theLibCheck.C2AngleToTarget_bis();
-        Pose2f point = theLibCheck.C2EvaluateTarget();
-        Pose2f offset = theLibCheck.C2EvaluateApproach();
+        Pose2f ballPose = Pose2f(theFieldBall.positionOnField);
+        Pose2f targetPose = theLibCheck.C2EvaluateTarget(0);
+
+        float angle = theLibCheck.C2AngleBetween(targetPose, ballPose, false);
+
+        Pose2f offset = theLibCheck.C2EvaluateApproach(targetPose);
         Pose2f target = Pose2f(angle, theFieldBall.positionOnField + offset.translation);
 
         //std::cout << target.translation.x() << '\t' <<  target.translation.y() << '\n';
@@ -275,8 +280,10 @@ class C2ApproachAndPassCard : public C2ApproachAndPassCardBase
       }
       action
       {
-        float angle = theLibCheck.C2AngleToTarget_bis();
-        Pose2f offset = theLibCheck.C2EvaluateApproach();
+        Pose2f ballPose = Pose2f(theFieldBall.positionOnField);
+        Pose2f targetPose = theLibCheck.C2EvaluateTarget(0);
+        float angle = theLibCheck.C2AngleBetween(targetPose, ballPose, false);
+        Pose2f offset = theLibCheck.C2EvaluateApproach(targetPose);
         Pose2f target = Pose2f(angle, theFieldBall.positionOnField + offset.translation);
 
         theLookAtPointSkill(Vector3f(theFieldBall.positionRelative.x(), theFieldBall.positionRelative.y(), 0.f));
@@ -288,7 +295,7 @@ class C2ApproachAndPassCard : public C2ApproachAndPassCardBase
     state(approachToPass){
       transition
       {
-        Pose2f point = theLibCheck.C2EvaluateTarget();
+        Pose2f point = theLibCheck.C2EvaluateTarget(0);
         point = theLibCheck.glob2Rel(point.translation.x(), point.translation.y());
         point = theLibCheck.rel2Glob(point.translation.x()-150.f, point.translation.y()+85.f);
         const Angle angleToTarget = calcAngleToTarget(point);
@@ -310,8 +317,10 @@ class C2ApproachAndPassCard : public C2ApproachAndPassCardBase
 
       action
       {
-        float angle = theLibCheck.C2AngleToTarget_bis();
-        Pose2f ball = theFieldBall.positionRelative;
+        Pose2f ballPose = Pose2f(theFieldBall.positionOnField);
+        Pose2f targetPose = theLibCheck.C2EvaluateTarget(0);
+        //float angle = theLibCheck.C2AngleToTarget_bis();
+        float angle = theLibCheck.C2AngleBetween(targetPose, ballPose, false);        Pose2f ball = theFieldBall.positionRelative;
         float x_ball = ball.translation.x();         
         float y_ball = ball.translation.y();         
 
@@ -343,11 +352,11 @@ class C2ApproachAndPassCard : public C2ApproachAndPassCardBase
             alreadyEnqueued = true;
             distanceConfirmed = 2600.f;
 
-            std::cout << theTeamData.teammates.at(0).theRobotPose.translation.x() << '\t' << theTeamData.teammates.at(0).theRobotPose.translation.y() << '\n';
+            //std::cout << theTeamData.teammates.at(0).theRobotPose.translation.x() << '\t' << theTeamData.teammates.at(0).theRobotPose.translation.y() << '\n';
             std::string distanceTargetString = std::to_string(int(distanceConfirmed/1000.f));
-            SystemCall::say("PASSING TO DISTANCE");
-            SystemCall::say(distanceTargetString.c_str());
-            SystemCall::say("METERS");
+            //SystemCall::say("PASSING TO DISTANCE");
+            //SystemCall::say(distanceTargetString.c_str());
+            //SystemCall::say("METERS");
 
         }
         theLookAtPointSkill(Vector3f(theFieldBall.positionRelative.x(), theFieldBall.positionRelative.y(), 0.f));
