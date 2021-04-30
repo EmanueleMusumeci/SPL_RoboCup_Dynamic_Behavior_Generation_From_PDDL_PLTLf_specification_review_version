@@ -7,7 +7,7 @@ n_files=`/bin/ls -1 "$dir" | grep '\.ros2$' | wc -l | cut -f1`
 
 rand_num=`awk "BEGIN{srand();print int($n_files * rand()) + 1;}"`
 
-file=`/bin/ls -1 "$dir" | grep '\.ros2$' | sed -ne "${rand_num}p"`
+file=`/bin/ls -1 "$dir" | grep '\.ros2$' | sed -ne "$rand_nump"`
 SCENE_PATH=`cd $dir && echo "$PWD/$file"`
 echo "Opening scene: $SCENE_PATH"
 
