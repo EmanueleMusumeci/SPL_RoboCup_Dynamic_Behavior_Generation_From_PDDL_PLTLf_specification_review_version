@@ -138,7 +138,7 @@ float LibPotentialFieldsProvider::angleToTarget(float x, float y)
 
 std::vector<NodePF> LibPotentialFieldsProvider::initializePFAroundPoint(float cell_size, Vector2f field_center, float field_radius, float FIELD_BORDER_OFFSET)
 {
-    std::cout<<"initializePFAroundPoint";
+    //std::cout<<"initializePFAroundPoint";
     std::vector<NodePF> potential_field;
     //init obstacle model
     float d = cell_size;
@@ -174,7 +174,7 @@ std::vector<NodePF> LibPotentialFieldsProvider::initializePFAroundPoint(float ce
 
 std::vector<NodePF> LibPotentialFieldsProvider::initializePFAllField(float cell_size, float FIELD_BORDER_OFFSET)
 {
-    std::cout<<"initializePFAllField";
+    //std::cout<<"initializePFAllField";
     std::vector<NodePF> potential_field;
     //init obstacle model
     int d = cell_size;
@@ -195,7 +195,7 @@ std::vector<NodePF> LibPotentialFieldsProvider::initializePFAllField(float cell_
 
 std::vector<NodePF> LibPotentialFieldsProvider::computeStrikerAttractivePF(std::vector<NodePF>& potential_field, Vector2f goal, float RO, float Kap, float Kbp, float Kr, float TEAMMATE_CO, float ETA, float GAMMA)
 {
-  std::cout<<"computeStrikerAttractivePF";
+  //std::cout<<"computeStrikerAttractivePF";
   //Attractive potential field toward the center of the soccer field + Repulsive potential field written as an opposite-attractive component
   std::vector<NodePF> attractive_field(potential_field.size());
 
@@ -223,7 +223,7 @@ std::vector<NodePF> LibPotentialFieldsProvider::computeStrikerAttractivePF(std::
 
 std::vector<NodePF> LibPotentialFieldsProvider::computeStrikerRepulsivePF(std::vector<NodePF>& potential_field, Vector2f source_pos, float RO, float Kap, float Kbp, float Kr, float TEAMMATE_CO, float ETA, float GAMMA) 
 {
-  std::cout<<"computeStrikerRepulsivePF";
+  //std::cout<<"computeStrikerRepulsivePF";
   //Vector2f my_pos = theRobotPose.translation;
 
   //Build a vector out of all obstacles, including OPPONENTS and TEAMMATES, excluding POLES
@@ -242,7 +242,7 @@ std::vector<NodePF> LibPotentialFieldsProvider::computeStrikerRepulsivePF(std::v
       default:
       {
         repulsive_obstacles.push_back(obs.center);
-        std::cout<<"\nObs: ("<<obs.center.x()<<", "<<obs.center.y()<<")"<<std::endl;
+        //std::cout<<"\nObs: ("<<obs.center.x()<<", "<<obs.center.y()<<")"<<std::endl;
         break;
       }
     }
@@ -268,8 +268,8 @@ std::vector<NodePF> LibPotentialFieldsProvider::computeStrikerRepulsivePF(std::v
           Vector2f tmp_rep = repulsive_obstacles.at(r) - source_pos;
           //if( (tmp_err).norm() < ETA)
           //{
-              std::cout<<"\nObs: ("<<repulsive_obstacles.at(r).x()<<", "<<repulsive_obstacles.at(r).y()<<")"<<std::endl;
-              std::cout<<"QUADRATIC"<<std::endl;
+              //std::cout<<"\nObs: ("<<repulsive_obstacles.at(r).x()<<", "<<repulsive_obstacles.at(r).y()<<")"<<std::endl;
+              //std::cout<<"QUADRATIC"<<std::endl;
               float tmp_eta = tmp_rep.norm();
 
               repulsive_field.at(i).potential = repulsive_field.at(i).potential + Vector2f( -tmp_rep * (Kr/GAMMA) * pow(1000*(1/tmp_eta)-(1/ETA),GAMMA-1) * (1/tmp_err.norm()));
@@ -316,7 +316,7 @@ std::vector<NodePF> LibPotentialFieldsProvider::computePFAllField(std::vector<No
 
 std::vector<NodePF> LibPotentialFieldsProvider::computePFAroundPoint(std::vector<NodePF>& potential_field, std::vector<NodePF> attractive_field, std::vector<NodePF> repulsive_field)
 {
-  std::cout<<"computePFAroundPoint";
+  //std::cout<<"computePFAroundPoint";
   //std::vector<NodePF> potential_field = initializePFAroundPoint(cell_size, field_center, field_radius, FIELD_BORDER_OFFSET);
 
   ///////////////////////////////

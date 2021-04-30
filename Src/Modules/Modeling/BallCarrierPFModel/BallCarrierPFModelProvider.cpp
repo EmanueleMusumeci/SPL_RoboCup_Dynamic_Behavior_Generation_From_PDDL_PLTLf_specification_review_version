@@ -55,47 +55,47 @@ void BallCarrierPFModelProvider::update(BallCarrierPFModel& ballCarrierPFModel)
 
         if(last_potential_field_update == 0.f || current_time - last_potential_field_update > POTENTIAL_FIELD_DELAY)
         {    
-            std::cout<<"Initialize potential field"<<std::endl;
+            //std::cout<<"Initialize potential field"<<std::endl;
 
             ballCarrierPFModel.current_field_center = theBallCarrierModel.dynamicTarget.translation;
-            std::cout<<"\tballCarrierPFModel.current_field_center: ("<<ballCarrierPFModel.current_field_center.x()<<", "<<ballCarrierPFModel.current_field_center.y()<<")"<<std::endl;
+            //std::cout<<"\tballCarrierPFModel.current_field_center: ("<<ballCarrierPFModel.current_field_center.x()<<", "<<ballCarrierPFModel.current_field_center.y()<<")"<<std::endl;
             
             //Potential field radius is inversely proportional to distance from field borders  
             float radius_x = theLibCheck.mapToInterval(std::abs(ballCarrierPFModel.current_field_center.x()), 0.f, theFieldDimensions.xPosOpponentGroundline, 0.f, ballCarrierPFModel.max_field_radius - ballCarrierPFModel.min_field_radius);
             float radius_y = theLibCheck.mapToInterval(std::abs(ballCarrierPFModel.current_field_center.y()), 0.f, theFieldDimensions.yPosLeftSideline, 0.f, ballCarrierPFModel.max_field_radius - ballCarrierPFModel.min_field_radius);
-            std::cout<<"radius_x: "<<radius_x<<std::endl;
-            std::cout<<"radius_y: "<<radius_y<<std::endl;
+            //std::cout<<"radius_x: "<<radius_x<<std::endl;
+            //std::cout<<"radius_y: "<<radius_y<<std::endl;
             ballCarrierPFModel.current_field_radius = ballCarrierPFModel.max_field_radius - (radius_x>radius_y ? radius_x : radius_y);
             //ballCarrierPFModel.current_field_radius = ballCarrierPFModel.max_field_radius;
-            std::cout<<"\tballCarrierPFModel.current_field_radius: "<<ballCarrierPFModel.current_field_radius<<std::endl;
+            //std::cout<<"\tballCarrierPFModel.current_field_radius: "<<ballCarrierPFModel.current_field_radius<<std::endl;
 
             //Potential field cell size is inversely proportional to distance from field borders
             float cell_size_x = theLibCheck.mapToInterval(std::abs(ballCarrierPFModel.current_field_center.x()), 0.f, theFieldDimensions.xPosOpponentGroundline, 0.f, ballCarrierPFModel.max_cell_size - ballCarrierPFModel.min_cell_size);
             float cell_size_y = theLibCheck.mapToInterval(std::abs(ballCarrierPFModel.current_field_center.y()), 0.f, theFieldDimensions.yPosLeftSideline, 0.f, ballCarrierPFModel.max_cell_size - ballCarrierPFModel.min_cell_size);
             ballCarrierPFModel.current_cell_size = ballCarrierPFModel.max_cell_size - (cell_size_x>cell_size_y ? cell_size_x : cell_size_y);
-            std::cout<<"\tballCarrierPFModel.current_cell_size: "<<ballCarrierPFModel.current_cell_size<<std::endl;
+            //std::cout<<"\tballCarrierPFModel.current_cell_size: "<<ballCarrierPFModel.current_cell_size<<std::endl;
             
             ballCarrierPFModel.potential_field = theLibPotentialFields.initializePFAroundPoint(ballCarrierPFModel.current_cell_size, ballCarrierPFModel.current_field_center, ballCarrierPFModel.current_field_radius, ballCarrierPFModel.field_border_offset);
 
-            std::cout<<"Compute attractive field"<<std::endl;
+            //std::cout<<"Compute attractive field"<<std::endl;
             ballCarrierPFModel.attractive_field = theLibPotentialFields.computeStrikerAttractivePF(ballCarrierPFModel.potential_field, theLibCheck.goalTarget(false), RO, Kap, Kbp, Kr, TEAMMATE_CO, ETA, GAMMA);
             last_attractive_field_update = Time::getCurrentSystemTime();
 
-            std::cout<<"Compute repulsive field"<<std::endl;
+            //std::cout<<"Compute repulsive field"<<std::endl;
             ballCarrierPFModel.repulsive_field = theLibPotentialFields.computeStrikerRepulsivePF(ballCarrierPFModel.potential_field, ballCarrierPFModel.current_field_center, RO, Kap, Kbp, Kr, TEAMMATE_CO, ETA, GAMMA);
             last_repulsive_field_update = Time::getCurrentSystemTime();
 
-            std::cout<<"Compute potential field"<<std::endl;
+            //std::cout<<"Compute potential field"<<std::endl;
             //Potential field using the goalTarget with shootASAP mode set to false
             ballCarrierPFModel.potential_field = theLibPotentialFields.computePFAroundPoint(ballCarrierPFModel.potential_field, ballCarrierPFModel.attractive_field, ballCarrierPFModel.repulsive_field);
             last_potential_field_update = Time::getCurrentSystemTime();
 
-            std::cout<<ballCarrierPFModel.potential_field.size()<<std::endl;
-            for(const auto node: ballCarrierPFModel.potential_field)
+            //std::cout<<ballCarrierPFModel.potential_field.size()<<std::endl;
+            /*for(const auto node: ballCarrierPFModel.potential_field)
             {
                 std::cout<<"Node: Position: "<<node.position<<" Potential: "<<node.potential<<std::endl;
             }
-            std::cout<<std::endl;
+            std::cout<<std::endl;*/
         }
     }
 

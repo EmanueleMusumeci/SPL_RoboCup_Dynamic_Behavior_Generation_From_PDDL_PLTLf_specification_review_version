@@ -28,7 +28,7 @@ void FallDownStateProvider::update(FallDownState& fallDownState)
   if(theFrameInfo.time > 400000 && !thanks)
   {
     thanks = true;
-    SystemCall::playSound("danke.wav");
+    //SystemCall::playSound("danke.wav");
   }
   DECLARE_DEBUG_DRAWING3D("module:FallDownStateProvider:fall", "field");
   dynamicNoise = (Vector5f() << positionProcessDeviation.cwiseAbs2(), velocityProcessDeviation.cwiseAbs2().cast<float>()).finished() * Constants::motionCycleTime;

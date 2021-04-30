@@ -44,11 +44,11 @@ void LibCheckProvider::update(LibCheck& libCheck)
   libCheck.isGoalieInKickAwayRange = isGoalieInKickAwayRange();
   libCheck.isBallInKickAwayRange = isBallInKickAwayRange();
   
-  libCheck.angleBetweenPoints = [&](const Pose2f p1, const Pose2f p2) -> float {
-    std::cout<<"HELLO";
-    (p1.inverse() * Vector2f(p2.translation.x(), p2.translation.x())).angle();
-    std::cout<<"HELLO2";
-  };
+  libCheck.angleBetweenPoints = [&](Vector2f p1, Vector2f p2) -> float {
+    double deltaY = p1.y() - p2.y();
+    double deltaX = p2.x() - p1.x();
+    return atan2(deltaY, deltaX);
+    };
 
   libCheck.norm = [&](float x, float y) -> float
   {
@@ -306,10 +306,9 @@ libCheck.goalTarget = [this](bool shootASAP) -> Vector2f {
     return goalTarget(shootASAP);
   };
 
-  libCheck.glob2Rel = [&](float x, float y) -> Pose2f
+  libCheck.glob2RelWithAngle = [&](float theta, float x, float y) -> Pose2f
   {
       Vector2f result;
-      float theta = 0;
       float tempX = x - theRobotPose.translation.x();
       float tempY = y - theRobotPose.translation.y();
 
@@ -317,6 +316,18 @@ libCheck.goalTarget = [this](bool shootASAP) -> Vector2f {
       result.y() = (float)(-tempX * sin(theRobotPose.rotation) + tempY * cos(theRobotPose.rotation));
 
       return Pose2f(theta , result.x(),result.y());
+  };
+
+  libCheck.glob2Rel = [&](float x, float y) -> Pose2f
+  {
+      Vector2f result;
+      float tempX = x - theRobotPose.translation.x();
+      float tempY = y - theRobotPose.translation.y();
+
+      result.x() = (float)(tempX * cos(theRobotPose.rotation) + tempY * sin(theRobotPose.rotation));
+      result.y() = (float)(-tempX * sin(theRobotPose.rotation) + tempY * cos(theRobotPose.rotation));
+
+      return Pose2f(result.x(),result.y());
   };
 
   libCheck.defenderDynamicY = [&]() -> float

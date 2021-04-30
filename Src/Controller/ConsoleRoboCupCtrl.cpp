@@ -172,7 +172,16 @@ void ConsoleRoboCupCtrl::executeFile(const std::string& name1, const std::string
       if(static_cast<int>(name.rfind('.')) <= static_cast<int>(name.find_last_of("\\/")))
         name = name + ".con";
       if(name[0] != '/' && name[0] != '\\' && (name.size() < 2 || name[1] != ':'))
-        name = std::string("Scenes\\") + name;
+      {
+        if(name.rfind('/'))
+        {
+          name = std::string("Scenes/") + name;
+        }
+        else
+        {
+          name = std::string("Scenes\\") + name;
+        } 
+      }
       InBinaryFile stream(name);
       if(!stream.exists())
       {

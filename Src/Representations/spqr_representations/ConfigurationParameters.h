@@ -47,7 +47,7 @@ namespace SPQR
         {
             if (getcwd(currentWorkingDirectory,1024)) {;}
             configDirectory = currentWorkingDirectory;
-            configDirectory = configDirectory.substr(0,configDirectory.rfind("/")) + "/";
+            configDirectory = configDirectory.substr(0,configDirectory.rfind("Config/")) + "Config/";
         }
         else configDirectory = "Config/";
 

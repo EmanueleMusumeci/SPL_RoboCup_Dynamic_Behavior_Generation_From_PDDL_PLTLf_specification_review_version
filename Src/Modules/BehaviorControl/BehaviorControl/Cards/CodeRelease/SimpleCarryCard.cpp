@@ -1,3 +1,7 @@
+/*
+  @Author Elisa Foderaro
+*/
+
 #include "Representations/BehaviorControl/Skills.h"
 #include "Tools/BehaviorControl/Framework/Card/Card.h"
 #include "Tools/BehaviorControl/Framework/Card/CabslCard.h"

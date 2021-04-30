@@ -97,6 +97,7 @@ STREAMABLE(LibCheck,
   FUNCTION(bool(Pose2f targetPose, Pose2f shootingPose,std::vector<Obstacle> opponents)) canPass;
 
   FUNCTION(Pose2f(float x, float y)) glob2Rel;
+  FUNCTION(Pose2f(float theta, float x, float y)) glob2RelWithAngle;
   FUNCTION(float(float x))radiansToDegree;
 
   FUNCTION(Pose2f(float x, float y)) rel2Glob;
@@ -112,7 +113,7 @@ STREAMABLE(LibCheck,
 
   FUNCTION(bool(int)) strikerPassCommonConditions;
 
-  FUNCTION(float(Pose2f p1, Pose2f p2)) angleBetweenPoints, 
+  FUNCTION(float(Vector2f p1, Vector2f p2)) angleBetweenPoints, 
 
 
   (bool) isGoalieInStartingPosition,
