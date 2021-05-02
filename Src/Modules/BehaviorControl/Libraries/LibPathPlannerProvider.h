@@ -15,6 +15,7 @@
 #include "Representations/Communication/TeamInfo.h"
 #include "Representations/Infrastructure/FrameInfo.h"
 #include "Representations/BehaviorControl/FieldBall.h"
+#include "Representations/Modeling/BallModel.h"
 #include "Representations/Configuration/FieldDimensions.h"
 #include "Representations/Modeling/ObstacleModel.h"
 #include "Representations/Modeling/RobotPose.h"
@@ -27,7 +28,8 @@
 //Every time we add a module here, check in LibCheck if it's USED or REQUIRED
 MODULE(LibPathPlannerProvider,
 {,
-  REQUIRES(FieldBall),
+  //REQUIRES(FieldBall),
+  REQUIRES(BallModel),
   REQUIRES(FrameInfo),
   REQUIRES(GameInfo),
   REQUIRES(FieldDimensions),
@@ -37,6 +39,7 @@ MODULE(LibPathPlannerProvider,
   REQUIRES(OwnTeamInfo),
   REQUIRES(ObstacleModel),
   REQUIRES(LibCheck),
+  
   PROVIDES(LibPathPlanner),
 });
 

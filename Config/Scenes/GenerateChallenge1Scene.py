@@ -54,7 +54,7 @@ sceneCounter = 0
 
 def generateChallengeScene(sceneCount, couples):
     with open(os.path.join(SCENE_DIR, "challenge1", "challenge1scene"+str(sceneCount)+".ros2"), mode="w") as f:
-        f.write('<Simulation>\n\n\
+        header = '<Simulation>\n\n\
 <Include href="../Includes/NaoV6H25.rsi2"/>\n\
 <Include href="../Includes/Ball2016SPL.rsi2"/>\n\
 <Include href="../Includes/Field2017SPL.rsi2"/>\n\n\
@@ -63,14 +63,21 @@ def generateChallengeScene(sceneCount, couples):
 \t<Compound name="teamColors">\n\
 \t\t<Appearance name="black"/>\n\
 \t\t<Appearance name="blue"/>\n\
-\t</Compound>\n\n\
-\t<Compound name="robots">\n\
+\t</Compound>\n\n'
+        playing_robot = '\t<Compound name="robots">\n\
 \t\t<Body ref="Nao" name="robot3">\n\
-\t\t<Translation x="850mm" y="0mm" z="320mm"/>\n\
-\t\t<Rotation z="180degree"/> \n\
+\t\t<Translation x="{}mm" y="{}mm" z="320mm"/>\n\
+\t\t<Rotation z="{}degree"/> \n\
 \t\t</Body>\n\
-\t</Compound>\n\n\
-\t<Compound name="extras">\n\
+\t</Compound>\n\n'
+        if FAST:
+            playing_robot_pos = (850, 0, 180)
+        else:
+            playing_robot_pos = (850, -3000, 90)
+
+        playing_robot = playing_robot.format(playing_robot_pos[0], playing_robot_pos[1], playing_robot_pos[2])
+
+        non_playing_robots = '\t<Compound name="extras">\n\
 \t\t<Body ref="NaoDummy" name="robot6">\n\
 \t\t<Translation x="{}mm" y="{}mm" z="320mm"/>\n\
 \t\t<Rotation z="0degree"/>\n\
@@ -91,18 +98,20 @@ def generateChallengeScene(sceneCount, couples):
 \t\t<Rotation z="0degree"/>\n\
 \t\t<Set name="NaoColor" value="dblue"/>\n\
 \t\t</Body>\n\
-\t</Compound>\n\n\
-\t<Compound name="balls">\n\
+\t</Compound>\n\n'.format(str(couples[0][0]), str(couples[0][1]), 
+                        str(couples[1][0]), str(couples[1][1]), str(couples[1][0]), str(-couples[1][1]),
+                        str(couples[2][0]), str(couples[2][1]))
+        footer = '\t<Compound name="balls">\n\
 \t\t<Body ref="ball">\n\
 \t\t<Translation z="1m"/>\n\
 \t\t</Body>\n\
 \t</Compound>\n\n\
 \t<Compound ref="field"/>\n\n\
 </Scene>\n\n\
-</Simulation>'.format(str(couples[0][0]), str(couples[0][1]), 
-                        str(couples[1][0]), str(couples[1][1]), str(couples[1][0]), str(-couples[1][1]),
-                        str(couples[2][0]), str(couples[2][1]))
-                )
+</Simulation>'
+
+        f.write(header + playing_robot + non_playing_robots + footer)
+
     if FAST:
         launch_script = 'call Includes/Fast\n\n'
     else:
@@ -111,8 +120,13 @@ def generateChallengeScene(sceneCount, couples):
     launch_script+="dr debugDrawing3d:representation:OpponentGoalModel\n\
                     dr debugDrawing3d:module:BallPathProvider\n\
                     dr debugDrawing3d:representation:BallCarrierPFModel\n\
-                    dr debugDrawing3d:representation:BallCarrierModel\n\
-                    gc playing"
+                    dr debugDrawing3d:representation:BallCarrierModel\n"
+    
+    #In non-fast scenes the robot has to start from the side of the field to localize
+    if FAST:
+        launch_script+= "gc playing"
+    else:
+        launch_script+= "gc ready"
 
     with open(os.path.join(SCENE_DIR, "challenge1", "challenge1scene"+str(sceneCount)+".con"), mode="w") as f:
         f.write(launch_script)

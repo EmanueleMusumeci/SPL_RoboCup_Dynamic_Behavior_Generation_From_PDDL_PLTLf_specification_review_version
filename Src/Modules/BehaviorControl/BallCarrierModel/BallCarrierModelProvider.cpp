@@ -40,7 +40,7 @@ void BallCarrierModelProvider::update(BallCarrierModel& ballCarrierModel)
         Pose2f speed = Pose2f(0.8f,0.8f,0.8f);
         bool avoidPenaltyArea = false;
         
-        std::vector<PathPlannerUtils::Node> plan = theLibPathPlanner.populatePlan(theFieldBall.positionOnField, target, speed, avoidPenaltyArea);
+        std::vector<PathPlannerUtils::Node> plan = theLibPathPlanner.populatePlan(theLibCheck.rel2Glob(theBallModel.estimate.position.x(), theBallModel.estimate.position.y()), target, speed, avoidPenaltyArea);
         std::vector<PathPlannerUtils::Edge*> obstacleAvoidancePlan = theLibPathPlanner.createAvoidancePlan(plan);
         std::vector<Vector2f> ballPath = theLibPathPlanner.computePath(plan, ballCarrierModel.obstacleAvoidanceArcAngleStep);
         
@@ -84,7 +84,7 @@ void BallCarrierModelProvider::update(BallCarrierModel& ballCarrierModel)
         }
         else
         {
-            ballCarrierModel.ballPath.push_back(BallCarrierModel::Node(theFieldBall.positionOnField, 0.f));
+            ballCarrierModel.ballPath.push_back(BallCarrierModel::Node(theLibCheck.rel2Glob(theBallModel.estimate.position.x(), theBallModel.estimate.position.y()).translation, 0.f));
             ballCarrierModel.ballPath.push_back(BallCarrierModel::Node(target.translation, 0.f));
             ballCarrierModel.isFallbackPath = true;
         }

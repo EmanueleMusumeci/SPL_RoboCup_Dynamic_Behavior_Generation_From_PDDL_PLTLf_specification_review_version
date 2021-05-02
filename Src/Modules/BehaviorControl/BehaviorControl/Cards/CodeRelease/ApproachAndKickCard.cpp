@@ -170,7 +170,6 @@ class ApproachAndKickCard : public ApproachAndKickCardBase
 
   option
   {
-    theActivitySkill(BehaviorStatus::approachAndKick);
 
     initial_state(start)
     {
@@ -182,6 +181,7 @@ class ApproachAndKickCard : public ApproachAndKickCardBase
 
       action
       {
+        theActivitySkill(BehaviorStatus::approachAndKick);
         theLookForwardSkill();
         theStandSkill();
       }

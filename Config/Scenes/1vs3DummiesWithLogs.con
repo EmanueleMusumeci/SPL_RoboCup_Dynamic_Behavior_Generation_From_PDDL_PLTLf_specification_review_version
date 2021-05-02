@@ -5,4 +5,5 @@ dr debugDrawing3d:module:BallPathProvider
 dr debugDrawing3d:representation:BallCarrierPFModel
 dr debugDrawing3d:representation:BallCarrierModel
 vd representation:BallCarrierModel
+log start
 gc playing

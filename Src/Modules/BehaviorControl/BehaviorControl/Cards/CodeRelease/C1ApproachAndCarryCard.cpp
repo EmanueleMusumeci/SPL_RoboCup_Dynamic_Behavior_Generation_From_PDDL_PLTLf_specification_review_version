@@ -1,5 +1,5 @@
 /**
- * @file ApproachAndCarryCard.cpp
+ * @file C1ApproachAndCarryCard.cpp
  *
  * This file implements a behavior to carry the ball forward in the field, avoiding obstacles.
  *
@@ -23,7 +23,7 @@
 #include "Tools/Math/BHMath.h"
 #include "Platform/SystemCall.h"
 #include <string>
-CARD(ApproachAndCarryCard,
+CARD(C1ApproachAndCarryCard,
 {,
   CALLS(Activity),
   CALLS(InWalkKick),
@@ -78,39 +78,24 @@ CARD(ApproachAndCarryCard,
     (float) targetPositionChangedThreshold,
 
     (Rangef) approachXRange,
+
+    (Rangef) approachYRange,
+
+    //Two ball alignment angle ranges: the smaller one is used as an escape condition when aligning the robot to the ball (we should be more precise), 
+    //the bigger one is used instead to decide when to realign (so we give more room to small errors in alignment) 
+    (Rangef) smallBallAlignmentRange,
     (Rangef) ballAlignmentRange,
 
-    (float) ballOffsetY,
+
     (int) maxKickWaitTime,
     (float) goalKickThreshold,
     (float) nearGoalThreshold,
 
     (bool) DEBUG_MODE,
   }),
-
-  /*DEFINES_PARAMETERS(
-  {,
-    (float)(0.8f) walkSpeed,
-    (int)(50) initialWaitTime,
-    (int)(3500) ballNotSeenTimeout,
-    (Angle)(5_deg) ballAlignThreshold,
-    (float)(180.f) ballOffsetX,
-    (Rangef)({170.f, 190.f}) ballOffsetXRange,
-    (Rangef)({-350.f, 350.f}) approachYRange,
-    (Rangef)({-150.f, 150.f}) smallApproachYRange,
-    (Rangef)({150.f, 300.f}) smallApproachXRange,
-    (float)(-75.f) ballOffsetY,
-    (Rangef)({-85.f, -65.f}) ballOffsetYRange,
-    (int)(10) minKickWaitTime,
-    (int)(3000) maxKickWaitTime,
-    (float)(1000.f) approachTreshold,
-    (bool)(true) debugText,
-    (float)(1000) goalKickThreshold,
-    (float)(2500) nearGoalThreshold,
-  }),*/
 });
 
-class ApproachAndCarryCard : public ApproachAndCarryCardBase
+class C1ApproachAndCarryCard : public C1ApproachAndCarryCardBase
 {
 
   // These two variables are used in order to let the robot say through PlaySound what is the distance from the target.
@@ -119,6 +104,8 @@ class ApproachAndCarryCard : public ApproachAndCarryCardBase
   Angle ballAlignThreshold = Angle::fromDegrees(ballAlignThreshold_degrees);
 
   float ballOffsetX = approachXRange.min + (approachXRange.max - approachXRange.min)/2;
+  //float smallBallOffsetX = approachXRange.min + (approachXRange.max - approachXRange.min)/3;
+  float smallBallOffsetX = ballOffsetX;
 
   Vector2f chosenTarget;
   Vector2f goalTarget;
@@ -151,7 +138,6 @@ class ApproachAndCarryCard : public ApproachAndCarryCardBase
 
   option
   {
-    theActivitySkill(BehaviorStatus::approachAndCarry);
 
     initial_state(start)
     {
@@ -164,6 +150,9 @@ class ApproachAndCarryCard : public ApproachAndCarryCardBase
 
       action
       {
+        theActivitySkill(BehaviorStatus::approach_and_carry_start);
+
+        theActivitySkill(BehaviorStatus::approach_and_carry_start);
         theLookForwardSkill();
         theStandSkill();
       }
@@ -184,6 +173,8 @@ class ApproachAndCarryCard : public ApproachAndCarryCardBase
 
       action
       {
+        theActivitySkill(BehaviorStatus::realigning_to_ball);
+        
         theKeyFrameArmsSkill(ArmKeyFrameRequest::back,false);
         theLookForwardSkill();
         theWalkToTargetSkill(Pose2f(walkSpeed, walkSpeed, walkSpeed), Pose2f(theBallModel.estimate.position.angle(), 0.f, 0.f));
@@ -220,11 +211,16 @@ class ApproachAndCarryCard : public ApproachAndCarryCardBase
       }
       action
       {
+        theActivitySkill(BehaviorStatus::choosing_target);
+
         theKeyFrameArmsSkill(ArmKeyFrameRequest::back,false);
         goalTarget = theLibCheck.goalTarget(false);
         chosenTarget = theBallCarrierModel.dynamicTarget.translation;
         previousBallPosition = theLibCheck.rel2Glob(theBallModel.estimate.position.x(), theBallModel.estimate.position.y()).translation;
         targetChosen = true;
+
+        theLookAtPointSkill(Vector3f(theBallModel.estimate.position.x(), theBallModel.estimate.position.y(), 0.f));
+        theStandSkill();
       }
     }
 
@@ -235,6 +231,9 @@ class ApproachAndCarryCard : public ApproachAndCarryCardBase
 
       action
       {
+        theActivitySkill(BehaviorStatus::debug_standing);
+
+        theLookForwardSkill();
         theStandSkill();
       }
     }
@@ -252,7 +251,7 @@ class ApproachAndCarryCard : public ApproachAndCarryCardBase
         if(approachXRange.isInside(theLibCheck.distance(theLibCheck.rel2Glob(theBallModel.estimate.position.x(), theBallModel.estimate.position.y()), theRobotPose)))
         {
           std::cout<<"approachXRange.isInside(theLibCheck.distance(theBallModel.estimate.position, theRobotPose))"<<std::endl;
-          if(ballAlignmentRange.isInside(calcAngleToTarget(chosenTarget).toDegrees()))
+          if(smallBallAlignmentRange.isInside(calcAngleToTarget(chosenTarget).toDegrees()))
           {
             std::cout<<"In kicking pose"<<std::endl;
             goto kick;
@@ -267,6 +266,7 @@ class ApproachAndCarryCard : public ApproachAndCarryCardBase
 
       action
       {
+        theActivitySkill(BehaviorStatus::reaching_ball);
 
         theKeyFrameArmsSkill(ArmKeyFrameRequest::back,false);
         Vector2f ballPositionRelative = theBallModel.estimate.position;
@@ -274,19 +274,19 @@ class ApproachAndCarryCard : public ApproachAndCarryCardBase
         theLookAtPointSkill(Vector3f(ballPositionRelative.x(), ballPositionRelative.y(), 0.f));
         
         float ballToTargetAngle = theLibCheck.angleBetweenPoints(ballPositionGlobal, chosenTarget);
-        std::cout<<"ballToTargetAngle: "<<ballToTargetAngle<<std::endl;
+        //std::cout<<"ballToTargetAngle: "<<ballToTargetAngle<<std::endl;
         
         float dynamicOffsetX = ballOffsetX * cos(pi + ballToTargetAngle);
         float dynamicOffsetY = ballOffsetX * sin(pi + ballToTargetAngle);
-        std::cout<<"ballOffsetX: "<<ballOffsetX<<std::endl;
-        std::cout<<"dynamicOffsetX: "<<dynamicOffsetX<<std::endl;
-        std::cout<<"dynamicOffsetY: "<<dynamicOffsetY<<std::endl; 
+        //std::cout<<"ballOffsetX: "<<ballOffsetX<<std::endl;
+        //std::cout<<"dynamicOffsetX: "<<dynamicOffsetX<<std::endl;
+        //std::cout<<"dynamicOffsetY: "<<dynamicOffsetY<<std::endl; 
 
         Pose2f approachPose = Pose2f(-ballToTargetAngle, ballPositionGlobal.x() + dynamicOffsetX, ballPositionGlobal.y() - dynamicOffsetY);
-        Pose2f approachPoseRelative = theLibCheck.glob2RelWithAngle(theLibCheck.angleToTarget(chosenTarget.x(), chosenTarget.y()), ballPositionGlobal.x() - dynamicOffsetX, ballPositionGlobal.y() - dynamicOffsetY);
-        std::cout<<"approachPoseX: "<<approachPose.translation.x()<<std::endl;
-        std::cout<<"approachPoseY: "<<approachPose.translation.y()<<std::endl;
-        std::cout<<"approachPoseAngle: "<<Angle(approachPose.rotation).toDegrees()<<std::endl;
+        //Pose2f approachPoseRelative = theLibCheck.glob2RelWithAngle(theLibCheck.angleToTarget(chosenTarget.x(), chosenTarget.y()), ballPositionGlobal.x() - dynamicOffsetX, ballPositionGlobal.y() - dynamicOffsetY);
+        //std::cout<<"approachPoseX: "<<approachPose.translation.x()<<std::endl;
+        //std::cout<<"approachPoseY: "<<approachPose.translation.y()<<std::endl;
+        //std::cout<<"approachPoseAngle: "<<Angle(approachPose.rotation).toDegrees()<<std::endl;
 
         theWalkToTargetPathPlannerSkill(Pose2f(1.f,1.f,1.f), approachPose);
       }
@@ -305,6 +305,7 @@ class ApproachAndCarryCard : public ApproachAndCarryCardBase
       }
       action
       {
+        theActivitySkill(BehaviorStatus::realigning_to_target);
 
         theKeyFrameArmsSkill(ArmKeyFrameRequest::back,false);
         theWalkToTargetSkill(Pose2f(1.f,1.f,1.f), Pose2f(theLibCheck.angleToTarget(chosenTarget.x(), chosenTarget.y())));
@@ -328,9 +329,12 @@ class ApproachAndCarryCard : public ApproachAndCarryCardBase
 
         if(!(ballAlignmentRange.isInside(calcAngleToTarget(chosenTarget).toDegrees()) || ballAlignmentRange.isInside(theLibCheck.angleToBall)))
         {
-          std::cout<<"REALIGN_TO_BALL"<<std::endl;
-          goto walkToBall;
+            //else use the PathPlanner
+            std::cout<<"walkToBall"<<std::endl;
+            goto walkToBall;
         }
+
+        Vector2f ballPositionGlobal = theLibCheck.rel2Glob(theBallModel.estimate.position.x(), theBallModel.estimate.position.y()).translation;
 
         if(state_time > maxKickWaitTime)
         {  
@@ -340,17 +344,9 @@ class ApproachAndCarryCard : public ApproachAndCarryCardBase
       }
 
       action
-      {
-        //double targetDistance =  (chosenTarget - theFieldBall.positionOnField).norm();
-        // Since we are kicking, we don't want the ball to arrive just on the opponent goal line. So let's add 2 meters.
+      {        
+        theActivitySkill(BehaviorStatus::kicking_to_dynamic_target);
 
-        //if (not kickRequested){
-            //kickRequested = true;
-            //std::string targetDistanceString = std::to_string(int(targetDistance/1000.f));
-            //SystemCall::say("IN WALK KICKING TO DISTANCE");
-            //SystemCall::say(targetDistanceString.c_str());
-            //SystemCall::say("METERS");
-        //}
         theKeyFrameArmsSkill(ArmKeyFrameRequest::back,false);
         theInWalkKickSkill(WalkKickVariant(WalkKicks::forward, Legs::right), Pose2f(Angle::fromDegrees(0.f), theBallModel.estimate.position.x(), theBallModel.estimate.position.y()));
         theLookAtPointSkill(Vector3f(theBallModel.estimate.position.x(), theBallModel.estimate.position.y(), 0.f));
@@ -403,7 +399,9 @@ class ApproachAndCarryCard : public ApproachAndCarryCardBase
       }
 
       action
-      {
+      {        
+        theActivitySkill(BehaviorStatus::searching_for_ball);
+
         theKeyFrameArmsSkill(ArmKeyFrameRequest::back,false);
         theLookForwardSkill();
         theWalkAtRelativeSpeedSkill(Pose2f(walkSpeed, 0.f, 0.f));
@@ -422,4 +420,4 @@ class ApproachAndCarryCard : public ApproachAndCarryCardBase
   }
 };
 
-MAKE_CARD(ApproachAndCarryCard);
+MAKE_CARD(C1ApproachAndCarryCard);

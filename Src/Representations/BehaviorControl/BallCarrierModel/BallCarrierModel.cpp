@@ -20,6 +20,7 @@
 #include "Tools/Module/Blackboard.h"
 #include "Tools/Debugging/DebugDrawings.h"
 #include "Tools/Debugging/DebugDrawings3D.h"
+#include "Representations/Modeling/BallModel.h"
 #include <iostream>
 
 void BallCarrierModel::draw() const
@@ -29,7 +30,8 @@ void BallCarrierModel::draw() const
   {
     const Role& theRole = static_cast<const Role&>(Blackboard::getInstance()["Role"]);
     const GameInfo& theGameInfo = static_cast<const GameInfo&>(Blackboard::getInstance()["GameInfo"]);
-    const FieldBall& theFieldBall = static_cast<const FieldBall&>(Blackboard::getInstance()["FieldBall"]);
+    const BallModel& theBallModel = static_cast<const BallModel&>(Blackboard::getInstance()["BallModel"]);
+    const LibCheck& theLibCheck = static_cast<const LibCheck&>(Blackboard::getInstance()["LibCheck"]);
     #ifdef TARGET_SIM
     DEBUG_DRAWING3D("representation:BallCarrierModel", "field")
     {
@@ -81,8 +83,9 @@ void BallCarrierModel::draw() const
         else
         //If there is no path, use the fallback target
         {
+          Vector2f globalBallModel = theLibCheck.rel2Glob(theBallModel.estimate.position.x(), theBallModel.estimate.position.y()).translation;
           SPHERE3D("representation:BallCarrierModel", 
-            theFieldBall.positionOnField.x(), theFieldBall.positionOnField.y(), 10, 
+            globalBallModel.x(), globalBallModel.y(), 10, 
             30, ColorRGBA(255,0,0,100));
 
           SPHERE3D("representation:BallCarrierModel", 
@@ -90,7 +93,7 @@ void BallCarrierModel::draw() const
             30, ColorRGBA(255,0,0,100));
 
           LINE3D("representation:BallCarrierModel", 
-            theFieldBall.positionOnField.x(), theFieldBall.positionOnField.y(), 10, 
+            globalBallModel.x(), globalBallModel.y(), 10, 
             theBallCarrierModel.dynamicTarget.translation.x(), theBallCarrierModel.dynamicTarget.translation.y(), 10, 
             5, ColorRGBA(200,200,0,255));
         }

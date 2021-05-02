@@ -271,7 +271,9 @@ void LibPathPlannerProvider::createBarriers(std::vector<Barrier>& barriers, cons
 
     if(wrongBallSideCostFactor > 0.f)
     {
-        const Vector2f& ballPosition = theFieldBall.recentBallPositionOnField();
+        //const Vector2f& ballPosition = theFieldBall.recentBallPositionOnField();
+        const Vector2f& ballPosition = theLibCheck.rel2Glob(theBallModel.estimate.position.x(), theBallModel.estimate.position.y()).translation;
+        
         Vector2f end = ballPosition + (ballPosition - Vector2f(theFieldDimensions.xPosOwnGoal, 0)).normalized(wrongBallSideRadius);
         barriers.emplace_back(ballPosition.x(), ballPosition.y(),end.x(), end.y(), ballRadius * pi2 * wrongBallSideCostFactor);
     }

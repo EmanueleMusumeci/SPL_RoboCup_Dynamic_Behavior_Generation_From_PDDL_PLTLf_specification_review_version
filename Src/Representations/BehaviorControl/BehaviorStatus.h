@@ -30,12 +30,30 @@ STREAMABLE(BehaviorStatus, COMMA public BHumanMessageParticle<idBehaviorStatus>
     ready,
 
     codeReleaseKickAtGoal,
-    approachAndKick,
     searcher1,
     searcher2,
     searcher3,
     searcher4,
+
+    //OLD
     approachAndCarry,
+    approachAndKick,
+    //
+
+    approach_and_kick_start,
+    choosing_target,
+    aligning_to_ball,
+    kicking_to_goal,
+
+    approach_and_carry_start,
+    realigning_to_ball,
+    realigning_to_target,
+    kicking_to_dynamic_target,
+    searching_for_ball,
+
+    reaching_ball,
+    debug_standing,
+
     defender,
     defenderCore,
     defenderCoreAU,

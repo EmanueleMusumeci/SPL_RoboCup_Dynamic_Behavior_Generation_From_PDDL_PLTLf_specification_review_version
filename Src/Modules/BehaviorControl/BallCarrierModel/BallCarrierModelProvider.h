@@ -16,7 +16,7 @@
 #include "Representations/BehaviorControl/BallCarrierModel/BallCarrierModel.h"
 #include "Representations/BehaviorControl/Role.h"
 #include "Representations/Communication/GameInfo.h"
-#include "Representations/BehaviorControl/FieldBall.h"
+#include "Representations/Modeling/BallModel.h"
 #include "Representations/Configuration/FieldDimensions.h"
 #include "Representations/BehaviorControl/Libraries/LibCheck.h"
 #include "Representations/BehaviorControl/Libraries/LibPathPlanner.h"
@@ -27,14 +27,14 @@ MODULE(BallCarrierModelProvider,
     REQUIRES(LibCheck),
     REQUIRES(LibPathPlanner),
     REQUIRES(FieldDimensions),
-    REQUIRES(FieldBall),
+    REQUIRES(BallModel),
     REQUIRES(Role),
     REQUIRES(GameInfo),
     PROVIDES(BallCarrierModel),
     LOADS_PARAMETERS(
     {,
       (bool) GRAPHICAL_DEBUG,                                      /** Shows a graphical debug render in SimRobot */
-      (float) OBSTACLE_AVOIDANCE_ARC_ANGLE_STEP_FACTOR,                   /** Fraction of 2*pi used as angle increments to compute segments of arc for going around obstacles */
+      (float) OBSTACLE_AVOIDANCE_ARC_ANGLE_STEP_FACTOR,            /** Fraction of 2*pi used as angle increments to compute segments of arc for going around obstacles */
     }),
 });
 

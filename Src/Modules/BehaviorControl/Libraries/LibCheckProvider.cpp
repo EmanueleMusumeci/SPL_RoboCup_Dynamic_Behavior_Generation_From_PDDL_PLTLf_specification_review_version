@@ -14,6 +14,8 @@
 #include <algorithm>
 #define SQ(x) x*x
 
+#define challenge1
+
 MAKE_MODULE(LibCheckProvider, behaviorControl);
 
 int sign(float n){
@@ -80,6 +82,10 @@ void LibCheckProvider::update(LibCheck& libCheck)
   };
 
   libCheck.myReadyPosition = [this]() -> Pose2f{
+
+    #ifdef challenge1
+      return Pose2f(0.f, -1000.f, 0.f);
+    #endif
 
     Pose2f strikerPose = Pose2f(0.f, -1000.f, 0.f);
     if(theGameInfo.kickingTeam == theOwnTeamInfo.teamNumber){

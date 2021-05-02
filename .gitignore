@@ -85,6 +85,7 @@ Build
 Config/Logs
 Config/Scenes/Includes/connect.con
 Config/Scenes/Includes/replay.con
+Config/Scenarios/Default/logger.cfg
 Make/Hooks/gitpath
 Make/Linux/compile_commands.json
 Make/Linux/Nao-objects.tmp
