@@ -26,5 +26,12 @@ mr GroundTruthWorldState LogDataProvider Cognition
 mr GroundTruthRobotPose OracledWorldModelProvider Cognition
 mr GroundTruthBallModel OracledWorldModelProvider Cognition
 
+#Goal Targeting System
+mr OpponentGoalModel OpponentGoalModelProvider Cognition
+#Striker Potential Field module
+mr BallCarrierPFModel BallCarrierPFModelProvider Cognition
+#Striker Ball Carrier module
+mr BallCarrierModel BallCarrierModelProvider Cognition
+
 call Includes/DebugResponses
 call Includes/GameStates
