@@ -143,7 +143,7 @@ class C1ApproachAndCarryWithRealignmentCard : public C1ApproachAndCarryWithReali
     {
       transition
       {
-        std::cout<<"APPROACH_AND_CARRY: start"<<std::endl;
+        std::cout<<"APPROACH_AND_CARRY_REALIGNMENT: start"<<std::endl;
         if(state_time > initialWaitTime)
           goto choose_target;
       }
@@ -161,7 +161,6 @@ class C1ApproachAndCarryWithRealignmentCard : public C1ApproachAndCarryWithReali
     {
       transition
       {
-
         std::cout<<"turnToBall"<<std::endl;
         if(!theFieldBall.ballWasSeen(ballNotSeenTimeout))
           goto searchForBall;
@@ -194,18 +193,32 @@ class C1ApproachAndCarryWithRealignmentCard : public C1ApproachAndCarryWithReali
       transition
       {
         std::cout<<"choose_target"<<std::endl;
+
         if(targetChosen)
         {
           targetChosen = false;
-          std::cout<<"Target chosen"<<std::endl;
-          if(DEBUG_MODE)
-          {
-            goto debug_state;
-          }
-          else
-          {
-            goto walkToBall;  
-          }
+          Vector2f ballPositionGlobal = theLibCheck.rel2Glob(theBallModel.estimate.position.x(), theBallModel.estimate.position.y()).translation;
+          // if the ball is too far away OR the robot is nearer to the goal than the ball
+          if(theLibCheck.distance(theRobotPose.translation, ballPositionGlobal) > approachXRange.max ||
+            theLibCheck.distance(ballPositionGlobal, chosenTarget) > theLibCheck.distance(theRobotPose.translation, chosenTarget))
+            {
+              //then use the PathPlanner to reach again the kicking position 
+              goto walkToBall;
+            }
+            else
+            {
+              //else just realign the robot to the ball (in relative coordinates)
+              goto realignToBall;
+            }
+
+          // if(DEBUG_MODE)
+          // {
+          //   goto debug_state;
+          // }
+          // else
+          // {
+          //   goto walkToBall;  
+          // }
         }
       }
       action
@@ -240,20 +253,17 @@ class C1ApproachAndCarryWithRealignmentCard : public C1ApproachAndCarryWithReali
     {
       transition
       {
-        std::cout<<"walkToBallFar"<<std::endl;
+        std::cout<<"walk"<<std::endl;
+
         if(!theFieldBall.ballWasSeen(ballNotSeenTimeout))
           goto searchForBall;
 
         float distance = theLibCheck.distance(theBallModel.estimate.position, theRobotPose);
-          std::cout<<"theLibCheck.distance(theBallModel.estimate.position, theRobotPose): "<<theLibCheck.distance(theBallModel.estimate.position, theRobotPose)<<std::endl;
-        if(approachXRange.isInside(theLibCheck.distance(theLibCheck.rel2Glob(theBallModel.estimate.position.x(), theBallModel.estimate.position.y()), theRobotPose)))
+        //if the ball distance is inside the approach range AND the robot is aligned with the target
+        if(approachXRange.isInside(theLibCheck.distance(theLibCheck.rel2Glob(theBallModel.estimate.position.x(), theBallModel.estimate.position.y()), theRobotPose))
+        && smallBallAlignmentRange.isInside(calcAngleToTarget(chosenTarget).toDegrees()))
         {
-          std::cout<<"approachXRange.isInside(theLibCheck.distance(theBallModel.estimate.position, theRobotPose))"<<std::endl;
-          if(smallBallAlignmentRange.isInside(calcAngleToTarget(chosenTarget).toDegrees()))
-          {
-            std::cout<<"In kicking pose"<<std::endl;
-            goto kick;
-          }
+          goto kick;
         }
         
         if(state_time > changeTargetTimeout)
@@ -297,7 +307,7 @@ class C1ApproachAndCarryWithRealignmentCard : public C1ApproachAndCarryWithReali
         std::cout<<"turnToTarget"<<std::endl;
         if(ballAlignmentRange.isInside(calcAngleToTarget(chosenTarget).toDegrees()))
         {
-          std::cout<<"ballAlignmentRange.isInside(calcAngleToTarget(chosenTarget).toDegrees())"<<std::endl;
+          //std::cout<<"ballAlignmentRange.isInside(calcAngleToTarget(chosenTarget).toDegrees())"<<std::endl;
           goto walkToBall;
         }
       }
@@ -315,27 +325,28 @@ class C1ApproachAndCarryWithRealignmentCard : public C1ApproachAndCarryWithReali
     {
         transition
         {   
-            Vector2f ballPositionGlobal = theLibCheck.rel2Glob(theBallModel.estimate.position.x(), theBallModel.estimate.position.y()).translation;
-            //IF the ball is too far away OR the robot is nearer to the goal than the ball
-            if(theLibCheck.distance(theRobotPose.translation, ballPositionGlobal) > approachXRange.max
-            || theLibCheck.distance(ballPositionGlobal, chosenTarget) < theLibCheck.distance(theRobotPose.translation, chosenTarget))
-            {
-                //THEN use the PathPlanner to reach again the kicking position 
-                std::cout<<"walkToBall"<<std::endl;
-                goto walkToBall;
-            }
+          std::cout<<"realign"<<std::endl;
+          //if the ball distance is inside the approach range AND the robot is aligned with the target
+          if(approachXRange.isInside(theLibCheck.distance(theLibCheck.rel2Glob(theBallModel.estimate.position.x(), theBallModel.estimate.position.y()), theRobotPose))
+          && smallBallAlignmentRange.isInside(calcAngleToTarget(chosenTarget).toDegrees()))
+          {
+            goto kick;
+          }
+          
+          if(state_time > changeTargetTimeout)
+          {
+            goto choose_target;
+          }
 
-            //IF the ball distance is inside the approach range
-            if(approachXRange.isInside(theLibCheck.distance(ballPositionGlobal, theRobotPose)))
-            {
-                //AND the robot is aligned with the target
-                std::cout<<"approachXRange.isInside(theLibCheck.distance(theBallModel.estimate.position, theRobotPose))"<<std::endl;
-                if(smallBallAlignmentRange.isInside(calcAngleToTarget(chosenTarget).toDegrees()))
-                {
-                    std::cout<<"In kicking pose"<<std::endl;
-                    goto kick;
-                }
-            }
+          // Vector2f ballPositionGlobal = theLibCheck.rel2Glob(theBallModel.estimate.position.x(), theBallModel.estimate.position.y()).translation;
+          //   //IF the ball is too far away OR the robot is nearer to the goal than the ball
+          //   if(theLibCheck.distance(theRobotPose.translation, ballPositionGlobal) > approachXRange.max
+          //   || theLibCheck.distance(ballPositionGlobal, chosenTarget) > theLibCheck.distance(theRobotPose.translation, chosenTarget))
+          //   {
+          //       //THEN use the PathPlanner to reach again the kicking position 
+          //       goto walkToBall;
+          //   }
+
         }
         action
         {
@@ -343,7 +354,6 @@ class C1ApproachAndCarryWithRealignmentCard : public C1ApproachAndCarryWithReali
         
             //Bring the robot back to the kicking pose in relative coordinates
 
-            std::cout<<"REALIGN_TO_BALL"<<std::endl;
             theKeyFrameArmsSkill(ArmKeyFrameRequest::back,false);
             Vector2f ballPositionRelative = theBallModel.estimate.position;
             Vector2f ballPositionGlobal = theLibCheck.rel2Glob(theBallModel.estimate.position.x(), theBallModel.estimate.position.y()).translation;
@@ -367,7 +377,6 @@ class C1ApproachAndCarryWithRealignmentCard : public C1ApproachAndCarryWithReali
             theWalkToTargetSkill(Pose2f(1.f,1.f,1.f), Pose2f(approachPoseRelative.rotation, approachPoseRelative.translation.x(), approachPoseRelative.translation.y()));
         }
     }
-    //
 
     state(kick)
     {
@@ -375,7 +384,6 @@ class C1ApproachAndCarryWithRealignmentCard : public C1ApproachAndCarryWithReali
       transition
       {
         if(!theFieldBall.ballWasSeen(ballNotSeenTimeout)){
-          std::cout<<"!theFieldBall.ballWasSeen(ballNotSeenTimeout)"<<std::endl;
           goto searchForBall;
         }
 
@@ -384,7 +392,8 @@ class C1ApproachAndCarryWithRealignmentCard : public C1ApproachAndCarryWithReali
           goto choose_target;
         }
 
-        /*if(!(ballAlignmentRange.isInside(calcAngleToTarget(chosenTarget).toDegrees()) || ballAlignmentRange.isInside(theLibCheck.angleToBall)))
+        /*if(!(ballAlignmentRange.isInside(calcAngleToTarget(chosenTarget).toDegrees())
+        || ballAlignmentRange.isInside(theLibCheck.angleToBall)))
         {
             //else use the PathPlanner
             std::cout<<"walkToBall"<<std::endl;
@@ -393,31 +402,27 @@ class C1ApproachAndCarryWithRealignmentCard : public C1ApproachAndCarryWithReali
 
         Vector2f ballPositionGlobal = theLibCheck.rel2Glob(theBallModel.estimate.position.x(), theBallModel.estimate.position.y()).translation;
         //WATCH OUT EXPERIMENTAL
-        
-        
-        //IF the ball is not in the Y approach range (RELATIVE COORDINATES)
-        if(!approachYRange.isInside(theBallModel.estimate.position.y())
-           || !(ballAlignmentRange.isInside(calcAngleToTarget(chosenTarget).toDegrees()) || ballAlignmentRange.isInside(theLibCheck.angleToBall)))
-        {
-            std::cout<<"theBallModel.estimate.position.y(): "<<theBallModel.estimate.position.y()<<std::endl;
-            //if(!(ballAlignmentRange.isInside(calcAngleToTarget(chosenTarget).toDegrees()) || ballAlignmentRange.isInside(theLibCheck.angleToBall)))
-            //{
 
-            //IF the ball is nearer to the goal than the robot
-            if(theLibCheck.distance(ballPositionGlobal, chosenTarget) < theLibCheck.distance(theRobotPose.translation, chosenTarget))
-            {
-                //THEN just realign the robot to the ball (in relative coordinates)
-                std::cout<<"realignToBall"<<std::endl;
-                goto realignToBall;
-            }
-            else
-            {
-                //ELSE use the PathPlanner
-                std::cout<<"walkToBall"<<std::endl;
+        if(!smallBallAlignmentRange.isInside(calcAngleToTarget(chosenTarget).toDegrees())
+          || !approachXRange.isInside(theBallModel.estimate.position.x())
+          || !approachYRange.isInside(theBallModel.estimate.position.y()))
+        {
+            Vector2f ballPositionGlobal = theLibCheck.rel2Glob(theBallModel.estimate.position.x(), theBallModel.estimate.position.y()).translation;
+            // if the ball is too far away
+            //TODO to choose -> OR the robot is nearer to the goal than the ball (?)
+            if(theLibCheck.distance(theRobotPose.translation, ballPositionGlobal) > approachXRange.max 
+            //||theLibCheck.distance(ballPositionGlobal, chosenTarget) > theLibCheck.distance(theRobotPose.translation, chosenTarget)
+            )
+              {
+                //then use the PathPlanner to reach again the kicking position 
                 goto walkToBall;
-            }            
+              }
+              else
+              {
+                //else just realign the robot to the ball (in relative coordinates)
+                goto realignToBall;
+              }
         }
-        //
 
         if(state_time > maxKickWaitTime)
         {  
@@ -477,6 +482,7 @@ class C1ApproachAndCarryWithRealignmentCard : public C1ApproachAndCarryWithReali
     {
       transition
       {
+        std::cout<< "search" <<std::endl;
         if(theFieldBall.ballWasSeen())
           goto turnToBall;
       }
@@ -488,6 +494,7 @@ class C1ApproachAndCarryWithRealignmentCard : public C1ApproachAndCarryWithReali
 
         theKeyFrameArmsSkill(ArmKeyFrameRequest::back,false);
         theLookForwardSkill();
+        //TODO choose a direction and do the complete turn to find the ball
         theWalkAtRelativeSpeedSkill(Pose2f(walkSpeed, 0.f, 0.f));
       }
     }
