@@ -64,7 +64,9 @@ MODULE(WalkKickEngine,
   PROVIDES(WalkKickGenerator),
   DEFINES_PARAMETERS(
   {,
-    (bool)(true) playKickSounds, /**< Say which kick is currently executed. */
+
+//ENABLE AGAIN TO DEBUG INWALKKICKS
+    (bool)(false) playKickSounds, /**< Say which kick is currently executed. */
   }),
 });
 

@@ -146,7 +146,7 @@ class C1ApproachAndKickCard : public C1ApproachAndKickCardBase
     {
       transition
       {
-        std::cout<<"C1_APPROACH_AND_KICK: start"<<std::endl;
+        //std::cout<<"C1_APPROACH_AND_KICK: start"<<std::endl;
         if(state_time > initialWaitTime)
         {
             goto choose_target;
@@ -166,11 +166,11 @@ class C1ApproachAndKickCard : public C1ApproachAndKickCardBase
     {
       transition
       {
-        std::cout<<"choose_target"<<std::endl;
+        //std::cout<<"choose_target"<<std::endl;
         if(targetChosen)
         {
           targetChosen = false;
-          std::cout<<"Target chosen"<<std::endl;
+          //std::cout<<"Target chosen"<<std::endl;
           if(DEBUG_MODE)
           {
             goto debug_state;
@@ -185,7 +185,7 @@ class C1ApproachAndKickCard : public C1ApproachAndKickCardBase
       {
         theActivitySkill(BehaviorStatus::choosing_target);
     
-        std::cout<<"choose_target action"<<std::endl;
+        //std::cout<<"choose_target action"<<std::endl;
         goalTarget = theLibCheck.goalTarget(false);
         chosenTarget = goalTarget;
         previousBallPosition = theLibCheck.rel2Glob(theBallModel.estimate.position.x(), theBallModel.estimate.position.y()).translation;
@@ -283,7 +283,7 @@ class C1ApproachAndKickCard : public C1ApproachAndKickCardBase
         Pose2f offset = theLibCheck.C2EvaluateApproach(targetPose);
         Pose2f target = Pose2f(angle, ballPose.translation + offset.translation);
 
-        //std::cout << target.translation.x() << '\t' <<  target.translation.y() << '\n';
+        ////std::cout << target.translation.x() << '\t' <<  target.translation.y() << '\n';
         theLookAtPointSkill(Vector3f(theBallModel.estimate.position.x(), theBallModel.estimate.position.y(), 0.f));
         theWalkToTargetPathPlannerSkill(Pose2f(0.8f,0.8f,0.8f), target);
       }
@@ -302,7 +302,7 @@ class C1ApproachAndKickCard : public C1ApproachAndKickCardBase
         if (approachXRange.isInside((globalBallModel.x() - theRobotPose.translation.x())*1.3)){
           if (approachYRange.isInside((globalBallModel.y() - theRobotPose.translation.y())*1.3)) {
             goto approach;
-            //std::cout << "ghello\n";
+            ////std::cout << "ghello\n";
           }
         }
       }
@@ -331,13 +331,13 @@ class C1ApproachAndKickCard : public C1ApproachAndKickCardBase
         point = theLibCheck.rel2Glob(point.translation.x()-150.f, point.translation.y()+85.f);
         const Angle angleToTarget = calcAngleToTarget(point);
         float angle_threshold = .1f;
-        //std::cout << "current Y:\t" << theFieldBall.positionRelative.y() << '\n';
+        ////std::cout << "current Y:\t" << theFieldBall.positionRelative.y() << '\n';
         if (RangeX.isInside((theBallModel.estimate.position.x()))) {
-          //std::cout << "y OK\t current X:\t" << theFieldBall.positionRelative.x() << '\n';
+          ////std::cout << "y OK\t current X:\t" << theFieldBall.positionRelative.x() << '\n';
           if (RangeY.isInside((theBallModel.estimate.position.y()))) {
-            //std::cout << "x OK\t current angle: \t" << angleToTarget << '\n';
+            ////std::cout << "x OK\t current angle: \t" << angleToTarget << '\n';
             if (std::abs(angleToTarget) < angle_threshold) {
-              std::cout << "Kicking\n";
+              //std::cout << "Kicking\n";
               //goto wait;
               goto kick;
             }
@@ -389,7 +389,7 @@ class C1ApproachAndKickCard : public C1ApproachAndKickCardBase
             alreadyQueued = true;
             confirmedDistance = 9000.f;
 
-            //std::cout << theTeamData.teammates.at(0).theRobotPose.translation.x() << '\t' << theTeamData.teammates.at(0).theRobotPose.translation.y() << '\n';
+            ////std::cout << theTeamData.teammates.at(0).theRobotPose.translation.x() << '\t' << theTeamData.teammates.at(0).theRobotPose.translation.y() << '\n';
             std::string distanceTargetString = std::to_string(int(confirmedDistance/1000.f));
             //SystemCall::say("PASSING TO DISTANCE");
             //SystemCall::say(distanceTargetString.c_str());

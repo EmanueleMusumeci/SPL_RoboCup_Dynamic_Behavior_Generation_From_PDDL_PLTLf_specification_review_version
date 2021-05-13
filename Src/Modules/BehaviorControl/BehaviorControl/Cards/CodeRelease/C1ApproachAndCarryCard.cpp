@@ -4,7 +4,6 @@
  * This file implements a behavior to carry the ball forward in the field, avoiding obstacles.
  *
  * @author Emanuele Musumeci (based on Emanuele Antonioni's basic approacher behavior structure)
- * SORRY FOR THE S****Y CODE, DIDN'T HAVE MUCH TIME, WILL FIX IT
  */
 
 #include "Representations/BehaviorControl/BehaviorStatus.h"
@@ -113,7 +112,7 @@ class C1ApproachAndCarryCard : public C1ApproachAndCarryCardBase
 
   bool preconditions() const override
   {
-    //std::cout << "Carrying" << '\n';
+    ////std::cout << "Carrying" << '\n';
     if(theLibCheck.rel2Glob(theBallModel.estimate.position.x(), theBallModel.estimate.position.y()).translation.x() > theFieldDimensions.xPosOpponentGroundline - 1300.0f)
     {
       return false;
@@ -143,7 +142,7 @@ class C1ApproachAndCarryCard : public C1ApproachAndCarryCardBase
     {
       transition
       {
-        std::cout<<"APPROACH_AND_CARRY: start"<<std::endl;
+        //std::cout<<"APPROACH_AND_CARRY: start"<<std::endl;
         if(state_time > initialWaitTime)
           goto choose_target;
       }
@@ -163,7 +162,7 @@ class C1ApproachAndCarryCard : public C1ApproachAndCarryCardBase
       transition
       {
 
-        std::cout<<"turnToBall"<<std::endl;
+        //std::cout<<"turnToBall"<<std::endl;
         if(!theFieldBall.ballWasSeen(ballNotSeenTimeout))
           goto searchForBall;
         if(std::abs(theBallModel.estimate.position.angle()) < ballAlignThreshold)
@@ -194,11 +193,11 @@ class C1ApproachAndCarryCard : public C1ApproachAndCarryCardBase
     {
       transition
       {
-        std::cout<<"choose_target"<<std::endl;
+        //std::cout<<"choose_target"<<std::endl;
         if(targetChosen)
         {
           targetChosen = false;
-          std::cout<<"Target chosen"<<std::endl;
+          //std::cout<<"Target chosen"<<std::endl;
           if(DEBUG_MODE)
           {
             goto debug_state;
@@ -242,18 +241,18 @@ class C1ApproachAndCarryCard : public C1ApproachAndCarryCardBase
     {
       transition
       {
-        std::cout<<"walkToBallFar"<<std::endl;
+        //std::cout<<"walkToBallFar"<<std::endl;
         if(!theFieldBall.ballWasSeen(ballNotSeenTimeout))
           goto searchForBall;
 
         float distance = theLibCheck.distance(theBallModel.estimate.position, theRobotPose);
-          std::cout<<"theLibCheck.distance(theBallModel.estimate.position, theRobotPose): "<<theLibCheck.distance(theBallModel.estimate.position, theRobotPose)<<std::endl;
+          //std::cout<<"theLibCheck.distance(theBallModel.estimate.position, theRobotPose): "<<theLibCheck.distance(theBallModel.estimate.position, theRobotPose)<<std::endl;
         if(approachXRange.isInside(theLibCheck.distance(theLibCheck.rel2Glob(theBallModel.estimate.position.x(), theBallModel.estimate.position.y()), theRobotPose)))
         {
-          std::cout<<"approachXRange.isInside(theLibCheck.distance(theBallModel.estimate.position, theRobotPose))"<<std::endl;
+          //std::cout<<"approachXRange.isInside(theLibCheck.distance(theBallModel.estimate.position, theRobotPose))"<<std::endl;
           if(smallBallAlignmentRange.isInside(calcAngleToTarget(chosenTarget).toDegrees()))
           {
-            std::cout<<"In kicking pose"<<std::endl;
+            //std::cout<<"In kicking pose"<<std::endl;
             goto kick;
           }
         }
@@ -274,19 +273,19 @@ class C1ApproachAndCarryCard : public C1ApproachAndCarryCardBase
         theLookAtPointSkill(Vector3f(ballPositionRelative.x(), ballPositionRelative.y(), 0.f));
         
         float ballToTargetAngle = theLibCheck.angleBetweenPoints(ballPositionGlobal, chosenTarget);
-        //std::cout<<"ballToTargetAngle: "<<ballToTargetAngle<<std::endl;
+        ////std::cout<<"ballToTargetAngle: "<<ballToTargetAngle<<std::endl;
         
         float dynamicOffsetX = ballOffsetX * cos(pi + ballToTargetAngle);
         float dynamicOffsetY = ballOffsetX * sin(pi + ballToTargetAngle);
-        //std::cout<<"ballOffsetX: "<<ballOffsetX<<std::endl;
-        //std::cout<<"dynamicOffsetX: "<<dynamicOffsetX<<std::endl;
-        //std::cout<<"dynamicOffsetY: "<<dynamicOffsetY<<std::endl; 
+        ////std::cout<<"ballOffsetX: "<<ballOffsetX<<std::endl;
+        ////std::cout<<"dynamicOffsetX: "<<dynamicOffsetX<<std::endl;
+        ////std::cout<<"dynamicOffsetY: "<<dynamicOffsetY<<std::endl; 
 
         Pose2f approachPose = Pose2f(-ballToTargetAngle, ballPositionGlobal.x() + dynamicOffsetX, ballPositionGlobal.y() - dynamicOffsetY);
         //Pose2f approachPoseRelative = theLibCheck.glob2RelWithAngle(theLibCheck.angleToTarget(chosenTarget.x(), chosenTarget.y()), ballPositionGlobal.x() - dynamicOffsetX, ballPositionGlobal.y() - dynamicOffsetY);
-        //std::cout<<"approachPoseX: "<<approachPose.translation.x()<<std::endl;
-        //std::cout<<"approachPoseY: "<<approachPose.translation.y()<<std::endl;
-        //std::cout<<"approachPoseAngle: "<<Angle(approachPose.rotation).toDegrees()<<std::endl;
+        ////std::cout<<"approachPoseX: "<<approachPose.translation.x()<<std::endl;
+        ////std::cout<<"approachPoseY: "<<approachPose.translation.y()<<std::endl;
+        ////std::cout<<"approachPoseAngle: "<<Angle(approachPose.rotation).toDegrees()<<std::endl;
 
         theWalkToTargetPathPlannerSkill(Pose2f(1.f,1.f,1.f), approachPose);
       }
@@ -296,10 +295,10 @@ class C1ApproachAndCarryCard : public C1ApproachAndCarryCardBase
     {
       transition
       {
-        std::cout<<"turnToTarget"<<std::endl;
+        //std::cout<<"turnToTarget"<<std::endl;
         if(ballAlignmentRange.isInside(calcAngleToTarget(chosenTarget).toDegrees()))
         {
-          std::cout<<"ballAlignmentRange.isInside(calcAngleToTarget(chosenTarget).toDegrees())"<<std::endl;
+          //std::cout<<"ballAlignmentRange.isInside(calcAngleToTarget(chosenTarget).toDegrees())"<<std::endl;
           goto walkToBall;
         }
       }
@@ -314,11 +313,11 @@ class C1ApproachAndCarryCard : public C1ApproachAndCarryCardBase
 
     state(kick)
     {
-      std::cout<<"kick"<<std::endl;
+      //std::cout<<"kick"<<std::endl;
       transition
       {
         if(!theFieldBall.ballWasSeen(ballNotSeenTimeout)){
-          std::cout<<"!theFieldBall.ballWasSeen(ballNotSeenTimeout)"<<std::endl;
+          //std::cout<<"!theFieldBall.ballWasSeen(ballNotSeenTimeout)"<<std::endl;
           goto searchForBall;
         }
 
@@ -330,7 +329,7 @@ class C1ApproachAndCarryCard : public C1ApproachAndCarryCardBase
         if(!(ballAlignmentRange.isInside(calcAngleToTarget(chosenTarget).toDegrees()) || ballAlignmentRange.isInside(theLibCheck.angleToBall)))
         {
             //else use the PathPlanner
-            std::cout<<"walkToBall"<<std::endl;
+            //std::cout<<"walkToBall"<<std::endl;
             goto walkToBall;
         }
 
@@ -338,7 +337,7 @@ class C1ApproachAndCarryCard : public C1ApproachAndCarryCardBase
 
         if(state_time > maxKickWaitTime)
         {  
-          std::cout<<"KICK TIMEOUT"<<std::endl;
+          //std::cout<<"KICK TIMEOUT"<<std::endl;
           goto start;
         }
       }
@@ -356,7 +355,7 @@ class C1ApproachAndCarryCard : public C1ApproachAndCarryCardBase
         {
           if(theFieldBall.positionOnField.x()>nearGoalThreshold) //If the ball is right in front of the goal use a strong kick
           {
-            std::cout<<"A"<<std::endl;
+            //std::cout<<"A"<<std::endl;
             theKickSkill(false, distanceConfirmed, false);
           }
           else
@@ -365,13 +364,13 @@ class C1ApproachAndCarryCard : public C1ApproachAndCarryCardBase
                                                                                           //(meaning the path planner considered this path free from obstacles)
                                                                                           //use a strong kick
             {
-              std::cout<<"B"<<std::endl;
+              //std::cout<<"B"<<std::endl;
               theKickSkill(false, distanceConfirmed, false);
             }
             else //if the path is a fallback one OR the path goes around obstacles (therefore the target is not on the goal line but just a step along the path)
                  //use the InWalkKick
             {
-              std::cout<<"C"<<std::endl;
+              //std::cout<<"C"<<std::endl;
               //theKickSkill(false, distanceConfirmed, false);
               theInWalkKickSkill(WalkKickVariant(WalkKicks::forward, Legs::right), Pose2f(Angle::fromDegrees(0.f), theBallModel.estimate.position.x() - ballOffsetX, theBallModel.estimate.position.y() - ballOffsetY));
             }
@@ -380,7 +379,7 @@ class C1ApproachAndCarryCard : public C1ApproachAndCarryCardBase
         }
         else
         {
-          std::cout<<"D"<<std::endl;
+          //std::cout<<"D"<<std::endl;
           //theKickSkill(false, distanceConfirmed, false);
           theInWalkKickSkill(WalkKickVariant(WalkKicks::forward, Legs::right), Pose2f(Angle::fromDegrees(0.f), theBallModel.estimate.position.x() - ballOffsetX, theBallModel.estimate.position.y() - ballOffsetY));
         }*/
