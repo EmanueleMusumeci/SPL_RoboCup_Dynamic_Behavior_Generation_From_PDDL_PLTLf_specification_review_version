@@ -193,6 +193,11 @@ class C1ApproachAndCarryWithRealignmentCard : public C1ApproachAndCarryWithReali
       {
         //std::cout<<"choose_target"<<std::endl;
 
+        if(DEBUG_MODE)
+        {
+          goto debug_state;
+        }
+
         if(targetChosen)
         {
           targetChosen = false;
@@ -210,14 +215,6 @@ class C1ApproachAndCarryWithRealignmentCard : public C1ApproachAndCarryWithReali
               goto realignToBall;
             }
 
-          // if(DEBUG_MODE)
-          // {
-          //   goto debug_state;
-          // }
-          // else
-          // {
-          //   goto walkToBall;  
-          // }
         }
       }
       action

@@ -40,18 +40,22 @@ MODULE(DeviceCommunicationController,
  REQUIRES(GameInfo),
  USES(ActivationGraph),
  REQUIRES(OwnTeamInfo),
- REQUIRES(FieldBall),
  REQUIRES(OpponentTeamInfo),
  REQUIRES(FieldDimensions),
  PROVIDES(DeviceCommunicationControl),
  
  LOADS_PARAMETERS(
     {,
+      (bool) PRINT_DEBUG,                           /** Used to switch debug prints */ 
+      (bool) PERFORM_KEEPALIVE_CHECK,               /** Perform a keepalive check (send a message to signal being active and wait for a response) every KEEPALIVE_CHECK_FREQUENCY */ 
       (int) KEEPALIVE_CHECK_FREQUENCY,              /** Number of cycles between two different keepalive requests to client device */
 
       (int) ROBOT_POSE_UPDATE_FREQUENCY,            /** Number of cycles between two different robot pose updates to client device */
       (int) BALL_POSITION_UPDATE_FREQUENCY,         /** Number of cycles between two different ball info updates to client device */
       (int) OBSTACLES_UPDATE_FREQUENCY,             /** Number of cycles between two different obstacles info updates to client device */
+
+      (bool) PREFIX_TIMESTAMP,                      /** Add the timestamp at the beginning of the message */
+      (bool) PREFIX_ROBOT_NUMBER,                   /** Add the robot number to the message */
     }),
 });
 
@@ -83,7 +87,7 @@ public:
     std::string ball_position_to_sendable_string();
     std::string obstacles_to_sendable_string();
 
-    void send_data_string(std::string str);
+    void send_data_string(std::string str, bool prefix_timestamp, bool prefix_robot_number);
     bool read_data_string_from_socket(UdpComm sock, std::string& recv_str);
 
     DeviceCommunicationController();

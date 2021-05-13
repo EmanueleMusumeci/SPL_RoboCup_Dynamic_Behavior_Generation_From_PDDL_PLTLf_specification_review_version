@@ -5,148 +5,119 @@ import time
 from time import sleep
 import json
 
-class WriteNAOSocket(asyncio.DatagramProtocol):
-    def __init__(self, robot_number, ip, port):
-        super().__init__()
 
-        self.robot_number = robot_number
-        self.ip = ip
-        self.port = port
-
-        self.alive = False
-        self.last_message_timestamp = time.time()
-        self.transport = None
-
-    def connection_made(self, transport):
-        self.transport = transport
-
-    def error_received(self, exc):
-        print('Error received:', exc)
-
-class ReadNAOSocket(asyncio.DatagramProtocol):
-    def __init__(self, robot_number, ip, port, writeNAOSocket, GUIWebSocket):
-        super().__init__()
-
-        self.robot_number = robot_number
-        self.ip = ip
-        self.port = port
-
-        self.alive = False
-        self.last_message_timestamp = time.time()
-        self.transport = None
-
-        self.writeNAOSocket = writeNAOSocket
-        self.GUIWebSocket = GUIWebSocket
-
-    def connection_made(self, transport):
-        self.transport = transport
-
-    def datagram_received(self, data, addr):
-        # Here is where you would push message to whatever methods/classes you want.
-        print(f"Received Syslog message: {data}")
-
-    def error_received(self, exc):
-        print('Error received:', exc)
-
-
-def setup_read_sockets(ROBOT_LIST, UDP_IP, UDP_PORTS_READ, READ_TIMEOUT):
-    #Setup read sockets
-    read_sockets = {}
-    for i, robot_read_port in enumerate(UDP_PORTS_READ):
-        print("Robot %d: UDP read port: %s" % (ROBOT_LIST[i], robot_read_port))
-        
-        sock = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
-
-        addr = socket.getaddrinfo(UDP_IP, robot_read_port, socket.AF_INET, socket.SOCK_DGRAM)[0]
-
-        sock.bind((UDP_IP, robot_read_port))
-        sock.setblocking(0)
-        sock.settimeout(READ_TIMEOUT)
-        
-        read_sockets[ROBOT_LIST[i]] = {"robot_number" : ROBOT_LIST[i], "sock": sock, "address": addr, "alive" : False, "last_message_timestamp": time.time()}  # UDP
-        
-    return read_sockets
-
-def setup_write_sockets(ROBOT_LIST, UDP_IP, UDP_PORTS_WRITE):
-    #Setup read sockets
-    write_sockets = {}
-    for i, (robot_write_port, robot_dest_port) in enumerate(zip(UDP_PORTS_WRITE, UDP_PORTS_DEST)):
-        print("Robot %d: UDP write port: %s" % (ROBOT_LIST[i], robot_write_port))
-        
-        sock = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
-
-        addr = socket.getaddrinfo(UDP_IP, robot_dest_port, socket.AF_INET, socket.SOCK_DGRAM)[0]
-
-        sock.bind((UDP_IP, robot_write_port))
-        sock.setblocking(0)
-        #sock.settimeout(SOCKET_TIMEOUT)
-        
-        write_sockets[ROBOT_LIST[i]] = {"robot_number" : ROBOT_LIST[i], "sock": sock, "address": addr, "alive" : False}  # UDP
+def setup_read_socket(robot_number, ip, read_port, read_timeout):
+    #Setup read socket
+    print("Robot %d: UDP read port: %s" % (robot_number, read_port))
     
-    return write_sockets
+    read_socket = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
+
+    read_addr = socket.getaddrinfo(ip, read_port, socket.AF_INET, socket.SOCK_DGRAM)[0]
+
+    read_socket.bind((ip, read_port))
+    read_socket.setblocking(0)
+    read_socket.settimeout(read_timeout)
+    
+    return read_socket, read_addr
+
+def setup_write_socket(robot_number, ip, write_port, dest_port):
+    #Setup write socket
+    print("Robot %d: UDP write port: %s" % (robot_number, write_port))
+    
+    write_socket = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
+
+    write_addr = socket.getaddrinfo(ip, write_port, socket.AF_INET, socket.SOCK_DGRAM)[0]
+    dest_addr = socket.getaddrinfo(ip, dest_port, socket.AF_INET, socket.SOCK_DGRAM)[0]
+
+    write_socket.bind((ip, write_port))
+    write_socket.setblocking(0)
+    
+    return write_socket, write_addr, dest_addr
 
 
-def send_keepalive_request(robot_number):
-    write_sock = write_sockets[robot_number]["sock"]
-    write_sock.sendto(b"uthere?\x00", write_sockets[robot_number]["address"][4])
+class NAOCommunicationController:
+    def __init__(self, robot_number, ip, write_port, dest_port, read_port, read_socket_timeout, GUIWebSocket):
+        super().__init__()
 
-def send_keepalive_response(robot_number):
-    write_sock = write_sockets[robot_number]["sock"]
-    write_sock.sendto(b"yeah\x00", write_sockets[robot_number]["address"][4])
-    print("KEEPALIVE response sent %s" % b"yeah\x00")
+        self.robot_number = robot_number
 
-def handleMessage(data, robot_number):
+        self.alive = False
 
-    #Set robot as "alive" because we received data from it
-    read_sockets[robot_number]["llast_message_timestamp"] = time.time()
-    read_sockets[robot_number]["alive"] = True
-    write_sockets[robot_number]["alive"] = True
+        self.write_socket, self.write_addr, self.dest_addr = setup_write_socket(robot_number, ip, write_port, dest_port)
+        self.last_sent_message_timestamp = 0
 
-    #Decode data into a string (might be improved later)
-    data = data.decode('utf-8')
+        self.readNAOSocket, self.read_addr = setup_read_socket(robot_number, ip, read_port, read_socket_timeout)
+        self.last_received_message_timestamp = 0
+        self.read_socket_timeout = read_socket_timeout
 
-    print("Received message from robot %d: %s" % (robot_number, data))
+    def send_message(self, data):
+        self.write_socket.sendto(data, self.dest_addr[4])
+        self.last_sent_message_timestamp = time.time()
 
-    #keep-alive message
-    if(data == "uthere?"):
-        print("KEEPALIVE received from robot %s" % robot_number)
-        send_keepalive_response(robot_number)
+    def send_keepalive_request(self):
+        self.send_message(b"uthere?\x00")
+
+    def send_keepalive_response(self):
+        self.send_message(b"yeah\x00")
+        print("KEEPALIVE response sent %s" % b"yeah\x00")
+
+    def handleMessage(self, data):
+
+        #Update received message timestamp
+        self.last_received_message_timestamp = time.time()
+        #Set robot as "alive" because we received data from it
+        self.alive = True
+
+        #Decode data into a string (might be improved later)
+        data = data.decode('utf-8')
+
+        print("Received message from robot %d: %s" % (self.robot_number, data))
+
+        #keep-alive message
+        if(data == "uthere?"):
+            print("KEEPALIVE received from robot %s" % self.robot_number)
+            self.send_keepalive_response()
+            
+        #obs = data.split("|")
+        #if(float(obs[4]) < 0):
+        #    MESSAGE = b"1"
+        #elif(abs(float(obs[5])) > 400):
+        #    MESSAGE = b"2"
+        #elif(float(obs[5]) > 0):
+        #    MESSAGE = b"4"
+        #elif (float(obs[5]) <= 0):
+        #    MESSAGE = b"3"
+        #sock.sendto(MESSAGE, (UDP_IP, UDP_PORT_WRITE))
+
+    def receive_data(self):
+        data, addr = None, None
+        try:
+            #read_sock["sock"].connect(read_sock["address"][4]) #Not really needed for UDP but should solve some resolving issues in the local API
+            data, addr = self.read_socket.recvfrom(1024)
+        except socket.timeout:
+            #SOCKET TIMEOUT (or something similar)
+            #print('No data received from robot: %s (Timed out)' % robot_number)
+            pass
+        except socket.error as e:
+            err = e.args[0]
+            if err == errno.EAGAIN or err == errno.EWOULDBLOCK:
+                #SOCKET FULL (or something similar)
+                sleep(1)
+                print('No data received from robot: %s (Socket buffer full)' % robot_number)
+            else:
+                #ERROR
+                print("GENERIC ERROR: ",e)
+                sys.exit(1)
+
+        if data is not None:
+            self.last_received_message_timestamp = time.time()
+        #If robot has not sent messages for a while, set it as not "alive"
+        elif time.time() - self.last_received_message_timestamp > self.read_socket_timeout:
+            print("Robot %d has not sent for %d seconds: setting to not alive" % (self.robot_number, self.read_socket_timeout))
+            self.alive = False
+
+        return data, addr
         
-    #obs = data.split("|")
-    #if(float(obs[4]) < 0):
-    #    MESSAGE = b"1"
-    #elif(abs(float(obs[5])) > 400):
-    #    MESSAGE = b"2"
-    #elif(float(obs[5]) > 0):
-    #    MESSAGE = b"4"
-    #elif (float(obs[5]) <= 0):
-    #    MESSAGE = b"3"
-    #sock.sendto(MESSAGE, (UDP_IP, UDP_PORT_WRITE))
-
-
-def receive_data_from_socket(robot_number):
-    read_sock = read_sockets[robot_number]
-    data, addr = None, None
-    try:
-        #read_sock["sock"].connect(read_sock["address"][4]) #Not really needed for UDP but should solve some resolving issues in the local API
-        data, addr = read_sock["sock"].recvfrom(1024)
-    except socket.timeout:
-        #SOCKET TIMEOUT (or something similar)
-        #print('No data received from robot: %s (Timed out)' % robot_number)
-        return None, None
-    except socket.error as e:
-        err = e.args[0]
-        if err == errno.EAGAIN or err == errno.EWOULDBLOCK:
-            #SOCKET FULL (or something similar)
-            sleep(1)
-            print('No data received from robot: %s (Socket buffer full)' % robot_number)
-            return None
-        else:
-            #ERROR
-            print("GENERIC ERROR: ",e)
-            sys.exit(1)
-
-    return data, addr
 
 if __name__ == "__main__":
 
@@ -164,35 +135,30 @@ if __name__ == "__main__":
     ROBOT_LIST = [3]
     #ROBOT_LIST = [1,2,3,4,5,6,7,8,9,10]
 
-
-    UDP_PORTS_WRITE = [UDP_BASE_READ_PORT + robot_number for robot_number in ROBOT_LIST]
-    UDP_PORTS_DEST = [UDP_BASE_DEST_PORT + robot_number for robot_number in ROBOT_LIST]
-    UDP_PORTS_READ = [UDP_BASE_WRITE_PORT + robot_number for robot_number in ROBOT_LIST]
-
     READ_SOCKET_TIMEOUT = 0.05
-    MESSAGE = b"1"
-
     ALIVE_CLIENT_TIMEOUT = 2000
-
+    
     print("UDP target IP: %s" % UDP_IP)
 
-    read_sockets = setup_read_sockets(ROBOT_LIST, UDP_IP, UDP_PORTS_READ, READ_SOCKET_TIMEOUT)
-    write_sockets = setup_write_sockets(ROBOT_LIST, UDP_IP, UDP_PORTS_WRITE)
+    GUIWebSocket = None
 
-    print("message: %s" % MESSAGE)
-
-
+    robotCommunicationControllers = {}
+    for robot_number in ROBOT_LIST:
+        write_port = UDP_BASE_WRITE_PORT + robot_number
+        read_port = UDP_BASE_READ_PORT + robot_number
+        dest_port = UDP_BASE_DEST_PORT + robot_number
+        robotCommunicationControllers[robot_number] = NAOCommunicationController(robot_number, UDP_IP, 
+                                                                                write_port, dest_port, 
+                                                                                read_port,  READ_SOCKET_TIMEOUT,
+                                                                                ALIVE_CLIENT_TIMEOUT,
+                                                                                GUIWebSocket)
+    
     while(True):
-        for robot_number, read_sock in read_sockets.items():
+        for robot_number, robot_comm in robotCommunicationControllers.items():
 
             #Receive message
-            data, addr = receive_data_from_socket(read_sock["robot_number"])
+            data, addr = robot_comm.receive_data()
             
             if data is not None and addr is not None:
-                handleMessage(data, robot_number)
+                robot_comm.handleMessage(data)
         
-            #If robot has not sent messages for a while, set it as not "alive"
-            if read_sock["last_message_timestamp"] - time.time()>ALIVE_CLIENT_TIMEOUT:
-                print("Robot %d stopped sending: setting to not alive" % robot_number)
-                read_sockets[robot_number]["alive"] = False
-                write_sockets[robot_number]["alive"] = False
