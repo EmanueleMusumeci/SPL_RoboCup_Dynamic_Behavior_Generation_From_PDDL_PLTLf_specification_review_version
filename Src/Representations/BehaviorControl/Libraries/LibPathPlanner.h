@@ -186,6 +186,9 @@ STREAMABLE(LibPathPlanner,
 {
   /** Computes the attractive field for the striker **/
   FUNCTION(std::vector<PathPlannerUtils::Node>(Pose2f source, Pose2f target, Pose2f speed, bool excludePenaltyArea)) populatePlan;
+  FUNCTION(std::vector<PathPlannerUtils::Node>(Pose2f source, Pose2f target, Pose2f speed, bool excludePenaltyArea, float customGoalPostRadius, float customUprightRobotRadius, float customFallenRobotRadius, float customReadyRobotRadius, float customRadiusControlOffset)) populatePlanWithCustomObstacleRadius;
+  FUNCTION(float(Obstacle::Type type)) getDefaultObstacleRadius;
   FUNCTION(std::vector<PathPlannerUtils::Edge*>(std::vector<PathPlannerUtils::Node>& nodes)) createAvoidancePlan;
   FUNCTION(std::vector<Vector2f>(std::vector<PathPlannerUtils::Node>& nodes, float angleStep)) computePath,
+
 });

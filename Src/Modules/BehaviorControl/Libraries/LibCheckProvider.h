@@ -203,10 +203,11 @@ private:
 
  /** Based on a previous implementation by Emanuele Antonioni, provides the best point to shoot at inside the goal. If the opponent goal is completely occluded
   * returns the field center (exactly (0,0))
-  * @param shootASAP If set to true has the robot will shoot to the nearest accessible point, located inside the nearest targetable area
+  * @param shootASAP If set to true, if the robot is near the goal, shoot in the spot nearest to where you're looking at ("As Soon As Possible"), else use the heuristic to decide
+  * @param forceHeuristic If se to true, always use the heuristic to decide where to shoot
   * @return the Vector2f of the position selected to shoot
   * **/
- Vector2f goalTarget (bool shootASAP);
+ Vector2f goalTarget (bool shootASAP, bool forceHeuristic);
 
  int isTargetToPass;
  Vector3f getError(Pose2f targetPoint1, Pose2f targetPoint2, Pose2f feedbackPoint1, Pose2f feedbackPoint2);

@@ -51,6 +51,7 @@ STREAMABLE(BallCarrierPFModel,
   (float) TEAMMATE_CO,
   (float) ETA,
   (float) GAMMA,
+  (float) POW,
   
   (std::vector<NodePF>) attractive_field,
   (std::vector<NodePF>) repulsive_field,

@@ -73,8 +73,10 @@ STREAMABLE(LibCheck,
   /** Provides a vector with the point of beginning and finish of goal areas free from opponent coverage **/
   FUNCTION(std::vector<FreeGoalTargetableArea>(float minimumDiscretizedAreaSize)) computeFreeAreas;
 
-  /** Provides the better point to shoot at inside the goal **/
-  FUNCTION(Vector2f(bool shootASAP)) goalTarget;
+  /** Provides the better point to shoot at inside the goal 
+  - shootASAP: if you're near the goal, shoot in the spot nearest to where you're looking at ("As Soon As Possible"), else use the heuristic to decide
+  - forceHeuristic: always use the heuristic to decide where to shoot **/
+  FUNCTION(Vector2f(bool shootASAP, bool forceHeuristic)) goalTarget;
 
   FUNCTION(float(float value, float fromIntervalMin, float fromIntervalMax, float toIntervalMin, float toIntervalMax)) mapToInterval;
 

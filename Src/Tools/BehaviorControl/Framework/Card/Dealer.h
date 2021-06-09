@@ -98,3 +98,5 @@ public:
 private:
   CardBase* lastCard = nullptr; /**< The previously dealt card. */
 };
+
+//To use a custom dealer using actions to call cards, find a way to call the getCardInfo() function in CardDetails.h from the Dealer 

@@ -37,10 +37,16 @@ void LibPotentialFieldsProvider::update(LibPotentialFields& libCheck)
     return computeStrikerAttractivePF(potential_field, goal, RO, Kap, Kbp, Kr, TEAMMATE_CO, ETA, GAMMA);
   };
 
-  libCheck.computeStrikerRepulsivePF = [&](std::vector<NodePF>& potential_field, Vector2f source_pos, float RO = 1000.f, float Kap = 0.1f, float Kbp = 100.f, float Kr = 100.f,
-                                                    float TEAMMATE_CO = 500.f, float ETA = 1000.f, float GAMMA = 2.f) -> std::vector<NodePF>
+  libCheck.computeStrikerRepulsivePF = [&](std::vector<NodePF>& potential_field, Vector2f source_pos, bool navigateAroundBall = false, float RO = 1000.f, float Kap = 0.1f, float Kbp = 100.f, float Kr = 100.f,
+                                                    float TEAMMATE_CO = 500.f, float ETA = 1000.f, float GAMMA = 2.f, float POW = 1000.f) -> std::vector<NodePF>
   {
-    return computeStrikerRepulsivePF(potential_field, source_pos, RO, Kap, Kbp, Kr, TEAMMATE_CO, ETA, GAMMA);
+    return computeStrikerRepulsivePF(potential_field, source_pos, navigateAroundBall, RO, Kap, Kbp, Kr, TEAMMATE_CO, ETA, GAMMA);
+  };
+
+  libCheck.computeStrikerRepulsivePFWithCustomObstacles = [&](std::vector<NodePF>& potential_field, Vector2f source_pos, std::vector<Vector2f>& repulsive_obstacles, float RO = 1000.f, float Kap = 0.1f, float Kbp = 100.f, float Kr = 100.f,
+                                                    float TEAMMATE_CO = 500.f, float ETA = 1000.f, float GAMMA = 2.f, float POW = 1000.f) -> std::vector<NodePF>
+  {
+    return computeStrikerRepulsivePFWithCustomObstacles(potential_field, source_pos, repulsive_obstacles, RO, Kap, Kbp, Kr, TEAMMATE_CO, ETA, GAMMA);
   };
 
   libCheck.computePFAllField = [&](std::vector<NodePF>& potential_field, std::vector<NodePF> attractive_field, std::vector<NodePF> repulsive_field) -> std::vector<NodePF>
@@ -205,7 +211,7 @@ std::vector<NodePF> LibPotentialFieldsProvider::computeStrikerAttractivePF(std::
 
     Vector2f tmp_err = goal - current_cell_pos;
 
-    if( tmp_err.norm() <= RO)
+    if( tmp_err.norm() > RO)
     {
       //Linear potential field: Kap multiplied by the distance (vector) from the goal
       Vector2f conic_field = Vector2f(Kap * tmp_err.x(), Kap * tmp_err.y());
@@ -221,7 +227,8 @@ std::vector<NodePF> LibPotentialFieldsProvider::computeStrikerAttractivePF(std::
   return attractive_field;
 }
 
-std::vector<NodePF> LibPotentialFieldsProvider::computeStrikerRepulsivePF(std::vector<NodePF>& potential_field, Vector2f source_pos, float RO, float Kap, float Kbp, float Kr, float TEAMMATE_CO, float ETA, float GAMMA) 
+std::vector<NodePF> LibPotentialFieldsProvider::computeStrikerRepulsivePF(std::vector<NodePF>& potential_field, Vector2f source_pos, bool navigateAroundBall,
+                                                                          float RO, float Kap, float Kbp, float Kr, float TEAMMATE_CO, float ETA, float GAMMA, float POW) 
 {
   //std::cout<<"computeStrikerRepulsivePF";
   //Vector2f my_pos = theRobotPose.translation;
@@ -247,6 +254,70 @@ std::vector<NodePF> LibPotentialFieldsProvider::computeStrikerRepulsivePF(std::v
       }
     }
   }
+  
+
+  if(navigateAroundBall)
+  {
+    Vector2f globalBall = rel2Glob(theBallModel.estimate.position.x(), theBallModel.estimate.position.y()).translation;
+    repulsive_obstacles.push_back(globalBall);
+  }
+
+  //Repulsive potential field from other robots and/or regions of the field
+  std::vector<NodePF> repulsive_field(potential_field.size());
+
+  for(unsigned int i=0; i<repulsive_field.size(); ++i)
+  {
+      Vector2f current_cell_pos = potential_field.at(i).position;
+
+      repulsive_field.at(i) = NodePF(Vector2f(current_cell_pos.x(),current_cell_pos.y()), Vector2f(0,0), potential_field.at(i).cell_size);
+
+      for(unsigned int r=0; r<repulsive_obstacles.size(); ++r)
+      {
+
+          //if(r == (uint) theRobotInfo.number-1) continue;
+          if (repulsive_obstacles.at(r).x() == 0 || repulsive_obstacles.at(r).y() == 0) continue;
+
+          //Vector2f tmp_err = repulsive_obstacles.at(r) - current_cell_pos;
+          Vector2f tmp_err = current_cell_pos - source_pos;
+          //Vector2f tmp_rep = repulsive_obstacles.at(r) - source_pos;
+          Vector2f tmp_rep = repulsive_obstacles.at(r) - current_cell_pos;
+          if(tmp_rep.norm() < ETA) //If the cell is further away from the obstacle than the cutoff radius ETA, use linear influence instead of quadratic
+          {
+              //std::cout<<"\nObs: ("<<repulsive_obstacles.at(r).x()<<", "<<repulsive_obstacles.at(r).y()<<")"<<std::endl;
+              //std::cout<<"QUADRATIC"<<std::endl;
+              float tmp_eta = tmp_rep.norm();
+
+              repulsive_field.at(i).potential = repulsive_field.at(i).potential + Vector2f( -tmp_rep * (Kr/GAMMA) * pow(POW*(1/tmp_eta)-(1/ETA),GAMMA-1) * (1/tmp_err.norm()));
+              /// original else bbody
+              /// repulsive_field.at(i)  += (Kr/GAMMA) * pow(1000*(1/tmp_eta)-(1/ETA),GAMMA-1) * (-tmp_rep*(1/tmp_err.translation.absFloat()));
+
+          }
+          else
+          {
+              //std::cout<<"\nObs: ("<<repulsive_obstacles.at(r).x()<<", "<<repulsive_obstacles.at(r).y()<<")"<<std::endl;
+              //std::cout<<"LINEAR"<<std::endl;
+              //WE USED (0.0, 0.0) AS A POTENTIAL TERM FOR OBSTACLES FURTHER THAN ETA
+              //repulsive_field.at(i).potential += Vector2f(0.f, 0.f);
+
+              //NOW WE'RE USING A LINEAR REPULSION FOR OBSTACLES FURTHER THAN ETA
+              repulsive_field.at(i).potential = repulsive_field.at(i).potential + tmp_rep;
+          }
+      }
+
+      //if(navigateAroundBall)
+      //{
+      //  Vector2f ballRep = rel2Glob(theBallModel.estimate.position.x(), theBallModel.estimate.position.y()).translation - current_cell_pos;
+      //  repulsive_field.at(i).potential = repulsive_field.at(i).potential - ballRep;
+      //}
+  }
+
+  return repulsive_field;
+}
+
+std::vector<NodePF> LibPotentialFieldsProvider::computeStrikerRepulsivePFWithCustomObstacles(std::vector<NodePF>& potential_field, Vector2f source_pos, std::vector<Vector2f>& repulsive_obstacles, float RO, float Kap, float Kbp, float Kr, float TEAMMATE_CO, float ETA, float GAMMA, float POW) 
+{
+  //std::cout<<"computeStrikerRepulsivePF";
+  //Vector2f my_pos = theRobotPose.translation;
 
   //Repulsive potential field from other robots and/or regions of the field
   std::vector<NodePF> repulsive_field(potential_field.size());
@@ -272,7 +343,7 @@ std::vector<NodePF> LibPotentialFieldsProvider::computeStrikerRepulsivePF(std::v
               //std::cout<<"QUADRATIC"<<std::endl;
               float tmp_eta = tmp_rep.norm();
 
-              repulsive_field.at(i).potential = repulsive_field.at(i).potential + Vector2f( -tmp_rep * (Kr/GAMMA) * pow(1000*(1/tmp_eta)-(1/ETA),GAMMA-1) * (1/tmp_err.norm()));
+              repulsive_field.at(i).potential = repulsive_field.at(i).potential + Vector2f( -tmp_rep * (Kr/GAMMA) * pow(POW*(1/tmp_eta)-(1/ETA),GAMMA-1) * (1/tmp_err.norm()));
               /// original else bbody
               /// repulsive_field.at(i)  += (Kr/GAMMA) * pow(1000*(1/tmp_eta)-(1/ETA),GAMMA-1) * (-tmp_rep*(1/tmp_err.translation.absFloat()));
 

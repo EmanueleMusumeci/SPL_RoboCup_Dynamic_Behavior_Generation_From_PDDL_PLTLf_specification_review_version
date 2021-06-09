@@ -38,7 +38,7 @@ void OpponentGoalModelProvider::update(OpponentGoalModel& opponentGoalModel)
     {
         opponentGoalModel.freeGoalTargetableAreas = theLibCheck.computeFreeAreas(opponentGoalModel.goalTargetAreaMinSize);
         opponentGoalModel.myGazeProjection = theLibCheck.projectGazeOntoOpponentGroundline();
-        opponentGoalModel.shootASAPGoalTarget = theLibCheck.goalTarget(true);
+        opponentGoalModel.shootASAPGoalTarget = theLibCheck.goalTarget(true, false);
         //std::cout<<"theBehaviorStatus.activity: "<<TypeRegistry::getEnumName(theBehaviorStatus.activity)<<std::endl;
         //std::cout<<"Target: ("<<theBehaviorStatus.shootingTo.x()<<", "<<theBehaviorStatus.shootingTo.y()<<")"<<std::endl;
         if(theBehaviorStatus.activity == BehaviorStatus::Activity::approachAndKick && theBehaviorStatus.shootingTo.x() != 0 && theBehaviorStatus.shootingTo.y() != 0)
@@ -47,7 +47,7 @@ void OpponentGoalModelProvider::update(OpponentGoalModel& opponentGoalModel)
         }
         else
         {
-            opponentGoalModel.utilityGoalTarget = theLibCheck.goalTarget(false);
+            opponentGoalModel.utilityGoalTarget = theLibCheck.goalTarget(false, true);
         }
         if(opponentGoalModel.freeGoalTargetableAreas.size()!=0)
         {

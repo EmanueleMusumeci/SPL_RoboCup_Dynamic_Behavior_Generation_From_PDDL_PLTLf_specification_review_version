@@ -50,6 +50,7 @@ void BallCarrierPFModelProvider::update(BallCarrierPFModel& ballCarrierPFModel)
         ballCarrierPFModel.TEAMMATE_CO = TEAMMATE_CO;
         ballCarrierPFModel.ETA = ETA;
         ballCarrierPFModel.GAMMA = GAMMA;
+        ballCarrierPFModel.POW = POW;
         
         float current_time = Time::getCurrentSystemTime(); //in milliseconds
 
@@ -78,11 +79,11 @@ void BallCarrierPFModelProvider::update(BallCarrierPFModel& ballCarrierPFModel)
             ballCarrierPFModel.potential_field = theLibPotentialFields.initializePFAroundPoint(ballCarrierPFModel.current_cell_size, ballCarrierPFModel.current_field_center, ballCarrierPFModel.current_field_radius, ballCarrierPFModel.field_border_offset);
 
             //std::cout<<"Compute attractive field"<<std::endl;
-            ballCarrierPFModel.attractive_field = theLibPotentialFields.computeStrikerAttractivePF(ballCarrierPFModel.potential_field, theLibCheck.goalTarget(false), RO, Kap, Kbp, Kr, TEAMMATE_CO, ETA, GAMMA);
+            ballCarrierPFModel.attractive_field = theLibPotentialFields.computeStrikerAttractivePF(ballCarrierPFModel.potential_field, theLibCheck.goalTarget(false, true), RO, Kap, Kbp, Kr, TEAMMATE_CO, ETA, GAMMA);
             last_attractive_field_update = Time::getCurrentSystemTime();
 
             //std::cout<<"Compute repulsive field"<<std::endl;
-            ballCarrierPFModel.repulsive_field = theLibPotentialFields.computeStrikerRepulsivePF(ballCarrierPFModel.potential_field, ballCarrierPFModel.current_field_center, RO, Kap, Kbp, Kr, TEAMMATE_CO, ETA, GAMMA);
+            ballCarrierPFModel.repulsive_field = theLibPotentialFields.computeStrikerRepulsivePF(ballCarrierPFModel.potential_field, ballCarrierPFModel.current_field_center, true, RO, Kap, Kbp, Kr, TEAMMATE_CO, ETA, GAMMA, POW);
             last_repulsive_field_update = Time::getCurrentSystemTime();
 
             //std::cout<<"Compute potential field"<<std::endl;

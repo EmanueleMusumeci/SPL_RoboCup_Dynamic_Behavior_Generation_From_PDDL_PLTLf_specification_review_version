@@ -57,8 +57,23 @@ STREAMABLE(BallCarrierModel,
   (bool) isTargetOnGoal,                              /** Determines whether the current dynamic target is on the goal line*/
   (bool) isTargetInPenaltyArea,                       /** Determines whether the current dynamic target is in the penalty area*/
   (bool) isTargetAPass,                               /** Determines whether the current dynamic target is a pass target*/
+
+  (float) dynamicGoalPostObstacleRadius,
+  (float) dynamicUprightRobotObstacleRadius,
+  (float) dynamicReadyRobotObstacleRadius,
+  (float) dynamicFallenRobotObstacleRadius,
+  (float) dynamicRadiusControlOffset,
+
   (Pose2f) dynamicTarget,                             /** Next immediate target for the ball along the path */
-  //(Pose2f) dynamicApproachPoint,                    /** Entry point for the approach area, aligned with the ball and the dynamicTarget */
+  (float) minimumApproachDistance,                    /** Minimum radius around the ball delimiting the "approach area" */
+  (float) maximumApproachDistance,                    /** Maximum radius around the ball delimiting the "approach area" */
+  (float) staticApproachRadius,                       /** Radius of the static approach point from the ball */
+  (Pose2f) staticApproachPoint,                       /** Entry point for the approach area, aligned with the ball and the dynamicTarget, 
+                                                          at a distance from the ball equal to the MAX_APPROACH_DISTANCE */
+  (Pose2f) dynamicApproachPoint,                      /** Entry point for the approach area, aligned with the ball and the dynamicTarget, 
+                                                          at a distance from the ball equal to the current distance of the robot if in the
+                                                          interval [MIN_APPROACH_DISTANCE, MAX_APPROACH_DISTANCE] */
+                                                          
 });
 
 inline BallCarrierModel::Node::Node(Vector2f center, float radius) : center(center), radius(radius) {};

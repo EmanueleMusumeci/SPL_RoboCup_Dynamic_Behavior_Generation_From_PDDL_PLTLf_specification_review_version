@@ -37,7 +37,6 @@ def setup_write_socket(robot_number, ip, write_port, dest_port):
     
     return write_socket, write_addr, dest_addr
 
-
 class NAOCommunicationController:
     def __init__(self, robot_number, ip, 
                 write_port, dest_port, 

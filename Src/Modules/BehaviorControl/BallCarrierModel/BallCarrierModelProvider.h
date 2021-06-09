@@ -13,6 +13,7 @@
 #include "Tools/Module/Module.h"
 #include "Representations/BehaviorControl/BehaviorStatus.h"
 #include "Representations/Configuration/FieldDimensions.h"
+#include "Representations/Modeling/RobotPose.h"
 #include "Representations/BehaviorControl/BallCarrierModel/BallCarrierModel.h"
 #include "Representations/BehaviorControl/Role.h"
 #include "Representations/Communication/GameInfo.h"
@@ -20,6 +21,7 @@
 #include "Representations/Configuration/FieldDimensions.h"
 #include "Representations/BehaviorControl/Libraries/LibCheck.h"
 #include "Representations/BehaviorControl/Libraries/LibPathPlanner.h"
+#include "Representations/HRI/HRIController.h"
 #include <iostream>
 
 MODULE(BallCarrierModelProvider,
@@ -30,11 +32,22 @@ MODULE(BallCarrierModelProvider,
     REQUIRES(BallModel),
     REQUIRES(Role),
     REQUIRES(GameInfo),
+    REQUIRES(RobotPose),
+    REQUIRES(ObstacleModel),
+
+    REQUIRES(HRIController),
+
     PROVIDES(BallCarrierModel),
     LOADS_PARAMETERS(
     {,
       (bool) GRAPHICAL_DEBUG,                                      /** Shows a graphical debug render in SimRobot */
       (float) OBSTACLE_AVOIDANCE_ARC_ANGLE_STEP_FACTOR,            /** Fraction of 2*pi used as angle increments to compute segments of arc for going around obstacles */
+      (float) MAXIMUM_APPROACH_DISTANCE,
+      (float) MINIMUM_APPROACH_DISTANCE,
+
+      (float) STATIC_APPROACH_RADIUS,
+
+      (float) BASE_UPRIGHT_ROBOT_OBSTACLE_RADIUS,                  /** Base radius used for upright robot as obstacles when the ball is outside their influence radius (other wise the distance between the ball and the obstacle is used*/
     }),
 });
 

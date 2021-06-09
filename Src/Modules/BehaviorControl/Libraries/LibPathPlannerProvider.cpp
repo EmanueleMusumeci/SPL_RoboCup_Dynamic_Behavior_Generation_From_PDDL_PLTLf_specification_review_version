@@ -30,6 +30,7 @@ LibPathPlannerProvider::LibPathPlannerProvider(
 
 void LibPathPlannerProvider::update(LibPathPlanner& libPathPlanner)
 {
+
   if(!pathPlannerWasActive)
   {
     turnAngleIntegrator = 0.f;
@@ -43,6 +44,11 @@ void LibPathPlannerProvider::update(LibPathPlanner& libPathPlanner)
     return populatePlan(source, target, speed, excludePenaltyArea);
   };
 
+  libPathPlanner.populatePlanWithCustomObstacleRadius = [this](Pose2f source, Pose2f target, Pose2f speed, bool excludePenaltyArea, float goalPostRadius = 350, float radiusControlOffset = 100, float fallenRobotRadius = 550, float uprightRobotRadius = 500, float readyRobotRadius = 550) -> std::vector<PathPlannerUtils::Node>
+  {
+    return populatePlanWithCustomObstacleRadius(source, target, speed, excludePenaltyArea, goalPostRadius, radiusControlOffset, fallenRobotRadius, uprightRobotRadius, readyRobotRadius);
+  };
+
   libPathPlanner.createAvoidancePlan = [this](std::vector<PathPlannerUtils::Node>& nodes) -> std::vector<PathPlannerUtils::Edge*>
   {
     return createAvoidancePlan(nodes);
@@ -51,6 +57,11 @@ void LibPathPlannerProvider::update(LibPathPlanner& libPathPlanner)
   libPathPlanner.computePath = [this](std::vector<Node>& nodes, float angleStep) -> std::vector<Vector2f>
   {
     return computePath(nodes, angleStep);
+  };
+
+  libPathPlanner.getDefaultObstacleRadius = [this](Obstacle::Type type) -> float
+  {
+    return getDefaultObstacleRadius(type);
   };
 }
 
@@ -72,9 +83,12 @@ void LibPathPlannerProvider::clipPenaltyArea(const Vector2f& position, float& le
 }
 
 void LibPathPlannerProvider::createNodes(std::vector<Node>& nodes, std::vector<Barrier>& barriers, const const Pose2f& source, const Pose2f& target, bool excludePenaltyArea,
-                                         bool useObstacles,
                                          float goalPostRadius,
+                                         float uprightRobotRadius,
+                                         float fallenRobotRadius,
+                                         float readyRobotRadius,
                                          float radiusControlOffset,
+                                         bool useObstacles,
                                          float penaltyAreaRadius,
                                          float freeKickRadius,
                                          float ballRadius,
@@ -116,13 +130,15 @@ void LibPathPlannerProvider::createNodes(std::vector<Node>& nodes, std::vector<B
   {
     for(const auto& obstacle : theObstacleModel.obstacles)
       if(obstacle.type != Obstacle::goalpost)
-        addObstacle(nodes, theRobotPose * obstacle.center, getRadius(obstacle.type));
+        //addObstacle(nodes, theRobotPose * obstacle.center, getDefaultObstacleRadius(obstacle.type));
+        addObstacle(nodes, theRobotPose * obstacle.center, getObstacleRadius(obstacle.type, goalPostRadius, uprightRobotRadius, fallenRobotRadius, readyRobotRadius, radiusControlOffset));
   }
   else
   {
     for(const auto& obstacle : theTeamPlayersModel.obstacles)
       if(obstacle.center != theRobotPose.translation && obstacle.type != Obstacle::goalpost)
-        addObstacle(nodes, obstacle.center, getRadius(obstacle.type));
+        //addObstacle(nodes, obstacle.center, getDefaultObstacleRadius(obstacle.type));
+        addObstacle(nodes, obstacle.center, getObstacleRadius(obstacle.type, goalPostRadius, uprightRobotRadius, fallenRobotRadius, readyRobotRadius, radiusControlOffset));
   }
 
   // Add ball in playing if it is not the target
@@ -192,31 +208,6 @@ void LibPathPlannerProvider::createNodes(std::vector<Node>& nodes, std::vector<B
         }
       }
     }
-  }
-}
-
-float LibPathPlannerProvider::getRadius(Obstacle::Type type,
-                                        float goalPostRadius,
-                                        float radiusControlOffset,
-                                        float fallenRobotRadius,
-                                        float uprightRobotRadius,
-                                        float readyRobotRadius
-                                        ) 
-{
-  switch(type)
-  {
-    case Obstacle::goalpost:
-      return goalPostRadius - radiusControlOffset;
-    case Obstacle::fallenSomeRobot:
-    case Obstacle::fallenOpponent:
-    case Obstacle::fallenTeammate:
-      if(theGameInfo.state != STATE_READY)
-        return fallenRobotRadius - radiusControlOffset;
-    default:
-      if(theGameInfo.state != STATE_READY)
-        return uprightRobotRadius - radiusControlOffset;
-      else
-        return readyRobotRadius - radiusControlOffset;
   }
 }
 
@@ -698,6 +689,49 @@ std::vector<Node> LibPathPlannerProvider::populatePlan(const Pose2f source, cons
     return nodes;
 }
 
+std::vector<Node> LibPathPlannerProvider::populatePlanWithCustomObstacleRadius(const Pose2f source, const Pose2f target, const Pose2f speed, bool excludePenaltyArea,
+                                                                            float customGoalPostRadius, /**< Radius to walk around a goal post (in mm). */
+                                                                            float customUprightRobotRadius, /**< Radius to walk around an upright robot (in mm). */
+                                                                            float customFallenRobotRadius, /**< Radius to walk around a fallen robot (in mm). */
+                                                                            float customReadyRobotRadius, /**< Radius to walk around a robot in ready state (in mm). */
+                                                                            float customRadiusControlOffset /**< Plan closer to obstacles by this offset, but keep original distance when executing plan (in mm). */
+                                                                            ) 
+{
+
+    LibPathPlannerProvider::pathPlannerWasActive = true;
+
+    //MotionRequest motionRequest;
+    
+//TODO: REMEMBER THAT WHEN USING THIS TO PLAN A PATH FOR THE BALL, THE wrongBallSideCostFactor SHOULD BE 0.f
+    std::vector<Barrier> barriers;
+    createBarriers(barriers, source, target, excludePenaltyArea);
+
+    /*std::cout<<"2"<<std::endl;
+    std::cout.flush();
+
+    std::cout<<"Barriers size: "<<barriers.size()<<std::endl;
+    for(auto barrier : barriers)
+    {
+      std::cout<<"Barrier: From: ("<<barrier.from.x()<<", "<<barrier.from.y()<<"), To: ("<<barrier.to.x()<<", "<<barrier.to.y()<<")"<<std::endl;
+    }*/
+
+    std::vector<Node> nodes; 
+    createNodes(nodes, barriers, source, target, excludePenaltyArea, customGoalPostRadius, customUprightRobotRadius, customFallenRobotRadius, customReadyRobotRadius, customRadiusControlOffset); /**< All nodes of the visibility graph, i.e. all obstacles, and starting point (1st entry) and target (2nd entry). */
+    /*std::cout<<"BEFORE PLANNING\nLength:"<<nodes.size();
+    for(auto node : nodes)
+    {
+      std::cout<<"\nNode: Center: ("<<node.center.x()<<", "<<node.center.y()<<")"<<std::endl;
+    }*/
+
+    plan(nodes, barriers, source, nodes[0], nodes[1], speed.translation.x() / speed.rotation); 
+    /*std::cout<<"AFTER PLANNING\nLength:"<<nodes.size();
+    for(auto node : nodes)
+    {
+      std::cout<<"\nNode: Center: ("<<node.center.x()<<", "<<node.center.y()<<")"<<std::endl;
+    }*/
+
+    return nodes;
+}
 /** Provides a path from a source to a goal on the field, using the RRT-A* native path planner
  * @param source the Vector2f origin point of the plan
  * @param goal the Vector2f destination point of the plan
@@ -859,4 +893,42 @@ std::vector<Vector2f> LibPathPlannerProvider::computePath(std::vector<Node>& nod
   
   std::reverse(path.begin(), path.end());
   return path;
+}
+
+float LibPathPlannerProvider::getDefaultObstacleRadius(Obstacle::Type type)
+{
+    switch(type)
+    {
+      case Obstacle::goalpost: /**< Radius to walk around a goal post (in mm). */
+        return defaultGoalPostRadius - defaultRadiusControlOffset;
+      case Obstacle::fallenSomeRobot:
+      case Obstacle::fallenOpponent:
+      case Obstacle::fallenTeammate:
+        if(theGameInfo.state != STATE_READY) /**< Radius to walk around a fallen robot (in mm). */
+          return defaultFallenRobotRadius - defaultRadiusControlOffset;
+      default:
+        if(theGameInfo.state != STATE_READY) /**< Radius to walk around an upright robot (in mm). */
+          return defaultUprightRobotRadius - defaultRadiusControlOffset;
+        else
+          return defaultReadyRobotRadius - defaultRadiusControlOffset; /**< Radius to walk around a robot in ready state (in mm). */
+    }
+}
+
+float LibPathPlannerProvider::getObstacleRadius(Obstacle::Type type, float goalPostRadius, float uprightRobotRadius, float fallenRobotRadius, float readyRobotRadius, float radiusControlOffset)
+{
+    switch(type)
+    {
+      case Obstacle::goalpost: /**< Radius to walk around a goal post (in mm). */
+        return goalPostRadius - radiusControlOffset;
+      case Obstacle::fallenSomeRobot:
+      case Obstacle::fallenOpponent:
+      case Obstacle::fallenTeammate:
+        if(theGameInfo.state != STATE_READY) /**< Radius to walk around a fallen robot (in mm). */
+          return fallenRobotRadius - radiusControlOffset;
+      default:
+        if(theGameInfo.state != STATE_READY) /**< Radius to walk around an upright robot (in mm). */
+          return uprightRobotRadius - radiusControlOffset;
+        else
+          return readyRobotRadius - radiusControlOffset; /**< Radius to walk around a robot in ready state (in mm). */
+    }
 }

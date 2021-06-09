@@ -63,6 +63,7 @@ MODULE(BallCarrierPFModelProvider,
       (float) TEAMMATE_CO,
       (float) ETA,
       (float) GAMMA,
+      (float) POW,
     }),
 });
 

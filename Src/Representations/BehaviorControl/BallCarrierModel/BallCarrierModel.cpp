@@ -32,7 +32,40 @@ void BallCarrierModel::draw() const
     const GameInfo& theGameInfo = static_cast<const GameInfo&>(Blackboard::getInstance()["GameInfo"]);
     const BallModel& theBallModel = static_cast<const BallModel&>(Blackboard::getInstance()["BallModel"]);
     const LibCheck& theLibCheck = static_cast<const LibCheck&>(Blackboard::getInstance()["LibCheck"]);
+    
     #ifdef TARGET_SIM
+    //STOLEN FROM PathPlannerProvider
+    /**
+     * Draw a 3D arc parallel to the field plane.
+     * @param id The drawing id.
+     * @param xCenter The x coordinate of the center.
+     * @param yCenter The y coordinate of the center.
+     * @param zCenter The z coordinate of the center.
+     * @param radius The radius.
+     * @param fromAngle The start angle.
+     * @param angleSize The angular size of the arc. The arc is in the range
+     *                  [fromAngle ... fromAngle + angleSize].
+     * @param thickness The line thickness.
+     * @param color The color of the circle.
+     */
+    #define ARC3D(id, xCenter, yCenter, zCenter, radius, fromAngle, angleSize, thickness, color) \
+      do \
+      { \
+        constexpr Angle _angleStep = pi2 / 32.f; \
+        Vector2f _from((xCenter) + std::cos(fromAngle) * (radius), (yCenter) + std::sin(fromAngle) * (radius)); \
+        for(Angle _angle = _angleStep; _angle <= (angleSize) - _angleStep; _angle += _angleStep) \
+        { \
+          Vector2f _to((xCenter) + std::cos(_angle + (fromAngle)) * (radius), (yCenter) + std::sin(_angle + (fromAngle)) * (radius)); \
+          LINE3D(id, _from.x(), _from.y(), (zCenter), _to.x(), _to.y(), (zCenter), thickness, color); \
+          _from = _to; \
+        } \
+        Vector2f _to((xCenter) + std::cos((fromAngle) + (angleSize)) * (radius), (yCenter) + std::sin((fromAngle) + (angleSize)) * (radius)); \
+        LINE3D(id, _from.x(), _from.y(), (zCenter), _to.x(), _to.y(), (zCenter), thickness, color); \
+      } \
+      while(false)
+
+    Vector2f globalBall = theLibCheck.rel2Glob(theBallModel.estimate.position.x(), theBallModel.estimate.position.y()).translation;
+    float angleToBall = theLibCheck.angleToBall;
     DEBUG_DRAWING3D("representation:BallCarrierModel", "field")
     {
       if(theGameInfo.state == STATE_PLAYING && theRole.role==Role::RoleType::striker)
@@ -69,23 +102,13 @@ void BallCarrierModel::draw() const
               5, ColorRGBA(0,255,0,255));
               prevStep = step;
           }
-          //Draw the dynamic approach point (entry point to the approach area, determined by the chosen target)
-          /*CYLINDERARROW3D("representation:BallCarrierModel", 
-                theBallCarrierModel.dynamicTarget.translation.x(), theBallCarrierModel.dynamicTarget.translation.y(), 10,
-                theBallCarrierModel.dynamicTarget.translation.x()+60, theBallCarrierModel.dynamicTarget.translation.y()+60, 10,
-                10, 50, 20, ColorRGBA(0,0,255,255);
-                ) 
-          SPHERE3D("representation:BallCarrierModel", 
-                theBallCarrierModel.dynamicTarget.translation.x(), theBallCarrierModel.dynamicTarget.translation.y(), 10, 30,
-                ColorRGBA(0,0,255,255));*/
           //Draw the dynamic target (kick target chosen from the path)
         }
         else
         //If there is no path, use the fallback target
         {
-          Vector2f globalBallModel = theLibCheck.rel2Glob(theBallModel.estimate.position.x(), theBallModel.estimate.position.y()).translation;
           SPHERE3D("representation:BallCarrierModel", 
-            globalBallModel.x(), globalBallModel.y(), 10, 
+            globalBall.x(), globalBall.y(), 10, 
             30, ColorRGBA(255,0,0,100));
 
           SPHERE3D("representation:BallCarrierModel", 
@@ -93,7 +116,7 @@ void BallCarrierModel::draw() const
             30, ColorRGBA(255,0,0,100));
 
           LINE3D("representation:BallCarrierModel", 
-            globalBallModel.x(), globalBallModel.y(), 10, 
+            globalBall.x(), globalBall.y(), 10, 
             theBallCarrierModel.dynamicTarget.translation.x(), theBallCarrierModel.dynamicTarget.translation.y(), 10, 
             5, ColorRGBA(200,200,0,255));
         }
@@ -106,6 +129,31 @@ void BallCarrierModel::draw() const
               theBallCarrierModel.dynamicTarget.translation.x(), theBallCarrierModel.dynamicTarget.translation.y(), 10, 
               30, ColorRGBA(0,0,255,255));
         
+        //Draw the static approach point (farthest entry point to the approach area, determined by the chosen target)
+        CYLINDERARROW3D("representation:BallCarrierModel", 
+              Vector3f(theBallCarrierModel.staticApproachPoint.translation.x(), theBallCarrierModel.staticApproachPoint.translation.y(), 10),
+              Vector3f(theBallCarrierModel.staticApproachPoint.translation.x()+ARROW_LENGTH*cos(theBallCarrierModel.staticApproachPoint.rotation), theBallCarrierModel.staticApproachPoint.translation.y()+ARROW_LENGTH*sin(theBallCarrierModel.staticApproachPoint.rotation), 10),
+              10, 50, 20, ColorRGBA(255,0,0,255));
+        SPHERE3D("representation:BallCarrierModel", 
+              theBallCarrierModel.staticApproachPoint.translation.x(), theBallCarrierModel.staticApproachPoint.translation.y(), 10, 30,
+              ColorRGBA(255,0,0,255));
+                      
+        //Draw the dynamic approach point (entry point to the approach area, determined by the chosen target and by the distance of the robot from the ball)
+        CYLINDERARROW3D("representation:BallCarrierModel", 
+              Vector3f(theBallCarrierModel.dynamicApproachPoint.translation.x(), theBallCarrierModel.dynamicApproachPoint.translation.y(), 10),
+              Vector3f(theBallCarrierModel.dynamicApproachPoint.translation.x()+ARROW_LENGTH*cos(theBallCarrierModel.dynamicApproachPoint.rotation), theBallCarrierModel.dynamicApproachPoint.translation.y()+ARROW_LENGTH*sin(theBallCarrierModel.dynamicApproachPoint.rotation), 10),
+              10, 50, 20, ColorRGBA(0,255,0,255));
+        SPHERE3D("representation:BallCarrierModel", 
+              theBallCarrierModel.dynamicApproachPoint.translation.x(), theBallCarrierModel.dynamicApproachPoint.translation.y(), 10, 30,
+              ColorRGBA(0,0,255,255));
+        
+        //Draw the approach area
+        ARC3D("representation:BallCarrierModel",
+              globalBall.x(), globalBall.y(), 10, theBallCarrierModel.maximumApproachDistance, 0, pi2, 5, ColorRGBA(0,0,0,255)
+              );
+        ARC3D("representation:BallCarrierModel",
+              globalBall.x(), globalBall.y(), 10, theBallCarrierModel.minimumApproachDistance, 0, pi2, 5, ColorRGBA(0,0,0,255)
+              );
       }
     }
     #endif

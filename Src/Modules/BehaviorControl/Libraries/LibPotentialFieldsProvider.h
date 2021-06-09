@@ -91,8 +91,18 @@ class LibPotentialFieldsProvider : public LibPotentialFieldsProviderBase
   * @param goal The 2D position of the goal (that generates the attractive field)
   * @return std::vector of PFCell structures, containing various info about the potential field cell
   * **/
- std::vector<NodePF> computeStrikerRepulsivePF(std::vector<NodePF>& potential_field, Vector2f source_pos, float RO = 1000.f, float Kap = 0.1f, float Kbp = 100.f, float Kr = 100.f,
-                                                  float TEAMMATE_CO = 500.f, float ETA = 1000.f, float GAMMA = 2.f);
+ std::vector<NodePF> computeStrikerRepulsivePF(std::vector<NodePF>& potential_field, Vector2f source_pos, bool navigateAroundBall = false, 
+                                                  float RO = 1000.f, float Kap = 0.1f, float Kbp = 100.f, float Kr = 100.f,
+                                                  float TEAMMATE_CO = 500.f, float ETA = 1000.f, float GAMMA = 2.f, float POW = 1000.f);
+
+ /** Computes the repulsive field for the striker with custom specified obstacles
+  * @param source_pos The 2D position of the center of the field
+  * @param repulsive_obstacles A list of 2D positions of the obstacles (that generate the repulsive field)
+  * @return std::vector of PFCell structures, containing various info about the potential field cell
+  * **/
+ std::vector<NodePF> computeStrikerRepulsivePFWithCustomObstacles(std::vector<NodePF>& potential_field, Vector2f source_pos, std::vector<Vector2f>& repulsive_obstacles,
+                                                  float RO = 1000.f, float Kap = 0.1f, float Kbp = 100.f, float Kr = 100.f,
+                                                  float TEAMMATE_CO = 500.f, float ETA = 1000.f, float GAMMA = 2.f, float POW = 1000.f);
 
  /** Initializes an empty PF spanning a circle given a center point and a radius
   * @param cell_size Side length of a discretized potential field cell

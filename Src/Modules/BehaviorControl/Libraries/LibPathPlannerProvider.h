@@ -64,6 +64,13 @@ private:
    */
   void update(LibPathPlanner& libPathPlanner) override;
 
+
+  float defaultGoalPostRadius = 350.f; 
+  float defaultRadiusControlOffset = 100.f; 
+  float defaultFallenRobotRadius = 550.f; 
+  float defaultUprightRobotRadius = 500.f; 
+  float defaultReadyRobotRadius = 550.f;
+
   //std::vector<Node> nodes; 
   //std::vector<Candidate> candidates; 
   std::vector<Geometry::Line> borders; /**< The border of the field plus a tolerance. */
@@ -112,9 +119,12 @@ private:
    * @param excludePenaltyArea Filter out obstacles inside the own penalty area and the own goal.
    */
   void createNodes(std::vector<Node>& nodes, std::vector<Barrier>& barriers, const Pose2f& source, const Pose2f& target, bool excludePenaltyArea,
-                                  bool useObstacles = true, /**< Use TeamPlayersModel or ObstacleModel? */
                                   float goalPostRadius = 350, /**< Radius to walk around a goal post (in mm). */
+                                  float uprightRobotRadius = 500, /**< Radius to walk around an upright robot (in mm). */
+                                  float fallenRobotRadius = 550, /**< Radius to walk around a fallen robot (in mm). */
+                                  float readyRobotRadius = 550, /**< Radius to walk around a robot in ready state (in mm). */
                                   float radiusControlOffset = 100, /**< Plan closer to obstacles by this offset, but keep original distance when executing plan (in mm). */
+                                  bool useObstacles = true, /**< Use TeamPlayersModel or ObstacleModel? */
                                   float penaltyAreaRadius = 150, /**< Radius to walk around a corner of the own penalty area (in mm). */
                                   float freeKickRadius = 850, /**< Radius to walk around the ball when defending a free kick (in mm). */
                                   float ballRadius = 250, /**< Radius to walk around the ball (in mm). */
@@ -126,13 +136,8 @@ private:
    * @param type The type of the obstacle.
    * @return The radius with which the obstacle can be surrounded in mm. 0 if the obstacle should be ignored.
    */
-  float getRadius(Obstacle::Type type,
-                  float goalPostRadius = 350, /**< Radius to walk around a goal post (in mm). */
-                  float radiusControlOffset = 100, /**< Plan closer to obstacles by this offset, but keep original distance when executing plan (in mm). */
-                  float fallenRobotRadius = 550, /**< Radius to walk around a fallen robot (in mm). */
-                  float uprightRobotRadius = 500, /**< Radius to walk around an upright robot (in mm). */
-                  float readyRobotRadius = 550 /**< Radius to walk around a robot in ready state (in mm). */
-                  );
+  float getDefaultObstacleRadius(Obstacle::Type type);
+  float getObstacleRadius(Obstacle::Type type, float goalPostRadius, float uprightRobotRadius, float fallenRobotRadius, float readyRobotRadius, float radiusControlOffset);
 
   /**
    * Adds a node for an obstacle if it is inside the field and valid.
@@ -203,6 +208,24 @@ private:
    * @return a std::vector<Node> containing all the nodes of the plan
    */
   std::vector<Node> populatePlan(Pose2f source, Pose2f target, Pose2f speed, bool excludePenaltyArea);
+
+  /** Computes possible plans (at each node two possible directions are considered, clock-wise and counter-clock-wise, and the best
+   * outgoing branch is selected), to reach a certain target from a certain source (uses the framework's native A* path planner). 
+   * Allows specifying custom radiuses for each obstacle type
+   * @param source the Pose2f origin point of the plan
+   * @param target the Pose2f destination point of the plan
+   * @param speed the desired speed for the plan
+   * @param excludePenaltyArea a bool specifying whether we want to have path segments inside the penalty areass
+   *
+   * @return a std::vector<Node> containing all the nodes of the plan
+   */
+  std::vector<Node> populatePlanWithCustomObstacleRadius(const Pose2f source, const Pose2f target, const Pose2f speed, bool excludePenaltyArea,
+                                                        float customGoalPostRadius, /**< Radius to walk around a goal post (in mm). */
+                                                        float customUprightRobotRadius, /**< Radius to walk around an upright robot (in mm). */
+                                                        float customFallenRobotRadius, /**< Radius to walk around a fallen robot (in mm). */
+                                                        float customReadyRobotRadius, /**< Radius to walk around a robot in ready state (in mm). */
+                                                        float customRadiusControlOffset /**< Plan closer to obstacles by this offset, but keep original distance when executing plan (in mm). */
+                                                        );
 
   /** Given a populated plan, selects the best "avoidance plan", where each hop is the obstacle to be avoided that is nearest to the optimal path.
    *

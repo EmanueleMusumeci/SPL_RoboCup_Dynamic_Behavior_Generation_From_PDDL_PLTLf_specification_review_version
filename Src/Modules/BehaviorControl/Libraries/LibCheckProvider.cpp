@@ -309,8 +309,8 @@ Return a Vector2f containing the chosen target based on the selected mode. There
 2) the shootASAP mode (shootASAP=true) instead forces shooting to the nearest possible target
 */
 //TODO: Move constant parameters to CFG
-libCheck.goalTarget = [this](bool shootASAP) -> Vector2f {
-    return goalTarget(shootASAP);
+libCheck.goalTarget = [this](bool shootASAP, bool forceHeuristic) -> Vector2f {
+    return goalTarget(shootASAP, forceHeuristic);
   };
 
 libCheck.C2OwnField = [this]() -> bool {
@@ -1135,7 +1135,7 @@ libCheck.strikerPassShare = [&] () -> std::tuple<int,int,Pose2f>
       //Thus, choose to pass if it's easier than kicking,
       //measured in terms of how much walk-around-the-ball the striker needs
       //(because we've already assume the striker is close to the ball)
-      Pose2f goal_target = goalTarget(act_asap);
+      Pose2f goal_target = goalTarget(act_asap, false);
       Angle kickAngle = Angle(atan2f(
         goal_target.translation.y()-theRobotPose.translation.y(),
         goal_target.translation.x()-theRobotPose.translation.x()
@@ -1567,7 +1567,9 @@ float LibCheckProvider::areaValueHeuristic(const float leftLimit, const float ri
     //std::cout<<"final_utility: "<<std::endl;
     //std::cout<<final_utility<<std::endl;
 
-    return final_utility-pole_distance_penalty;
+    //return final_utility-pole_distance_penalty;
+    //Squared to avoid oscillations
+    return pow(final_utility-pole_distance_penalty, 2);
 
     //Ideas that can be exploited in order to improve this function:
     /*
@@ -1979,9 +1981,9 @@ float LibCheckProvider::areaValueHeuristic(const float leftLimit, const float ri
     return freeAreas;
   }
 
-//RECENTLY MODIFIED
-//TODO: Move constant parameters to CFG
-Vector2f LibCheckProvider::goalTarget(bool shootASAP)
+//shootASAP: if you're near the goal, shoot in the spot nearest to where you're looking at ("As Soon As Possible"), else use the heuristic to decide
+//forceHeuristic: always use the heuristic to decide where to shoot
+Vector2f LibCheckProvider::goalTarget(bool shootASAP, bool forceHeuristic)
 {
     //float GOAL_TARGET_AREA_MIN_SIZE = theBallSpecification.radius*AREA_SIZE_MULTIPLICATOR;
     float GOAL_TARGET_AREA_MIN_SIZE = theOpponentGoalModel.goalTargetAreaMinSize;
@@ -2037,7 +2039,8 @@ Vector2f LibCheckProvider::goalTarget(bool shootASAP)
     float minTargetableAreaDistance=INFINITY;
 
     //CASE 1: I'm near the goal post -> choose the nearest free area
-    if(shootASAP || (std::abs(theFieldDimensions.xPosOpponentGroundline-theRobotPose.translation.x())<GOAL_TARGET_DISTANCE_THRESHOLD && filteredFreeAreas.size()!=0) || filteredFreeAreas.size()==1)
+    if(!forceHeuristic && 
+        (shootASAP || (std::abs(theFieldDimensions.xPosOpponentGroundline-theRobotPose.translation.x())<GOAL_TARGET_DISTANCE_THRESHOLD && filteredFreeAreas.size()!=0) || filteredFreeAreas.size()==1))
     {
       for(int i = 0; i < filteredFreeAreas.size(); i++)
       {

@@ -39,7 +39,7 @@ STREAMABLE(BehaviorStatus, COMMA public BHumanMessageParticle<idBehaviorStatus>
     approachAndCarry,
     approachAndKick,
     //
-
+    
     approach_and_kick_start,
     choosing_target,
     aligning_to_ball,
@@ -53,6 +53,9 @@ STREAMABLE(BehaviorStatus, COMMA public BHumanMessageParticle<idBehaviorStatus>
 
     reaching_ball,
     debug_standing,
+
+    reaching_position,
+    idle,
 
     defender,
     defenderCore,

@@ -24,6 +24,8 @@
 #define TOLERANCE static_cast<float>(simStepLength)
 #endif
 
+#define HRI_VISION
+
 RoboCupCtrl* RoboCupCtrl::controller = nullptr;
 SimRobot::Application* RoboCupCtrl::application = nullptr;
 
@@ -218,11 +220,14 @@ void RoboCupCtrl::update()
       lastTime = t - TOLERANCE;
   }
 
+  #ifndef HRI_VISION
   gameController.referee();
+  #endif
 
   statusText = "";
   for(Robot* robot : robots)
     robot->update();
+    
   if(simTime)
     time += simStepLength;
 }

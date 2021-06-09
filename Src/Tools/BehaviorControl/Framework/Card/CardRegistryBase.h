@@ -13,6 +13,7 @@
 #include <unordered_map>
 #include <string>
 
+
 struct ActivationGraph;
 class CardBase;
 class CardCreatorBase;

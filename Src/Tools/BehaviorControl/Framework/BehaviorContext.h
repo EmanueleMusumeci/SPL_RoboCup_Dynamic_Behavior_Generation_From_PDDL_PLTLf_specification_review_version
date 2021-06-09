@@ -14,4 +14,6 @@ struct BehaviorContext
   unsigned behaviorStart = 0; /**< The time when the behavior (card or skill) started to run. */
   unsigned stateStart = 0; /**< The time when the current state started to run. */
   const char* stateName = nullptr; /**< The name of the current state. */
+
+  unsigned interactionStateStart = 0; /**< The time when the current state started to run. */
 };
