@@ -550,13 +550,14 @@ function createResetTasksButton() {
               
 
     var btn = document.createElement("BUTTON");
+    btn.classList.add("settings-horizontal-container")
     btn.id = "resetTasksButton"
     btn.innerHTML = "Reset tasks";
 
     btn.onmousedown = function(e){
         var canvas = document.getElementById("field-canvas");
 
-        //Highlight the button for 0.2 seconds after press to give visual feedback for the button press
+        //Highlight the button for 1 seconds after press to give visual feedback for the button press
         toggleButton(e.target)
         setTimeout(function () {toggleButton(e.target)}, 200)
 
@@ -576,7 +577,7 @@ function createTaskPreview(taskLabel, taskID, position=undefined) {
     div.id = "task-"+taskID;
     div.taskID = taskID
 
-    div.innerHTML = taskLabel
+    div.innerHTML = "("+taskID+") "+taskLabel
 
     if(position!=undefined) div.innerHTML+="\n("+position[0]+", "+position[1]+")";
 

@@ -8,18 +8,21 @@
 //DONE: this node should manage disconnection of js clients by updating its representations of the "control session"
   //TODO: test with multiple clients at once
 //DONE: the python server should manage disconnection of this client through keepalive and by deleting all client control sessions in case keepalive not received
-  //TODO: Solve bug that happens when the NodeJS server is restarted and the JS client reconnects but orders issued are not delivered (probly wrong webSocket reference is used in the client)
-//TODO when robot crashes, it is still appearing in the web interface but commands can still be issued even though they're not received: grey out the buttons
+  //DONE: Solve bug that happens when the NodeJS server is restarted and the JS client reconnects but orders issued are not delivered (probly wrong webSocket reference is used in the client)
+//DONE when robot crashes, it is still appearing in the web interface but commands can still be issued even though they're not received: grey out the buttons
 //DONE also, clear the task queue when the robot disconnects
 
-//TODO: Fix the robot still keeping the same position after disconnecting
+//DONE: Fix the robot still keeping the same position after disconnecting
 
-//TODO: reset tasks from GUI
+//DONE: reset tasks from GUI
+  //TODO: Solve a bug that prevents adding more than 2 ScoreGoalTask instances
+  //TODO: Similar to bug above, when resetting the task list only 1 ScoreGoalTask is actually deleted
 
-//TODO: fix the graphical render
+//DONE: fix the graphical render
 //TODO: improve graphics: action markers, task bar in GUI, client disabled screen
 
 //TODO: interactions
+//TODO: merge with new behaviors
 
 var currentConnection;
 

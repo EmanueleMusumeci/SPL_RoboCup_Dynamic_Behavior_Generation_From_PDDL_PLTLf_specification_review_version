@@ -281,7 +281,7 @@ class NAOCommunicationController(twisted.internet.protocol.DatagramProtocol):
                             task_list_string+=","+str(parameter)
                     
                 
-                #print(task_list_string)
+                print(task_list_string)
                 self.send_string(task_list_string)
             else:
                 return

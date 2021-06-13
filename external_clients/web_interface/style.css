@@ -68,6 +68,10 @@
         float:bottom;
     }
 
+    #resetTasksButton.active  {
+        background-color: #312b2b;
+    }
+
     #settings-container {
         overflow: hidden;
         border: 0.1vw solid #ccc;

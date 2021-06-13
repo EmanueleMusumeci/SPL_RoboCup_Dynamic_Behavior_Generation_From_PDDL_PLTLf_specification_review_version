@@ -114,8 +114,8 @@ void HRIControllerProvider::update(HRIController& controller)
             maxTaskID = std::max(task.taskID, maxTaskID);
         }
         controller.taskQueue.clear();
-        controller.lastReceivedTaskID = maxTaskID;
-        controller.lastCompletedTaskID = maxTaskID;
+        controller.lastReceivedTaskID = maxTaskID + 1;
+        controller.lastCompletedTaskID = maxTaskID + 1;
         controller.currentAction = 0;
     };
     
