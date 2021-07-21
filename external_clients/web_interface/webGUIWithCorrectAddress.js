@@ -1,3 +1,5 @@
+var SERVER_IP = '127.0.0.1';
+console.log(SERVER_IP);
 "use strict";
 
 if(typeof console === "undefined"){
