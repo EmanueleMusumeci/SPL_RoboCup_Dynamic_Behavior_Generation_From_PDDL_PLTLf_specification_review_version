@@ -145,7 +145,7 @@ void TeamMessageHandler::update(TeamData& teamData)
       ) return;
 
     //the message had an parsing error
-    if(theFrameInfo.getTimeSince(timeWhenLastMimimi) > minTimeBetween2RejectSounds && SystemCall::playSound("intruderAlert.wav"))
+    if(theFrameInfo.getTimeSince(timeWhenLastMimimi) > minTimeBetween2RejectSounds /*&& SystemCall::playSound("intruderAlert.wav")*/)
       timeWhenLastMimimi = theFrameInfo.time;
 
     ANNOTATION("intruder-alert", "error code: " << receivedMessageContainer.lastErrorCode);

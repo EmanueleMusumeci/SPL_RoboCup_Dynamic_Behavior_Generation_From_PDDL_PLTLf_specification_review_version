@@ -6,6 +6,8 @@
  * @author Emanuele Musumeci (based on Emanuele Antonioni's basic approacher behavior structure)
  */
 
+#include "Platform/Linux/SoundPlayer.h"
+
 #include "Representations/BehaviorControl/BehaviorStatus.h"
 #include "Representations/BehaviorControl/Skills.h"
 #include "Representations/BehaviorControl/BehaviorStatus.h"
@@ -19,6 +21,7 @@
 #include "Tools/Math/BHMath.h"
 #include "Platform/SystemCall.h"
 #include <string>
+
 CARD(ReachPositionCard,
 {,
   CALLS(Activity),
@@ -27,9 +30,13 @@ CARD(ReachPositionCard,
   CALLS(LookAtPoint),
   CALLS(Stand),
   CALLS(WalkToTargetPathPlanner),
+  CALLS(WalkToTarget),
   CALLS(GoalTarget),
   CALLS(SetTarget),
   CALLS(KeyFrameArms),
+  CALLS(LookLeftAndRight),
+  
+  CALLS(TurnToTargetThenTurnToUserThenPointAndSaySomething),
 
   REQUIRES(LibCheck),
   REQUIRES(RobotPose),
@@ -44,8 +51,9 @@ CARD(ReachPositionCard,
     
     (int) initialWaitTime,
     (int) realignmentTimeout,
+    (int) waitForSoundToStartPlaying,
+    (int) waitBeforePlayingSound,
 
-    //(Rangef) attemptRelocalizationEveryTimeRange,
 
     (Rangef) smallAlignmentRange,
 
@@ -56,9 +64,11 @@ CARD(ReachPositionCard,
 class ReachPositionCard : public ReachPositionCardBase
 {
 
+  bool soundPlaying = false;
+
   bool preconditions() const override
   {
-    std::cout<<"theHRIController.getCurrentActionType(): "<<TypeRegistry::getEnumName(theHRIController.getCurrentActionType())<<std::endl;
+    //std::cout<<"theHRIController.getCurrentActionType(): "<<TypeRegistry::getEnumName(theHRIController.getCurrentActionType())<<std::endl;
     return (theHRIController.getCurrentActionType() == HRI::ActionType::ReachPosition || theHRIController.getCurrentActionType() == HRI::ActionType::ReachBall)
           &&
           theLibCheck.distance(theRobotPose, theHRIController.currentRobotDestination) > theHRIController.reachPositionDistanceThreshold;
@@ -80,7 +90,7 @@ class ReachPositionCard : public ReachPositionCardBase
       transition
       {
         if(state_time > initialWaitTime)
-          goto walkToPosition;
+          goto interactWithHuman;
       }
 
       action
@@ -104,9 +114,38 @@ class ReachPositionCard : public ReachPositionCardBase
       }
     }
 
+    state(interactWithHuman)
+    {
+      transition
+      {
+        if(theTurnToTargetThenTurnToUserThenPointAndSaySomethingSkill.isDone())
+        {
+          std::cout<<"speakToHuman -> stand: sound finished playing"<<std::endl;
+          goto walkToPosition;
+        }
+      }
+
+      action
+      {
+        if(theHRIController.getCurrentActionType() == HRI::ActionType::ReachPosition)
+        {
+          theTurnToTargetThenTurnToUserThenPointAndSaySomethingSkill(theHRIController.currentRobotDestination, 
+                                                                    Vector3f(theHRIController.userPosition.x(), theHRIController.userPosition.y(), theHRIController.userHeight),
+                                                                    Vector3f(theHRIController.currentRobotDestination.x(), theHRIController.currentRobotDestination.y(), 0.f),
+                                                                    std::string("ReachingPosition.wav"));
+        }
+        else if(theHRIController.getCurrentActionType() == HRI::ActionType::ReachBall)
+        {
+          theTurnToTargetThenTurnToUserThenPointAndSaySomethingSkill(theHRIController.currentRobotDestination, 
+                                                                    Vector3f(theHRIController.userPosition.x(), theHRIController.userPosition.y(), theHRIController.userHeight),
+                                                                    Vector3f(theHRIController.currentRobotDestination.x(), theHRIController.currentRobotDestination.y(), 0.f),
+                                                                    std::string("ReachingBall.wav"));
+        }
+      }
+    }
+
     state(walkToPosition)
     {
-      //std::cout<<"walk"<<std::endl;
       transition
       {
            if(theLibCheck.distance(theRobotPose, theHRIController.currentRobotDestination) <= theHRIController.reachPositionDistanceThreshold)
@@ -116,14 +155,15 @@ class ReachPositionCard : public ReachPositionCardBase
       action
       {
         theActivitySkill(BehaviorStatus::reaching_position);
-        theLookAtPointSkill(Vector3f(theHRIController.currentRobotDestination.x(), theHRIController.currentRobotDestination.y(), 10.f));
+        Vector2f localTarget = theLibCheck.glob2Rel(theHRIController.currentRobotDestination.x(), theHRIController.currentRobotDestination.y()).translation;
+        //theLookAtPointSkill(Vector3f(localTarget.x(), localTarget.y(), 10.f));
+        theLookLeftAndRightSkill();
         theWalkToTargetPathPlannerSkill(Pose2f(1.f,1.f,1.f), theHRIController.currentRobotDestination);
       }
     }
 
     state(stand)
     {
-      //std::cout<<"walk"<<std::endl;
       transition
       {}
 

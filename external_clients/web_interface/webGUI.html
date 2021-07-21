@@ -16,10 +16,11 @@
     </div>
     <div id="settings-container">
         <div class="settings-tabs-header">
-            <button id="default-tab-button" class="settings-tab-button active" onclick="openTab(event, 'tasks-tab')">Tasks</button>
+            <button id="default-tab-button" class="settings-tab-button active" onclick="openTab(event, 'simple-tasks-tab')">Simple</button>
+            <button id="default-tab-button" class="settings-tab-button active" onclick="openTab(event, 'complex-tasks-tab')">Complex</button>
             <!--button class="settings-tab-button" onclick="openTab(event, 'general-settings-tab')">General settings</button-->
         </div>
-        <div id="tasks-tab" class="settings-tab">
+        <div id="simple-tasks-tab" class="settings-tab">
             <!--
                 <div class="settings-horizontal-container" style="height:30%">
                     <div class="settings-horizontal-container" style="height:40%"> 
@@ -50,6 +51,8 @@
                     </div>
                 </div>
             -->
+        </div>
+        <div id="complex-tasks-tab" class="settings-tab">
         </div>
         <!--div id="general-settings-tab" class="settings-tab">
             <div class="settings-sub-tabs-header">           
@@ -311,7 +314,7 @@
     
 
 <script type="text/javascript" src="webPageUtils.js"></script>
-<script type="text/javascript" src="webGUI.js"></script>
+<script type="text/javascript" src="webGUIWithCorrectAddress.js"></script>
 
 
 </html>

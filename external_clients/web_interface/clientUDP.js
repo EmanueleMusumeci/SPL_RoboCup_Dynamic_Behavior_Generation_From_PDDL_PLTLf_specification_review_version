@@ -4,29 +4,13 @@
 //NOTICE: this client acts only as a buffer between multiple control clients and the python server, just repeating messages and managing connections (with keepalives)
 //all the protocol logic is contained in the python client and the js client
 
-//DONE: the js client has to send its unique ID to this node which in turn sends it to the python script in order to open a "control session"
-//DONE: this node should manage disconnection of js clients by updating its representations of the "control session"
-  //TODO: test with multiple clients at once
-//DONE: the python server should manage disconnection of this client through keepalive and by deleting all client control sessions in case keepalive not received
-  //DONE: Solve bug that happens when the NodeJS server is restarted and the JS client reconnects but orders issued are not delivered (probly wrong webSocket reference is used in the client)
-//DONE when robot crashes, it is still appearing in the web interface but commands can still be issued even though they're not received: grey out the buttons
-//DONE also, clear the task queue when the robot disconnects
-
-//DONE: Fix the robot still keeping the same position after disconnecting
-
-//DONE: reset tasks from GUI
-  //TODO: Solve a bug that prevents adding more than 2 ScoreGoalTask instances
-  //TODO: Similar to bug above, when resetting the task list only 1 ScoreGoalTask is actually deleted
-
-//DONE: fix the graphical render
-//TODO: improve graphics: action markers, task bar in GUI, client disabled screen
-
-//TODO: interactions
-//TODO: merge with new behaviors
+//Set this to false if you want to connect with an external device
+var USE_LOCALHOST = true;
 
 var currentConnection;
 
 var WebSocketServer = require('websocket').server;
+var os = require('os');
 
 //DO NOT TOUCH
 var remote_read_port = 65300
@@ -41,13 +25,41 @@ var BACKEND_INACTIVE = true;
 var BACKEND_KEEPALIVE_SEND_INTERVAL = 4000;
 var BACKEND_KEEPALIVE_RECEIVE_INTERVAL = 2000;
 
-var local_ip = "127.0.0.1"
-var local_read_port = 65301
-var local_write_port = 65300
+LOCAL_BACKEND_IP = "127.0.0.1"
+
+LOCAL_BACKEND_READ_PORT = 65301;
+LOCAL_BACKEND_WRITE_PORT = 65300;
+
+//Taken from https://stackoverflow.com/questions/10750303/how-can-i-get-the-local-ip-address-in-node-js
+if(USE_LOCALHOST)
+{
+  LOCAL_IP = "127.0.0.1"
+}
+else
+{
+  //Get local IP address
+  var interfaces = os.networkInterfaces();
+  var addresses = [];
+  for (var k in interfaces) {
+      for (var k2 in interfaces[k]) {
+          var address = interfaces[k][k2];
+          if (address.family === 'IPv4' && !address.internal) {
+              addresses.push(address.address);
+          }
+      }
+  }
+  LOCAL_IP = addresses[0]
+}
+if(LOCAL_IP == undefined)
+{
+  console.log("No network connection detected, switching to localhost")
+  LOCAL_IP = "127.0.0.1"
+}
+console.log(LOCAL_IP)
 
 //Compute client id as hex hash of the address
 var crypto = require('crypto');
-var client_id = crypto.createHash('md5').update(local_ip + local_read_port).digest('hex');
+var client_id = crypto.createHash('md5').update(LOCAL_IP + LOCAL_BACKEND_READ_PORT).digest('hex');
 
 const dgram = require('dgram');
 const read_socket = dgram.createSocket('udp4');
@@ -101,7 +113,7 @@ read_socket.on('message', (message, rinfo) => {
 
 read_socket.on('listening', () => {
   const address = read_socket.address();
-  console.log(`Backend communication socket listening ${address.address}:${address.port}`);
+  console.log(`[BACKEND; SETUP] Backend communication socket listening ${address.address}:${address.port}`);
 });
 
 read_socket.bind(65301);
@@ -109,7 +121,7 @@ read_socket.bind(65301);
 //Write socket
 function generateHeader()
 {
-  return Buffer.from('client_id,'+local_ip+','+local_read_port+','+client_id+'|');
+  return Buffer.from('client_id,'+LOCAL_IP+','+LOCAL_BACKEND_READ_PORT+','+client_id+'|');
 }
 
 function send_registration_message_to_backend()
@@ -120,7 +132,7 @@ function send_registration_message_to_backend()
 
   var message = message_header + message_content
 
-  write_socket.send(message, 65300, '127.0.0.1', (err) => {});
+  write_socket.send(message, 65300, LOCAL_BACKEND_IP, (err) => {});
 }
 
 var backend_keepalive_receive_timeout;
@@ -149,6 +161,8 @@ backend_keepalive_send_timeout = setInterval(requestKeepaliveToBackend, BACKEND_
 // ---------------------
 
 
+LOCAL_FRONTEND_WEBSOCKET_PORT = 4000;
+
 function generateWebSocketHeader()
 {
   return "TOCLIENT!"
@@ -158,15 +172,17 @@ function generateWebSocketHeader()
 //Taken from https://medium.com/@martin.sikora/node-js-websocket-simple-chat-tutorial-2def3a841b61
 var http = require('http');
 
-var server = http.createServer(function(request, response) {
+var httpWebSocketServer = http.createServer(function(request, response) {
   // process HTTP request. Since we're writing just WebSockets
   // server we don't have to implement anything.
 });
-server.listen(4000, function() { });
+httpWebSocketServer.listen(LOCAL_FRONTEND_WEBSOCKET_PORT, function() { });
+console.log("[FRONTEND; SETUP] Frontend WebSocket listening:\n \
+\t Address: "+LOCAL_IP+":"+LOCAL_FRONTEND_WEBSOCKET_PORT+"\n")
 
 // create the server
-wsServer = new WebSocketServer({
-  httpServer: server,
+webSocket = new WebSocketServer({
+  httpServer: httpWebSocketServer,
   //keepalive: true,
   //keepaliveInterva: 5000,
   //keepaliveGracePeriod: 5000,
@@ -178,12 +194,14 @@ var currentRobotNumber = undefined;
 var currentConnection = undefined;
 var waitingConnections = [];
 
+
 // WebSocket server
-wsServer.on('request', function(request) {
+webSocket.on('request', function(request) {
 
   receivedConnection = request.accept(null, request.origin);
 
-  console.log("[FRONTEND; SETUP] Frontend communication socket listening")
+  console.log("[FRONTEND; CONNECTION] Received connection from:\n\n \
+\tReceived address:"+request.origin+"\n\n");
 
   //If no client is connected right now, set the request as the current connection
   //else tell the client another client is already connected and he's disabled for now
@@ -197,7 +215,7 @@ wsServer.on('request', function(request) {
     waitingConnections.push(receivedConnection)
   }
 
-  console.log('[FRONTEND; REGISTERING] Connection accepted.');
+  console.log('[FRONTEND; CONNECTION] Connection accepted.');
   receivedConnection.on('message', function(message) {
       if (message.type === 'utf8') {
         
@@ -213,6 +231,7 @@ wsServer.on('request', function(request) {
         
         message_header = message_fields[0]
         message_content = message_fields[1]
+        //console.log(message_content)
 
         receivedClientID = message_header.split(";")[0].split(",")[1]
         receivedRobotNumber = message_header.split(";")[1].split(",")[1]
@@ -259,20 +278,27 @@ wsServer.on('request', function(request) {
           }
 
           try{
-            write_socket.send(generateHeader() + message_content, 65300, '127.0.0.1', (err) => {});
+            write_socket.send(generateHeader() + message_content, 65300, LOCAL_BACKEND_IP, (err) => {});
           } catch {}
         }
         else if(message_content.startsWith("resetTasks"))
         {
           console.log("resetTasks")
           try{
-            write_socket.send(generateHeader() + message_content, 65300, '127.0.0.1', (err) => {});
+            write_socket.send(generateHeader() + message_content, 65300, LOCAL_BACKEND_IP, (err) => {});
+          } catch {}
+        }
+        else if(message_content.startsWith("deleteTask"))
+        {
+          console.log(message_content)
+          try{
+            write_socket.send(generateHeader() + message_content, 65300, LOCAL_BACKEND_IP, (err) => {});
           } catch {}
         }
         /*else if(message_content.length > 0)
         {
           try{
-            write_socket.send(message_content, 65300, '127.0.0.1', (err) => {});
+            write_socket.send(message_content, 65300, LOCAL_BACKEND_IP, (err) => {});
           } catch {}
         }*/
       }
@@ -293,3 +319,42 @@ wsServer.on('request', function(request) {
     currentRobotNumber = undefined;
   });
 });
+
+
+
+// ---------------------
+// |   Serve WebPage   |
+// ---------------------
+
+const fs = require('fs')
+const path = require('path')
+
+var express = require('express');
+var app = express();
+
+LOCAL_FRONTEND_GUI_PORT = 3000
+
+app.use(express.static(__dirname));
+
+app.get('*', function(req, res) {
+  fs.readFile(__dirname+path.sep+'webGUI.js', "utf8", function (err, data){
+    
+    //First modify the js script to use the correct local ip (which is the websocket ip of this node js server)
+    data = "var SERVER_IP = '"+LOCAL_IP+"';\nconsole.log(SERVER_IP);\n"+data;
+    
+    //Write it as a new file
+    fs.writeFile(__dirname+path.sep+'webGUIWithCorrectAddress.js', data, {}, function() {
+      
+      //Then serve the HTML page
+      res.writeHead(200, { 'content-type': 'text/html' })
+      fs.createReadStream(__dirname+path.sep+'webGUI.html').pipe(res)
+    });
+
+  });
+});
+app.listen(LOCAL_FRONTEND_GUI_PORT);
+
+
+console.log("[FRONTEND; SETUP] Frontend webGUI server listening:\n \
+\t Address: "+LOCAL_IP+":"+LOCAL_FRONTEND_GUI_PORT+"\n")
+

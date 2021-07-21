@@ -45,7 +45,7 @@
       color: white;
       padding: 3% 4%;
       text-align: center;
-      font-size: 1.3vw;
+      font-size: 1.5vw;
       font-family: sans-serif;
       position:relative;
       display:block;
@@ -68,7 +68,23 @@
         float:bottom;
     }
 
-    #resetTasksButton.active  {
+    #tellInstructionsButton{
+        background-color: #0000ff; /* Green */
+        border: none;
+        width:80%;
+        height:110%;
+        color: white;
+        padding: 3% 4%;
+        text-align: center;
+        display: block;
+        font-size: 1.3vw;
+        font-family: inherit;
+        border-radius:0.8vw;
+        position:relative;
+        float:bottom;
+    }
+
+    #resetTasksButton.active #tellInstructionsButton.active  {
         background-color: #312b2b;
     }
 
@@ -106,7 +122,7 @@
         cursor: pointer;
         transition: 0.3s;
         text-align:center;
-        width: 33.1%;
+        width: 50%;
         position:relative;
         height:100%;
         font-size: 1.2vw;

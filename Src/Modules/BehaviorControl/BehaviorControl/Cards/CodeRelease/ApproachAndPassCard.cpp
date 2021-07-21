@@ -26,7 +26,6 @@
 #include "Platform/SystemCall.h"
 #include <string>
 
-//TODO: Investigate and fix oscillation problem
 
 CARD(ApproachAndPassCard,
 {,

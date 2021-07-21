@@ -57,6 +57,10 @@ STREAMABLE(BehaviorStatus, COMMA public BHumanMessageParticle<idBehaviorStatus>
     reaching_position,
     idle,
 
+    interacting_with_human,
+
+    givingInitialSpeech,
+
     defender,
     defenderCore,
     defenderCoreAU,
@@ -74,6 +78,7 @@ STREAMABLE(BehaviorStatus, COMMA public BHumanMessageParticle<idBehaviorStatus>
     goalie2020,
     codeReleasePositionForKickOff,
     passing, // new for passShareProvider
+    walking_to_initial_position,
 
   });
 

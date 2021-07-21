@@ -34,5 +34,6 @@ STREAMABLE(ExternalServerCommunicationControl,
 
   (bool) graphicalDebug,
   (std::vector<Task>) currentTaskQueue,
+
   
 });

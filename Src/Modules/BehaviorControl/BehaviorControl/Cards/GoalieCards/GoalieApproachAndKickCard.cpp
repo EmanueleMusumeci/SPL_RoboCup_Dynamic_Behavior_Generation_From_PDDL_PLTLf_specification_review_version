@@ -194,7 +194,7 @@ class GoalieApproachAndKickCard : public GoalieApproachAndKickCardBase
       }
       action{
         theLookAtPointSkill(Vector3f(theFieldBall.positionRelative.x(), theFieldBall.positionRelative.y(), 0.f));
-        theWalkToApproachSkill(Pose2f(2000.f,0.f),                          //TODO: change target s.t. perform passage or free area
+        theWalkToApproachSkill(Pose2f(2000.f,0.f),                          
         ballOffsetX, ballOffsetY, true);
       }
     }

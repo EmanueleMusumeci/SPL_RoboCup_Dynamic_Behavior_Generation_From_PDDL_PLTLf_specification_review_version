@@ -1,11 +1,12 @@
 "use strict";
 
+if(typeof console === "undefined"){
+    console = {};
+}
 
-//TODO: Terminare protocollo di rete (task queue attuale, conviene inviare i task attuali dal backend in caso di disconnessione e riconnessione del client, invio di task appena assegnati)
-//TODO: Implementare rappresentazione grafica task queue
-//TODO: Migliorare schermata client disabilitato
-//TODO: Imporre al server NodeJS di disabilitare il client se il backend è inattivo!!!
-
+//DONE: Terminare protocollo di rete (task queue attuale, conviene inviare i task attuali dal backend in caso di disconnessione e riconnessione del client, invio di task appena assegnati)
+//DONE: Implementare rappresentazione grafica task queue
+//DONE: Imporre al server NodeJS di disabilitare il client se il backend è inattivo!!!
 
 var ACTIVE_ROBOT_NUMBER = 3
     
@@ -14,36 +15,110 @@ var gl;
 
 var showMesh, showNormals, showContours, showLightPosition, showTexture;
 
-var FIELD_WIDTH = 10400;
-var FIELD_HEIGHT = 7400;
 
-var FIELD_LINES_WIDTH = 50;
 
-var CENTER_CIRCLE_RADIUS = 750;
-var CENTER_DOT_RADIUS = 35;
+var SMALL_FIELD = true;
 
-var Y_POS_SIDE_LINE = 3000;
-var X_POS_SIDE_LINE = 4500;
 
-var PENALTY_AREA_WIDTH = 1650;
-var PENALTY_AREA_HEIGHT = 4000;
+var DEFAULT_CANVAS_FIELD_WIDTH = 10400;
+var DEFAULT_CANVAS_FIELD_HEIGHT = 7400;
 
-var GOAL_BOX_WIDTH = 600;
-var GOAL_BOX_HEIGHT = 2200;
+var CURRENT_CANVAS_FIELD_WIDTH = 6600;
+var CURRENT_CANVAS_FIELD_HEIGHT = 4600;
 
-var TARGET_RADIUS = 100;
+var CURRENT_BORDER_STRIP_WIDTH = 700;
 
-var PENALTY_CROSS_SIZE = 100;
-var PENALTY_CROSS_X_DISTANCE = 1300;
-var X_POS_PENALTY_CROSS = X_POS_SIDE_LINE - PENALTY_CROSS_X_DISTANCE;
+if(SMALL_FIELD)
+{
+    DEFAULT_CANVAS_FIELD_WIDTH = 7400;
+    DEFAULT_CANVAS_FIELD_HEIGHT = 5400;
 
-var GOAL_POST_RADIUS = 60;
-var GOAL_POST_WIDTH = 500;
-var GOAL_POST_HEIGHT = 1500;
+    CURRENT_CANVAS_FIELD_WIDTH = 7400;
+    CURRENT_CANVAS_FIELD_HEIGHT = 5400;
 
-var BALL_RADIUS = 100;
-var ROBOT_RADIUS = 150;
-var OBSTACLE_RADIUS = ROBOT_RADIUS;
+    CURRENT_BORDER_STRIP_WIDTH = 700;
+}
+
+var CURRENT_FIELD_WIDTH = CURRENT_CANVAS_FIELD_WIDTH - CURRENT_BORDER_STRIP_WIDTH;
+var CURRENT_FIELD_HEIGHT = CURRENT_CANVAS_FIELD_HEIGHT - CURRENT_BORDER_STRIP_WIDTH;
+
+var CANVAS_RESOLUTION_FACTOR = 0.4;
+
+var CANVAS_FIELD_WIDTH = Math.floor(CURRENT_CANVAS_FIELD_WIDTH * CANVAS_RESOLUTION_FACTOR);
+var CANVAS_FIELD_HEIGHT = Math.floor(CURRENT_CANVAS_FIELD_HEIGHT * CANVAS_RESOLUTION_FACTOR);
+
+var FIELD_WIDTH = Math.floor(CURRENT_FIELD_WIDTH * CANVAS_RESOLUTION_FACTOR);
+var FIELD_HEIGHT = Math.floor(CURRENT_FIELD_HEIGHT * CANVAS_RESOLUTION_FACTOR);
+
+function mapValueToCurrentField(value)
+{
+    return Utils.mapValue(value, 0, CURRENT_CANVAS_FIELD_WIDTH, 0, DEFAULT_CANVAS_FIELD_WIDTH)
+}
+
+function mapValueToCurrentCanvas(value)
+{
+    return Utils.mapValue(value, 0, CANVAS_FIELD_WIDTH, 0, CURRENT_CANVAS_FIELD_WIDTH);
+}
+
+if(SMALL_FIELD)
+{
+    var FieldDimensions = 
+    {
+        FIELD_LINES_WIDTH : mapValueToCurrentCanvas(mapValueToCurrentField(50)),
+
+        CENTER_CIRCLE_RADIUS : mapValueToCurrentCanvas(mapValueToCurrentField(750)),
+        CENTER_DOT_RADIUS : mapValueToCurrentCanvas(mapValueToCurrentField(35)),
+
+        Y_POS_SIDE_LINE : mapValueToCurrentCanvas(mapValueToCurrentField(2000)),
+        X_POS_SIDE_LINE : mapValueToCurrentCanvas(mapValueToCurrentField(3000)),
+
+        PENALTY_AREA_WIDTH : mapValueToCurrentCanvas(mapValueToCurrentField(600)),
+        PENALTY_AREA_HEIGHT : mapValueToCurrentCanvas(mapValueToCurrentField(2200)),
+
+        PENALTY_CROSS_SIZE : mapValueToCurrentCanvas(mapValueToCurrentField(100)),
+        PENALTY_CROSS_X_DISTANCE : mapValueToCurrentCanvas(mapValueToCurrentField(1300)),
+        X_POS_PENALTY_CROSS : this.X_POS_SIDE_LINE - this.PENALTY_CROSS_X_DISTANCE,
+        GOAL_POST_RADIUS : mapValueToCurrentCanvas(mapValueToCurrentField(60)),
+        GOAL_POST_WIDTH : mapValueToCurrentCanvas(mapValueToCurrentField(500)),
+        GOAL_POST_HEIGHT : mapValueToCurrentCanvas(mapValueToCurrentField(1500)),
+        TARGET_RADIUS : mapValueToCurrentCanvas(mapValueToCurrentField(100)),
+        BALL_RADIUS : mapValueToCurrentCanvas(mapValueToCurrentField(100)),
+        ROBOT_RADIUS : mapValueToCurrentCanvas(mapValueToCurrentField(150)),
+        OBSTACLE_RADIUS : this.ROBOT_RADIUS,
+
+    }
+}
+else
+{
+    var FieldDimensions = 
+    {
+        FIELD_LINES_WIDTH : mapValueToCurrentCanvas(mapValueToCurrentField(50)),
+
+        CENTER_CIRCLE_RADIUS : mapValueToCurrentCanvas(mapValueToCurrentField(750)),
+        CENTER_DOT_RADIUS : mapValueToCurrentCanvas(mapValueToCurrentField(35)),
+
+        Y_POS_SIDE_LINE : mapValueToCurrentCanvas(mapValueToCurrentField(3000)),
+        X_POS_SIDE_LINE : mapValueToCurrentCanvas(mapValueToCurrentField(4500)),
+
+        PENALTY_AREA_WIDTH : mapValueToCurrentCanvas(mapValueToCurrentField(1650)),
+        PENALTY_AREA_HEIGHT : mapValueToCurrentCanvas(mapValueToCurrentField(4000)),
+
+        GOAL_BOX_WIDTH : mapValueToCurrentCanvas(mapValueToCurrentField(600)),
+        GOAL_BOX_HEIGHT : mapValueToCurrentCanvas(mapValueToCurrentField(2200)),
+
+        PENALTY_CROSS_SIZE : mapValueToCurrentCanvas(mapValueToCurrentField(100)),
+        PENALTY_CROSS_X_DISTANCE : mapValueToCurrentCanvas(mapValueToCurrentField(1300)),
+        X_POS_PENALTY_CROSS : this.X_POS_SIDE_LINE - this.PENALTY_CROSS_X_DISTANCE,
+        GOAL_POST_RADIUS : mapValueToCurrentCanvas(mapValueToCurrentField(60)),
+        GOAL_POST_WIDTH : mapValueToCurrentCanvas(mapValueToCurrentField(500)),
+        GOAL_POST_HEIGHT : mapValueToCurrentCanvas(mapValueToCurrentField(1500)),
+        TARGET_RADIUS : mapValueToCurrentCanvas(mapValueToCurrentField(100)),
+        BALL_RADIUS : mapValueToCurrentCanvas(mapValueToCurrentField(100)),
+        ROBOT_RADIUS : mapValueToCurrentCanvas(mapValueToCurrentField(150)),
+        OBSTACLE_RADIUS : this.ROBOT_RADIUS,
+
+    }
+}
 
 var fieldBackgroundColor = "#00FF00";
 var fieldLinesColor = "#00FF00";
@@ -52,6 +127,12 @@ var robotColor = "#00FF00";
 var obstacleColor = "";
 var goalColor = "";
 var targetPositionColor = "";
+
+var taskColors = [];
+for(var i = 0; i<500; i++)
+{
+    taskColors[i] = Utils.generateRandomColor();
+}
 
 var canvasTextColor = "#FFFFFF";
 var canvasContainerBackgroundColor = "#DDDDEE";
@@ -78,6 +159,8 @@ function drawCircle(ctx, centerX, centerY, radius, fillColor = undefined, lineCo
         centerY = centerY + withRespectToCenter[1];
     }
 
+    console.log(centerX)
+    console.log(centerY)
     ctx.beginPath();
     ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI, false);
     
@@ -89,6 +172,20 @@ function drawCircle(ctx, centerX, centerY, radius, fillColor = undefined, lineCo
     ctx.lineWidth = lineWidth;
     ctx.strokeStyle = lineColor;
     ctx.stroke();
+}
+
+function drawTextLabel(ctx, xPos, yPos, text, color, size, withRespectToCenter = undefined)
+{
+    if(withRespectToCenter != undefined)
+    {
+        xPos = xPos + withRespectToCenter[0];
+        yPos = yPos + withRespectToCenter[1];
+    }
+
+    ctx.font = size+"px Arial";
+    ctx.fillStyle = color;
+    ctx.textAlign = "center";
+    ctx.fillText(text, xPos, yPos);
 }
 
 function drawLine(ctx, fromX, fromY, toX, toY, lineColor = "#000000", lineWidth = 5, withRespectToCenter = undefined)
@@ -160,86 +257,94 @@ function drawField(canvas)
 {
     var ctx = canvas.getContext('2d');
     
+
     drawRectangle(ctx, 0, 0, canvas.width, canvas.height, canvasBackgroundColor, "#FFFFFF", 5)
 
     //Center circle
-    drawCircle(ctx, 0, 0, CENTER_CIRCLE_RADIUS, canvasBackgroundColor, "#FFFFFF", FIELD_LINES_WIDTH, [FIELD_WIDTH/2, FIELD_HEIGHT/2]);
-    drawCircle(ctx, 0, 0, CENTER_DOT_RADIUS, canvasBackgroundColor, "#FFFFFF", FIELD_LINES_WIDTH, [FIELD_WIDTH/2, FIELD_HEIGHT/2]);
+    drawCircle(ctx, 0, 0, FieldDimensions.CENTER_CIRCLE_RADIUS, canvasBackgroundColor, "#FFFFFF", FieldDimensions.FIELD_LINES_WIDTH, [CANVAS_FIELD_WIDTH/2, CANVAS_FIELD_HEIGHT/2]);
+    drawCircle(ctx, 0, 0, FieldDimensions.CENTER_DOT_RADIUS, canvasBackgroundColor, "#FFFFFF", FieldDimensions.FIELD_LINES_WIDTH, [CANVAS_FIELD_WIDTH/2, CANVAS_FIELD_HEIGHT/2]);
 
     //Middle field line
-    drawLine(ctx, 0, Y_POS_SIDE_LINE, 0, -Y_POS_SIDE_LINE, "#FFFFFF", FIELD_LINES_WIDTH, [FIELD_WIDTH/2, FIELD_HEIGHT/2]);
-    
+    drawLine(ctx, 0, FieldDimensions.Y_POS_SIDE_LINE, 0, -FieldDimensions.Y_POS_SIDE_LINE, "#FFFFFF", FieldDimensions.FIELD_LINES_WIDTH, [CANVAS_FIELD_WIDTH/2, CANVAS_FIELD_HEIGHT/2]);
+
     //Horizontal side lines
-    drawLine(ctx, X_POS_SIDE_LINE, Y_POS_SIDE_LINE, -X_POS_SIDE_LINE, Y_POS_SIDE_LINE, "#FFFFFF", FIELD_LINES_WIDTH, [FIELD_WIDTH/2, FIELD_HEIGHT/2]);
-    drawLine(ctx, X_POS_SIDE_LINE, -Y_POS_SIDE_LINE, -X_POS_SIDE_LINE, -Y_POS_SIDE_LINE, "#FFFFFF", FIELD_LINES_WIDTH, [FIELD_WIDTH/2, FIELD_HEIGHT/2]);
+    drawLine(ctx, FieldDimensions.X_POS_SIDE_LINE, FieldDimensions.Y_POS_SIDE_LINE, -FieldDimensions.X_POS_SIDE_LINE, FieldDimensions.Y_POS_SIDE_LINE, "#FFFFFF", FieldDimensions.FIELD_LINES_WIDTH, [CANVAS_FIELD_WIDTH/2, CANVAS_FIELD_HEIGHT/2]);
+    drawLine(ctx, FieldDimensions.X_POS_SIDE_LINE, -FieldDimensions.Y_POS_SIDE_LINE, -FieldDimensions.X_POS_SIDE_LINE, -FieldDimensions.Y_POS_SIDE_LINE, "#FFFFFF", FieldDimensions.FIELD_LINES_WIDTH, [CANVAS_FIELD_WIDTH/2, CANVAS_FIELD_HEIGHT/2]);
 
     //Vertical side lines
-    drawLine(ctx, -X_POS_SIDE_LINE, -Y_POS_SIDE_LINE, -X_POS_SIDE_LINE, Y_POS_SIDE_LINE, "#FFFFFF", FIELD_LINES_WIDTH, [FIELD_WIDTH/2, FIELD_HEIGHT/2]);
-    drawLine(ctx, X_POS_SIDE_LINE, -Y_POS_SIDE_LINE, X_POS_SIDE_LINE, Y_POS_SIDE_LINE, "#FFFFFF", FIELD_LINES_WIDTH, [FIELD_WIDTH/2, FIELD_HEIGHT/2]);
+    drawLine(ctx, -FieldDimensions.X_POS_SIDE_LINE, -FieldDimensions.Y_POS_SIDE_LINE, -FieldDimensions.X_POS_SIDE_LINE, FieldDimensions.Y_POS_SIDE_LINE, "#FFFFFF", FieldDimensions.FIELD_LINES_WIDTH, [CANVAS_FIELD_WIDTH/2, CANVAS_FIELD_HEIGHT/2]);
+    drawLine(ctx, FieldDimensions.X_POS_SIDE_LINE, -FieldDimensions.Y_POS_SIDE_LINE, FieldDimensions.X_POS_SIDE_LINE, FieldDimensions.Y_POS_SIDE_LINE, "#FFFFFF", FieldDimensions.FIELD_LINES_WIDTH, [CANVAS_FIELD_WIDTH/2, CANVAS_FIELD_HEIGHT/2]);
 
     //Left penalty area
         //Horizontal lines
-        drawLine(ctx, -X_POS_SIDE_LINE, -PENALTY_AREA_HEIGHT/2, -X_POS_SIDE_LINE + PENALTY_AREA_WIDTH, -PENALTY_AREA_HEIGHT/2, "#FFFFFF", FIELD_LINES_WIDTH, [FIELD_WIDTH/2, FIELD_HEIGHT/2]);
-        drawLine(ctx, -X_POS_SIDE_LINE, PENALTY_AREA_HEIGHT/2, -X_POS_SIDE_LINE + PENALTY_AREA_WIDTH, PENALTY_AREA_HEIGHT/2, "#FFFFFF", FIELD_LINES_WIDTH, [FIELD_WIDTH/2, FIELD_HEIGHT/2]);
+        drawLine(ctx, -FieldDimensions.X_POS_SIDE_LINE, -FieldDimensions.PENALTY_AREA_HEIGHT/2, -FieldDimensions.X_POS_SIDE_LINE + FieldDimensions.PENALTY_AREA_WIDTH, -FieldDimensions.PENALTY_AREA_HEIGHT/2, "#FFFFFF", FieldDimensions.FIELD_LINES_WIDTH, [CANVAS_FIELD_WIDTH/2, CANVAS_FIELD_HEIGHT/2]);
+        drawLine(ctx, -FieldDimensions.X_POS_SIDE_LINE, FieldDimensions.PENALTY_AREA_HEIGHT/2, -FieldDimensions.X_POS_SIDE_LINE + FieldDimensions.PENALTY_AREA_WIDTH, FieldDimensions.PENALTY_AREA_HEIGHT/2, "#FFFFFF", FieldDimensions.FIELD_LINES_WIDTH, [CANVAS_FIELD_WIDTH/2, CANVAS_FIELD_HEIGHT/2]);
 
         //Vertical line
-        drawLine(ctx, -X_POS_SIDE_LINE + PENALTY_AREA_WIDTH, -PENALTY_AREA_HEIGHT/2, -X_POS_SIDE_LINE + PENALTY_AREA_WIDTH, PENALTY_AREA_HEIGHT/2, "#FFFFFF", FIELD_LINES_WIDTH, [FIELD_WIDTH/2, FIELD_HEIGHT/2]);
+        drawLine(ctx, -FieldDimensions.X_POS_SIDE_LINE + FieldDimensions.PENALTY_AREA_WIDTH, -FieldDimensions.PENALTY_AREA_HEIGHT/2, -FieldDimensions.X_POS_SIDE_LINE + FieldDimensions.PENALTY_AREA_WIDTH, FieldDimensions.PENALTY_AREA_HEIGHT/2, "#FFFFFF", FieldDimensions.FIELD_LINES_WIDTH, [CANVAS_FIELD_WIDTH/2, CANVAS_FIELD_HEIGHT/2]);
 
+    if(!SMALL_FIELD)
+    {
     //Left goal box
         //Horizontal lines
-        drawLine(ctx, -X_POS_SIDE_LINE, -GOAL_BOX_HEIGHT/2, -X_POS_SIDE_LINE + GOAL_BOX_WIDTH, -GOAL_BOX_HEIGHT/2, "#FFFFFF", FIELD_LINES_WIDTH, [FIELD_WIDTH/2, FIELD_HEIGHT/2]);
-        drawLine(ctx, -X_POS_SIDE_LINE, GOAL_BOX_HEIGHT/2, -X_POS_SIDE_LINE + GOAL_BOX_WIDTH, GOAL_BOX_HEIGHT/2, "#FFFFFF", FIELD_LINES_WIDTH, [FIELD_WIDTH/2, FIELD_HEIGHT/2]);
-
-        //Vertical line
-        drawLine(ctx, -X_POS_SIDE_LINE + GOAL_BOX_WIDTH, -GOAL_BOX_HEIGHT/2, -X_POS_SIDE_LINE + GOAL_BOX_WIDTH, GOAL_BOX_HEIGHT/2, "#FFFFFF", FIELD_LINES_WIDTH, [FIELD_WIDTH/2, FIELD_HEIGHT/2]);
+        drawLine(ctx, -FieldDimensions.X_POS_SIDE_LINE, -FieldDimensions.GOAL_BOX_HEIGHT/2, -FieldDimensions.X_POS_SIDE_LINE + FieldDimensions.GOAL_BOX_WIDTH, -FieldDimensions.GOAL_BOX_HEIGHT/2, "#FFFFFF", FieldDimensions.FIELD_LINES_WIDTH, [CANVAS_FIELD_WIDTH/2, CANVAS_FIELD_HEIGHT/2]);
+        drawLine(ctx, -FieldDimensions.X_POS_SIDE_LINE, FieldDimensions.GOAL_BOX_HEIGHT/2, -FieldDimensions.X_POS_SIDE_LINE + FieldDimensions.GOAL_BOX_WIDTH, FieldDimensions.GOAL_BOX_HEIGHT/2, "#FFFFFF", FieldDimensions.FIELD_LINES_WIDTH, [CANVAS_FIELD_WIDTH/2, CANVAS_FIELD_HEIGHT/2]);
     
+        //Vertical line
+        drawLine(ctx, -FieldDimensions.X_POS_SIDE_LINE + FieldDimensions.GOAL_BOX_WIDTH, -FieldDimensions.GOAL_BOX_HEIGHT/2, -FieldDimensions.X_POS_SIDE_LINE + FieldDimensions.GOAL_BOX_WIDTH, FieldDimensions.GOAL_BOX_HEIGHT/2, "#FFFFFF", FieldDimensions.FIELD_LINES_WIDTH, [CANVAS_FIELD_WIDTH/2, CANVAS_FIELD_HEIGHT/2]);
+    }
+
     //Right penalty area
         //Horizontal lines
-        drawLine(ctx, X_POS_SIDE_LINE, -PENALTY_AREA_HEIGHT/2, X_POS_SIDE_LINE - PENALTY_AREA_WIDTH, -PENALTY_AREA_HEIGHT/2, "#FFFFFF", FIELD_LINES_WIDTH, [FIELD_WIDTH/2, FIELD_HEIGHT/2]);
-        drawLine(ctx, X_POS_SIDE_LINE, PENALTY_AREA_HEIGHT/2, X_POS_SIDE_LINE - PENALTY_AREA_WIDTH, PENALTY_AREA_HEIGHT/2, "#FFFFFF", FIELD_LINES_WIDTH, [FIELD_WIDTH/2, FIELD_HEIGHT/2]);
+        drawLine(ctx, FieldDimensions.X_POS_SIDE_LINE, -FieldDimensions.PENALTY_AREA_HEIGHT/2, FieldDimensions.X_POS_SIDE_LINE - FieldDimensions.PENALTY_AREA_WIDTH, -FieldDimensions.PENALTY_AREA_HEIGHT/2, "#FFFFFF", FieldDimensions.FIELD_LINES_WIDTH, [CANVAS_FIELD_WIDTH/2, CANVAS_FIELD_HEIGHT/2]);
+        drawLine(ctx, FieldDimensions.X_POS_SIDE_LINE, FieldDimensions.PENALTY_AREA_HEIGHT/2, FieldDimensions.X_POS_SIDE_LINE - FieldDimensions.PENALTY_AREA_WIDTH, FieldDimensions.PENALTY_AREA_HEIGHT/2, "#FFFFFF", FieldDimensions.FIELD_LINES_WIDTH, [CANVAS_FIELD_WIDTH/2, CANVAS_FIELD_HEIGHT/2]);
 
         //Vertical line
-        drawLine(ctx, X_POS_SIDE_LINE - PENALTY_AREA_WIDTH, -PENALTY_AREA_HEIGHT/2, X_POS_SIDE_LINE - PENALTY_AREA_WIDTH, PENALTY_AREA_HEIGHT/2, "#FFFFFF", FIELD_LINES_WIDTH, [FIELD_WIDTH/2, FIELD_HEIGHT/2]);
+        drawLine(ctx, FieldDimensions.X_POS_SIDE_LINE - FieldDimensions.PENALTY_AREA_WIDTH, -FieldDimensions.PENALTY_AREA_HEIGHT/2, FieldDimensions.X_POS_SIDE_LINE - FieldDimensions.PENALTY_AREA_WIDTH, FieldDimensions.PENALTY_AREA_HEIGHT/2, "#FFFFFF", FieldDimensions.FIELD_LINES_WIDTH, [CANVAS_FIELD_WIDTH/2, CANVAS_FIELD_HEIGHT/2]);
 
+
+    if(!SMALL_FIELD)
+    {
     //Right goal box
         //Horizontal lines
-        drawLine(ctx, X_POS_SIDE_LINE, -GOAL_BOX_HEIGHT/2, X_POS_SIDE_LINE - GOAL_BOX_WIDTH, -GOAL_BOX_HEIGHT/2, "#FFFFFF", FIELD_LINES_WIDTH, [FIELD_WIDTH/2, FIELD_HEIGHT/2]);
-        drawLine(ctx, X_POS_SIDE_LINE, GOAL_BOX_HEIGHT/2, X_POS_SIDE_LINE - GOAL_BOX_WIDTH, GOAL_BOX_HEIGHT/2, "#FFFFFF", FIELD_LINES_WIDTH, [FIELD_WIDTH/2, FIELD_HEIGHT/2]);
+        drawLine(ctx, FieldDimensions.X_POS_SIDE_LINE, -FieldDimensions.GOAL_BOX_HEIGHT/2, FieldDimensions.X_POS_SIDE_LINE - FieldDimensions.GOAL_BOX_WIDTH, -FieldDimensions.GOAL_BOX_HEIGHT/2, "#FFFFFF", FieldDimensions.FIELD_LINES_WIDTH, [CANVAS_FIELD_WIDTH/2, CANVAS_FIELD_HEIGHT/2]);
+        drawLine(ctx, FieldDimensions.X_POS_SIDE_LINE, FieldDimensions.GOAL_BOX_HEIGHT/2, FieldDimensions.X_POS_SIDE_LINE - FieldDimensions.GOAL_BOX_WIDTH, FieldDimensions.GOAL_BOX_HEIGHT/2, "#FFFFFF", FieldDimensions.FIELD_LINES_WIDTH, [CANVAS_FIELD_WIDTH/2, CANVAS_FIELD_HEIGHT/2]);
 
         //Vertical line
-        drawLine(ctx, X_POS_SIDE_LINE - GOAL_BOX_WIDTH, -GOAL_BOX_HEIGHT/2, X_POS_SIDE_LINE - GOAL_BOX_WIDTH, GOAL_BOX_HEIGHT/2, "#FFFFFF", FIELD_LINES_WIDTH, [FIELD_WIDTH/2, FIELD_HEIGHT/2]);
+        drawLine(ctx, FieldDimensions.X_POS_SIDE_LINE - FieldDimensions.GOAL_BOX_WIDTH, -FieldDimensions.GOAL_BOX_HEIGHT/2, FieldDimensions.X_POS_SIDE_LINE - FieldDimensions.GOAL_BOX_WIDTH, FieldDimensions.GOAL_BOX_HEIGHT/2, "#FFFFFF", FieldDimensions.FIELD_LINES_WIDTH, [CANVAS_FIELD_WIDTH/2, CANVAS_FIELD_HEIGHT/2]);
+    }
 
     //Left penalty cross
-    drawLine(ctx, -X_POS_PENALTY_CROSS, PENALTY_CROSS_SIZE/2, -X_POS_PENALTY_CROSS, -PENALTY_CROSS_SIZE/2, "#FFFFFF", FIELD_LINES_WIDTH, [FIELD_WIDTH/2, FIELD_HEIGHT/2]);
-    drawLine(ctx, -X_POS_PENALTY_CROSS - PENALTY_CROSS_SIZE/2, 0, -X_POS_PENALTY_CROSS + PENALTY_CROSS_SIZE/2, 0, "#FFFFFF", FIELD_LINES_WIDTH, [FIELD_WIDTH/2, FIELD_HEIGHT/2]);
+    drawLine(ctx, -FieldDimensions.X_POS_PENALTY_CROSS, FieldDimensions.PENALTY_CROSS_SIZE/2, -FieldDimensions.X_POS_PENALTY_CROSS, -FieldDimensions.PENALTY_CROSS_SIZE/2, "#FFFFFF", FieldDimensions.FIELD_LINES_WIDTH, [CANVAS_FIELD_WIDTH/2, CANVAS_FIELD_HEIGHT/2]);
+    drawLine(ctx, -FieldDimensions.X_POS_PENALTY_CROSS - FieldDimensions.PENALTY_CROSS_SIZE/2, 0, -FieldDimensions.X_POS_PENALTY_CROSS + FieldDimensions.PENALTY_CROSS_SIZE/2, 0, "#FFFFFF", FieldDimensions.FIELD_LINES_WIDTH, [CANVAS_FIELD_WIDTH/2, CANVAS_FIELD_HEIGHT/2]);
 
     //Right penalty cross
-    drawLine(ctx, X_POS_PENALTY_CROSS, PENALTY_CROSS_SIZE/2, X_POS_PENALTY_CROSS, -PENALTY_CROSS_SIZE/2, "#FFFFFF", FIELD_LINES_WIDTH, [FIELD_WIDTH/2, FIELD_HEIGHT/2]);
-    drawLine(ctx, X_POS_PENALTY_CROSS + PENALTY_CROSS_SIZE/2, 0, X_POS_PENALTY_CROSS - PENALTY_CROSS_SIZE/2, 0, "#FFFFFF", FIELD_LINES_WIDTH, [FIELD_WIDTH/2, FIELD_HEIGHT/2]);
+    drawLine(ctx, FieldDimensions.X_POS_PENALTY_CROSS, FieldDimensions.PENALTY_CROSS_SIZE/2, FieldDimensions.X_POS_PENALTY_CROSS, -FieldDimensions.PENALTY_CROSS_SIZE/2, "#FFFFFF", FieldDimensions.FIELD_LINES_WIDTH, [CANVAS_FIELD_WIDTH/2, CANVAS_FIELD_HEIGHT/2]);
+    drawLine(ctx, FieldDimensions.X_POS_PENALTY_CROSS + FieldDimensions.PENALTY_CROSS_SIZE/2, 0, FieldDimensions.X_POS_PENALTY_CROSS - FieldDimensions.PENALTY_CROSS_SIZE/2, 0, "#FFFFFF", FieldDimensions.FIELD_LINES_WIDTH, [CANVAS_FIELD_WIDTH/2, CANVAS_FIELD_HEIGHT/2]);
 
     //Left goal post
         //Net
-        drawRectangle(ctx, -X_POS_SIDE_LINE - GOAL_POST_WIDTH, -GOAL_POST_HEIGHT/2, GOAL_POST_WIDTH, GOAL_POST_HEIGHT, "#CCCCCC", "#FFFFFF", 1, [FIELD_WIDTH/2, FIELD_HEIGHT/2])
-        drawLine(ctx, -X_POS_SIDE_LINE - GOAL_POST_WIDTH, -GOAL_POST_HEIGHT/2, -X_POS_SIDE_LINE, -GOAL_POST_HEIGHT/2, "#FFFFFF", GOAL_POST_RADIUS/2, [FIELD_WIDTH/2, FIELD_HEIGHT/2]);
-        drawLine(ctx, -X_POS_SIDE_LINE - GOAL_POST_WIDTH, GOAL_POST_HEIGHT/2, -X_POS_SIDE_LINE, GOAL_POST_HEIGHT/2, "#FFFFFF", GOAL_POST_RADIUS/2, [FIELD_WIDTH/2, FIELD_HEIGHT/2]);
-        drawLine(ctx, -X_POS_SIDE_LINE - GOAL_POST_WIDTH, -GOAL_POST_HEIGHT/2, -X_POS_SIDE_LINE - GOAL_POST_WIDTH, GOAL_POST_HEIGHT/2, "#FFFFFF", GOAL_POST_RADIUS/2, [FIELD_WIDTH/2, FIELD_HEIGHT/2]);
+        drawRectangle(ctx, -FieldDimensions.X_POS_SIDE_LINE - FieldDimensions.GOAL_POST_WIDTH, -FieldDimensions.GOAL_POST_HEIGHT/2, FieldDimensions.GOAL_POST_WIDTH, FieldDimensions.GOAL_POST_HEIGHT, "#CCCCCC", "#FFFFFF", 1, [CANVAS_FIELD_WIDTH/2, CANVAS_FIELD_HEIGHT/2])
+        drawLine(ctx, -FieldDimensions.X_POS_SIDE_LINE - FieldDimensions.GOAL_POST_WIDTH, -FieldDimensions.GOAL_POST_HEIGHT/2, -FieldDimensions.X_POS_SIDE_LINE, -FieldDimensions.GOAL_POST_HEIGHT/2, "#FFFFFF", FieldDimensions.GOAL_POST_RADIUS/2, [CANVAS_FIELD_WIDTH/2, CANVAS_FIELD_HEIGHT/2]);
+        drawLine(ctx, -FieldDimensions.X_POS_SIDE_LINE - FieldDimensions.GOAL_POST_WIDTH, FieldDimensions.GOAL_POST_HEIGHT/2, -FieldDimensions.X_POS_SIDE_LINE, FieldDimensions.GOAL_POST_HEIGHT/2, "#FFFFFF", FieldDimensions.GOAL_POST_RADIUS/2, [CANVAS_FIELD_WIDTH/2, CANVAS_FIELD_HEIGHT/2]);
+        drawLine(ctx, -FieldDimensions.X_POS_SIDE_LINE - FieldDimensions.GOAL_POST_WIDTH, -FieldDimensions.GOAL_POST_HEIGHT/2, -FieldDimensions.X_POS_SIDE_LINE - FieldDimensions.GOAL_POST_WIDTH, FieldDimensions.GOAL_POST_HEIGHT/2, "#FFFFFF", FieldDimensions.GOAL_POST_RADIUS/2, [CANVAS_FIELD_WIDTH/2, CANVAS_FIELD_HEIGHT/2]);
         
         //Front post
-        drawCircle(ctx, -X_POS_SIDE_LINE, -GOAL_POST_HEIGHT/2 - GOAL_POST_RADIUS/2, GOAL_POST_RADIUS, "#FFFFFF", "FFFFFF", 5, [FIELD_WIDTH/2, FIELD_HEIGHT/2]);
-        drawCircle(ctx, -X_POS_SIDE_LINE, GOAL_POST_HEIGHT/2 + GOAL_POST_RADIUS/2, GOAL_POST_RADIUS, "#FFFFFF", "FFFFFF", 5, [FIELD_WIDTH/2, FIELD_HEIGHT/2]);
-        drawLine(ctx, -X_POS_SIDE_LINE, -GOAL_POST_HEIGHT/2, -X_POS_SIDE_LINE, GOAL_POST_HEIGHT/2, "#FFFFFF", GOAL_POST_RADIUS, [FIELD_WIDTH/2, FIELD_HEIGHT/2]);
+        drawCircle(ctx, -FieldDimensions.X_POS_SIDE_LINE, -FieldDimensions.GOAL_POST_HEIGHT/2 - FieldDimensions.GOAL_POST_RADIUS/2, FieldDimensions.GOAL_POST_RADIUS, "#FFFFFF", "FFFFFF", 5, [CANVAS_FIELD_WIDTH/2, CANVAS_FIELD_HEIGHT/2]);
+        drawCircle(ctx, -FieldDimensions.X_POS_SIDE_LINE, FieldDimensions.GOAL_POST_HEIGHT/2 + FieldDimensions.GOAL_POST_RADIUS/2, FieldDimensions.GOAL_POST_RADIUS, "#FFFFFF", "FFFFFF", 5, [CANVAS_FIELD_WIDTH/2, CANVAS_FIELD_HEIGHT/2]);
+        drawLine(ctx, -FieldDimensions.X_POS_SIDE_LINE, -FieldDimensions.GOAL_POST_HEIGHT/2, -FieldDimensions.X_POS_SIDE_LINE, FieldDimensions.GOAL_POST_HEIGHT/2, "#FFFFFF", FieldDimensions.GOAL_POST_RADIUS, [CANVAS_FIELD_WIDTH/2, CANVAS_FIELD_HEIGHT/2]);
 
     //Right goal post
         //Net
-        drawRectangle(ctx, X_POS_SIDE_LINE, -GOAL_POST_HEIGHT/2, GOAL_POST_WIDTH, GOAL_POST_HEIGHT, "#CCCCCC", "#FFFFFF", 1, [FIELD_WIDTH/2, FIELD_HEIGHT/2])
-        drawLine(ctx, X_POS_SIDE_LINE, -GOAL_POST_HEIGHT/2, X_POS_SIDE_LINE + GOAL_POST_WIDTH, -GOAL_POST_HEIGHT/2, "#FFFFFF", GOAL_POST_RADIUS/2, [FIELD_WIDTH/2, FIELD_HEIGHT/2]);
-        drawLine(ctx, X_POS_SIDE_LINE, GOAL_POST_HEIGHT/2, X_POS_SIDE_LINE + GOAL_POST_WIDTH, GOAL_POST_HEIGHT/2, "#FFFFFF", GOAL_POST_RADIUS/2, [FIELD_WIDTH/2, FIELD_HEIGHT/2]);
-        drawLine(ctx, X_POS_SIDE_LINE + GOAL_POST_WIDTH, -GOAL_POST_HEIGHT/2, X_POS_SIDE_LINE + GOAL_POST_WIDTH, GOAL_POST_HEIGHT/2, "#FFFFFF", GOAL_POST_RADIUS/2, [FIELD_WIDTH/2, FIELD_HEIGHT/2]);
+        drawRectangle(ctx, FieldDimensions.X_POS_SIDE_LINE, -FieldDimensions.GOAL_POST_HEIGHT/2, FieldDimensions.GOAL_POST_WIDTH, FieldDimensions.GOAL_POST_HEIGHT, "#CCCCCC", "#FFFFFF", 1, [CANVAS_FIELD_WIDTH/2, CANVAS_FIELD_HEIGHT/2])
+        drawLine(ctx, FieldDimensions.X_POS_SIDE_LINE, -FieldDimensions.GOAL_POST_HEIGHT/2, FieldDimensions.X_POS_SIDE_LINE + FieldDimensions.GOAL_POST_WIDTH, -FieldDimensions.GOAL_POST_HEIGHT/2, "#FFFFFF", FieldDimensions.GOAL_POST_RADIUS/2, [CANVAS_FIELD_WIDTH/2, CANVAS_FIELD_HEIGHT/2]);
+        drawLine(ctx, FieldDimensions.X_POS_SIDE_LINE, FieldDimensions.GOAL_POST_HEIGHT/2, FieldDimensions.X_POS_SIDE_LINE + FieldDimensions.GOAL_POST_WIDTH, FieldDimensions.GOAL_POST_HEIGHT/2, "#FFFFFF", FieldDimensions.GOAL_POST_RADIUS/2, [CANVAS_FIELD_WIDTH/2, CANVAS_FIELD_HEIGHT/2]);
+        drawLine(ctx, FieldDimensions.X_POS_SIDE_LINE + FieldDimensions.GOAL_POST_WIDTH, -FieldDimensions.GOAL_POST_HEIGHT/2, FieldDimensions.X_POS_SIDE_LINE + FieldDimensions.GOAL_POST_WIDTH, FieldDimensions.GOAL_POST_HEIGHT/2, "#FFFFFF", FieldDimensions.GOAL_POST_RADIUS/2, [CANVAS_FIELD_WIDTH/2, CANVAS_FIELD_HEIGHT/2]);
         
         //Front post
-        drawCircle(ctx, X_POS_SIDE_LINE, -GOAL_POST_HEIGHT/2 - GOAL_POST_RADIUS/2, GOAL_POST_RADIUS, "#FFFFFF", "FFFFFF", 1, [FIELD_WIDTH/2, FIELD_HEIGHT/2]);
-        drawCircle(ctx, X_POS_SIDE_LINE, GOAL_POST_HEIGHT/2 + GOAL_POST_RADIUS/2, GOAL_POST_RADIUS, "#FFFFFF", "FFFFFF", 1, [FIELD_WIDTH/2, FIELD_HEIGHT/2]);
-        drawLine(ctx, X_POS_SIDE_LINE, -GOAL_POST_HEIGHT/2, X_POS_SIDE_LINE, GOAL_POST_HEIGHT/2, "#FFFFFF", GOAL_POST_RADIUS, [FIELD_WIDTH/2, FIELD_HEIGHT/2]);
+        drawCircle(ctx, FieldDimensions.X_POS_SIDE_LINE, -FieldDimensions.GOAL_POST_HEIGHT/2 - FieldDimensions.GOAL_POST_RADIUS/2, FieldDimensions.GOAL_POST_RADIUS, "#FFFFFF", "FFFFFF", 1, [CANVAS_FIELD_WIDTH/2, CANVAS_FIELD_HEIGHT/2]);
+        drawCircle(ctx, FieldDimensions.X_POS_SIDE_LINE, FieldDimensions.GOAL_POST_HEIGHT/2 + FieldDimensions.GOAL_POST_RADIUS/2, FieldDimensions.GOAL_POST_RADIUS, "#FFFFFF", "FFFFFF", 1, [CANVAS_FIELD_WIDTH/2, CANVAS_FIELD_HEIGHT/2]);
+        drawLine(ctx, FieldDimensions.X_POS_SIDE_LINE, -FieldDimensions.GOAL_POST_HEIGHT/2, FieldDimensions.X_POS_SIDE_LINE, FieldDimensions.GOAL_POST_HEIGHT/2, "#FFFFFF", FieldDimensions.GOAL_POST_RADIUS, [CANVAS_FIELD_WIDTH/2, CANVAS_FIELD_HEIGHT/2]);
 
 }
 
@@ -248,17 +353,10 @@ function scaleFieldPositionToCanvas(canvas, xFieldPos, yFieldPos)
 {
     var boundingRect = canvas.getBoundingClientRect();
 
-    //The canvas bitmap has a different size wrt the actual canvas size, so we need to scale it
-    var scaleX = canvas.width / boundingRect.width;    
-    var scaleY = canvas.height / boundingRect.height;  
+    var unscaledMouseXOnCanvas = Math.round(Utils.mapValue(xFieldPos, 0, canvas.width, -Math.floor(CURRENT_CANVAS_FIELD_WIDTH/2), Math.floor(CURRENT_CANVAS_FIELD_WIDTH/2)));
+    var unscaledMouseYOnCanvas = Math.round(Utils.mapValue(yFieldPos, 0, canvas.height, -Math.floor(CURRENT_CANVAS_FIELD_HEIGHT/2), Math.floor(CURRENT_CANVAS_FIELD_HEIGHT/2)));
 
-    var unscaledMouseXOnCanvas = Math.round(Utils.mapValue(xFieldPos, 0, canvas.width, -Math.floor(FIELD_WIDTH/2), Math.floor(FIELD_WIDTH/2)));
-    var unscaledMouseYOnCanvas = Math.round(Utils.mapValue(yFieldPos, 0, canvas.height, -Math.floor(FIELD_HEIGHT/2), Math.floor(FIELD_HEIGHT/2)));
-
-    var mouseXOnCanvas = Math.round((unscaledMouseXOnCanvas - boundingRect.left) * scaleX);  
-    var mouseYOnCanvas = Math.round((unscaledMouseYOnCanvas - boundingRect.top) * scaleY);     
-
-    return [mouseXOnCanvas, mouseYOnCanvas]
+    return [unscaledMouseXOnCanvas, unscaledMouseYOnCanvas]
 
 }
 
@@ -273,8 +371,8 @@ function scaleMousePositionToField(canvas, xPos, yPos)
     var mouseXOnCanvas = Math.round((xPos - boundingRect.left) * scaleX);  
     var mouseYOnCanvas = Math.round((yPos - boundingRect.top) * scaleY);     
 
-    var scaledMouseXOnCanvas = Math.round(Utils.mapValue(mouseXOnCanvas, -Math.floor(FIELD_WIDTH/2), Math.floor(FIELD_WIDTH/2), 0, canvas.width));
-    var scaledMouseYOnCanvas = Math.round(Utils.mapValue(mouseYOnCanvas, -Math.floor(FIELD_HEIGHT/2), Math.floor(FIELD_HEIGHT/2), 0, canvas.height));
+    var scaledMouseXOnCanvas = Math.round(Utils.mapValue(mouseXOnCanvas, -Math.floor(CURRENT_CANVAS_FIELD_WIDTH/2), Math.floor(CURRENT_CANVAS_FIELD_WIDTH/2), 0, canvas.width));
+    var scaledMouseYOnCanvas = Math.round(Utils.mapValue(mouseYOnCanvas, -Math.floor(CURRENT_CANVAS_FIELD_HEIGHT/2), Math.floor(CURRENT_CANVAS_FIELD_HEIGHT/2), 0, canvas.height));
 
     return [scaledMouseXOnCanvas, scaledMouseYOnCanvas]
 }
@@ -287,10 +385,22 @@ function viewportMouseToCanvasCoordinates(canvas, xPos, yPos)
     return [(xPos - boundingRect.left) * scaleX, (yPos - boundingRect.top) * scaleY];
 }
 
-function drawTargetOnField(canvas, debugInfo=false, scaledTargetPos = undefined)
+function drawTargetOnField(canvas, xPos, yPos, targetColor)
+{
+    //console.log("Draw target: ("+xPos+", "+yPos+")")
+    var ctx = canvas.getContext('2d');
+    
+    drawCircle(ctx, xPos, yPos, FieldDimensions.TARGET_RADIUS, canvasBackgroundColor, targetColor, 
+               mapValueToCurrentCanvas(mapValueToCurrentField(40)) );
+    drawLine(ctx, xPos, yPos+FieldDimensions.TARGET_RADIUS*3/2, xPos, yPos-FieldDimensions.TARGET_RADIUS*3/2, targetColor,
+             mapValueToCurrentCanvas(mapValueToCurrentField(40)) )
+    drawLine(ctx, xPos+FieldDimensions.TARGET_RADIUS*3/2, yPos, xPos-FieldDimensions.TARGET_RADIUS*3/2, yPos, targetColor, 
+             mapValueToCurrentCanvas(mapValueToCurrentField(40)) )
+}
+
+function drawTargetPreviewOnField(canvas, debugInfo=false, scaledTargetPos = undefined, targetColor = "#FFFFFF")
 {
     if(!mouseOverCanvas) return
-    var ctx = canvas.getContext('2d');
     var unscaledTarget;
     var scaledTarget;
     if(scaledTargetPos == undefined)
@@ -300,22 +410,23 @@ function drawTargetOnField(canvas, debugInfo=false, scaledTargetPos = undefined)
     }
     else
     {
-//TODO perform correct assertions scaledTargetPos should be a list of length 2
+        
         unscaledTarget = scaleFieldPositionToCanvas(canvas, scaledTargetPos[0], scaledTargetPos[1])
         scaledTarget = scaledTargetPos;
     }
 
     if(debugInfo)
     {
+        var ctx = canvas.getContext('2d');
         ctx.fillStyle = canvasTextColor;
-        ctx.font = "180px Arial";
-        ctx.fillText("X: "+scaledTarget[0]+", Y: "+scaledTarget[1], 280, 300);
+        ctx.font = mapValueToCurrentCanvas(mapValueToCurrentField(180))+"px Arial";
+        ctx.fillText("X: "+scaledTarget[0]+", Y: "+-scaledTarget[1], 
+                    mapValueToCurrentCanvas(mapValueToCurrentField(280)),
+                    mapValueToCurrentCanvas(mapValueToCurrentField(300)) );
     }
 
-    drawCircle(ctx, unscaledTarget[0], unscaledTarget[1], TARGET_RADIUS, canvasBackgroundColor, "#FFFFFF", 20);
-    drawLine(ctx, unscaledTarget[0], unscaledTarget[1]+TARGET_RADIUS*3/2, unscaledTarget[0], unscaledTarget[1]-TARGET_RADIUS*3/2, "#FFFFFF", 20)
-    drawLine(ctx, unscaledTarget[0]+TARGET_RADIUS*3/2, unscaledTarget[1], unscaledTarget[0]-TARGET_RADIUS*3/2, unscaledTarget[1], "#FFFFFF", 20)
-
+    console.log("Drawing target preview: "+unscaledTarget)
+    drawTargetOnField(canvas, unscaledTarget[0], unscaledTarget[1], targetColor)
 }
 
 function drawRobot(ctx, robotNumber, angle, xPos, yPos, isActiveRobot = false)
@@ -325,24 +436,54 @@ function drawRobot(ctx, robotNumber, angle, xPos, yPos, isActiveRobot = false)
 
     if(isActiveRobot)
     {
-        fillColor = "#FFFF00";
-        lineColor = "#FF0000";
+        fillColor = "#00FF00";
+        lineColor = "#0000FF";
     }
-
-    drawCircle(ctx, xPos, yPos, ROBOT_RADIUS, fillColor, lineColor, 20, [FIELD_WIDTH/2, FIELD_HEIGHT/2]);
-    drawArrow(ctx, xPos, yPos, xPos+ROBOT_RADIUS*2*Math.cos(angle), yPos-ROBOT_RADIUS*2*Math.sin(angle), lineColor, 20, 50, [FIELD_WIDTH/2, FIELD_HEIGHT/2]);
+    drawCircle(ctx, xPos, yPos, FieldDimensions.ROBOT_RADIUS, fillColor, lineColor, 
+                mapValueToCurrentCanvas(mapValueToCurrentField(20)), //border width 
+                [CANVAS_FIELD_WIDTH/2, CANVAS_FIELD_HEIGHT/2]);
+    drawArrow(ctx, xPos, yPos, xPos+FieldDimensions.ROBOT_RADIUS*2*Math.cos(angle), yPos-FieldDimensions.ROBOT_RADIUS*2*Math.sin(angle), lineColor, 
+                mapValueToCurrentCanvas(mapValueToCurrentField(20)), //border width 
+                mapValueToCurrentCanvas(mapValueToCurrentField(50)), //arrow head length
+                [CANVAS_FIELD_WIDTH/2, CANVAS_FIELD_HEIGHT/2]);
+    
+    drawTextLabel(ctx, 
+                    xPos + FieldDimensions.ROBOT_RADIUS * 2, 
+                    yPos - FieldDimensions.ROBOT_RADIUS * 1.5, "Robot "+ACTIVE_ROBOT_NUMBER, "#0000FF", 95,
+                    [CANVAS_FIELD_WIDTH/2, CANVAS_FIELD_HEIGHT/2])
 }
 
 function drawBall(ctx)
 {
-    drawCircle(ctx, ballPosition[0], ballPosition[1], BALL_RADIUS, "#FFFFFF", "#000000", 20, [FIELD_WIDTH/2, FIELD_HEIGHT/2])
-}
+    drawCircle(ctx, 
+            mapValueToCurrentCanvas(mapValueToCurrentField(ballPosition[0])), 
+            mapValueToCurrentCanvas(mapValueToCurrentField(ballPosition[1])), 
+            FieldDimensions.BALL_RADIUS, "#FFFFFF", "#000000", 
+            mapValueToCurrentCanvas(mapValueToCurrentField(20)), 
+            [CANVAS_FIELD_WIDTH/2, CANVAS_FIELD_HEIGHT/2])
+            
+    drawTextLabel(ctx, 
+        mapValueToCurrentCanvas(mapValueToCurrentField(ballPosition[0])) + FieldDimensions.BALL_RADIUS * 2, 
+        mapValueToCurrentCanvas(mapValueToCurrentField(ballPosition[1])) + FieldDimensions.BALL_RADIUS * 2, "Ball", "#444444", 95,
+        [CANVAS_FIELD_WIDTH/2, CANVAS_FIELD_HEIGHT/2])
+};
 
 function drawObstacles(ctx)
 {
+    console.log("START")
     for(var obs of obstaclesPositions)
     {
-        drawCircle(ctx, obs[0], obs[1], OBSTACLE_RADIUS, "#0000FF", "#000000", 20, [FIELD_WIDTH/2, FIELD_HEIGHT/2])
+        drawCircle(ctx, 
+                mapValueToCurrentCanvas(mapValueToCurrentField(obs[0])), 
+                mapValueToCurrentCanvas(mapValueToCurrentField(obs[1])), 
+                FieldDimensions.ROBOT_RADIUS, "#FF0000", "#000000", 
+                mapValueToCurrentCanvas(mapValueToCurrentField(20)), 
+                [CANVAS_FIELD_WIDTH/2, CANVAS_FIELD_HEIGHT/2])
+                
+        drawTextLabel(ctx, 
+            mapValueToCurrentCanvas(mapValueToCurrentField(obs[0])) + FieldDimensions.ROBOT_RADIUS * 2, 
+            mapValueToCurrentCanvas(mapValueToCurrentField(obs[1])) + FieldDimensions.ROBOT_RADIUS * 2, "Obstacle", "#FF0000", 95,
+            [CANVAS_FIELD_WIDTH/2, CANVAS_FIELD_HEIGHT/2])
     }
 }
 
@@ -355,25 +496,124 @@ function drawObjects(canvas)
     //Draw the active robots
     for( const [robotNumber, robotPosition] of Object.entries(robotNumbersToPositions)) 
     {
-        drawRobot(ctx, robotNumber, robotPosition[0], robotPosition[1], robotPosition[2], robotNumber == ACTIVE_ROBOT_NUMBER)
+        drawRobot(ctx, robotNumber, 
+                    robotPosition[0], 
+                    Utils.mapValue(robotPosition[1], -CANVAS_FIELD_WIDTH/2, CANVAS_FIELD_WIDTH/2, -CURRENT_CANVAS_FIELD_WIDTH/2, CURRENT_CANVAS_FIELD_WIDTH/2),
+                    Utils.mapValue(robotPosition[2], -CANVAS_FIELD_HEIGHT/2, CANVAS_FIELD_HEIGHT/2, -CURRENT_CANVAS_FIELD_HEIGHT/2, CURRENT_CANVAS_FIELD_HEIGHT/2), 
+                    robotNumber == ACTIVE_ROBOT_NUMBER)
     };
 
     //Draw the obstacles
     drawObstacles(ctx)
 }
 
+function drawCurrentTasks(canvas)
+{
+    if(robotNumbersToPositions[ACTIVE_ROBOT_NUMBER] == undefined) return;
+    var prevWaypoint = scaleFieldPositionToCanvas(canvas, robotNumbersToPositions[ACTIVE_ROBOT_NUMBER][1], robotNumbersToPositions[ACTIVE_ROBOT_NUMBER][2]);
+    for(var task of currentTaskList)
+    {
+        switch(task.taskType)
+        {
+            case "GoToPosition":
+            {
+                targetPosition = scaleFieldPositionToCanvas(canvas, task.parameters[0], -task.parameters[1]); 
+                drawTargetOnField(canvas, targetPosition[0], targetPosition[1], taskColors[task.taskID])
+                
+                drawTextLabel(canvas.getContext("2d"), 
+                                targetPosition[0] + FieldDimensions.ROBOT_RADIUS * 2, 
+                                targetPosition[1] - FieldDimensions.ROBOT_RADIUS * 2, "Task "+task.taskID, taskColors[task.taskID], 95,
+                                )
+
+                drawLine(canvas.getContext("2d"), 
+                            //Utils.mapValue(prevWaypoint[0], -CANVAS_FIELD_WIDTH/2, CANVAS_FIELD_WIDTH/2, -CURRENT_CANVAS_FIELD_WIDTH/2, CURRENT_CANVAS_FIELD_WIDTH/2),
+                            //Utils.mapValue(prevWaypoint[1], -CANVAS_FIELD_HEIGHT/2, CANVAS_FIELD_HEIGHT/2, -CURRENT_CANVAS_FIELD_HEIGHT/2, CURRENT_CANVAS_FIELD_HEIGHT/2),
+                            prevWaypoint[0],
+                            prevWaypoint[1],
+                            targetPosition[0],
+                            targetPosition[1],
+                            "#0000CC",
+                            20
+                        )
+                prevWaypoint = targetPosition;
+                break;
+            }
+            case "KickBallToPosition":
+            {
+                targetPosition = scaleFieldPositionToCanvas(canvas, task.parameters[0], -task.parameters[1]); 
+                drawTargetOnField(canvas, targetPosition[0], targetPosition[1], taskColors[task.taskID])
+
+                drawArrow(canvas.getContext("2d"), 
+                        Utils.mapValue(ballPosition[0], -CANVAS_FIELD_WIDTH/2, CANVAS_FIELD_WIDTH/2, -CURRENT_CANVAS_FIELD_WIDTH/2, CURRENT_CANVAS_FIELD_WIDTH/2),
+                        Utils.mapValue(ballPosition[1], -CANVAS_FIELD_HEIGHT/2, CANVAS_FIELD_HEIGHT/2, -CURRENT_CANVAS_FIELD_HEIGHT/2, CURRENT_CANVAS_FIELD_HEIGHT/2), 
+                        targetPosition[0] - CANVAS_FIELD_WIDTH/2, 
+                        targetPosition[1] - CANVAS_FIELD_HEIGHT/2, 
+                        "#FF0000", 
+                        mapValueToCurrentCanvas(mapValueToCurrentField(20)), //border width 
+                        mapValueToCurrentCanvas(mapValueToCurrentField(200)), //arrow head length
+                        [CANVAS_FIELD_WIDTH/2, CANVAS_FIELD_HEIGHT/2])
+
+                drawTextLabel(canvas.getContext("2d"), 
+                                targetPosition[0] + FieldDimensions.ROBOT_RADIUS * 2, 
+                                targetPosition[1] - FieldDimensions.ROBOT_RADIUS * 2, "Task "+task.taskID, taskColors[task.taskID], 95,
+                                )
+                break;
+            }
+            case "CarryBallToPosition":
+            {
+                targetPosition = scaleFieldPositionToCanvas(canvas, task.parameters[0], -task.parameters[1]); 
+                drawTargetOnField(canvas, targetPosition[0], targetPosition[1], taskColors[task.taskID])
+
+                drawArrow(canvas.getContext("2d"), 
+                        Utils.mapValue(ballPosition[0], -CANVAS_FIELD_WIDTH/2, CANVAS_FIELD_WIDTH/2, -CURRENT_CANVAS_FIELD_WIDTH/2, CURRENT_CANVAS_FIELD_WIDTH/2),
+                        Utils.mapValue(ballPosition[1], -CANVAS_FIELD_HEIGHT/2, CANVAS_FIELD_HEIGHT/2, -CURRENT_CANVAS_FIELD_HEIGHT/2, CURRENT_CANVAS_FIELD_HEIGHT/2), 
+                        targetPosition[0] - CANVAS_FIELD_WIDTH/2, 
+                        targetPosition[1] - CANVAS_FIELD_HEIGHT/2, 
+                        "#FF0000", 
+                        mapValueToCurrentCanvas(mapValueToCurrentField(20)), //border width 
+                        mapValueToCurrentCanvas(mapValueToCurrentField(200)), //arrow head length
+                        [CANVAS_FIELD_WIDTH/2, CANVAS_FIELD_HEIGHT/2])
+
+                drawTextLabel(canvas.getContext("2d"), 
+                                targetPosition[0] + FieldDimensions.ROBOT_RADIUS * 2, 
+                                targetPosition[1] - FieldDimensions.ROBOT_RADIUS * 2, "Task "+task.taskID, taskColors[task.taskID], 95,
+                                )
+                break;
+            }
+            case "ScoreGoal":
+            {   
+                drawArrow(canvas.getContext("2d"), 
+                        Utils.mapValue(ballPosition[0], -CANVAS_FIELD_WIDTH/2, CANVAS_FIELD_WIDTH/2, -CURRENT_CANVAS_FIELD_WIDTH/2, CURRENT_CANVAS_FIELD_WIDTH/2),
+                        Utils.mapValue(ballPosition[1], -CANVAS_FIELD_HEIGHT/2, CANVAS_FIELD_HEIGHT/2, -CURRENT_CANVAS_FIELD_HEIGHT/2, CURRENT_CANVAS_FIELD_HEIGHT/2), 
+                        FieldDimensions.X_POS_SIDE_LINE, 
+                        0, 
+                        "#FF0000", 
+                        mapValueToCurrentCanvas(mapValueToCurrentField(20)), //border width 
+                        mapValueToCurrentCanvas(mapValueToCurrentField(50)), //arrow head length
+                        [CANVAS_FIELD_WIDTH/2, CANVAS_FIELD_HEIGHT/2])
+                break;
+            }
+        }
+    }
+}
+
 function drawCanvas()
 {
     var canvas = document.getElementById("field-canvas");
     //Draw the static field
-    drawField(canvas, FIELD_WIDTH, FIELD_HEIGHT);
+    //console.log("drawField")
+    drawField(canvas, canvas.height, canvas.height);
     
+    
+    //console.log("drawTarget")
     //Draw the target for the currently selected task button (if there is one)
     if(canvas.currentlySelectedTaskButton != undefined && canvas.currentlySelectedTaskButton.selectionMode != "noSelection")
-        drawTargetOnField(canvas, true)    
+        drawTargetPreviewOnField(canvas, true)    
     
     //Draw something for each task (a target and or other info)
-
+    drawCurrentTasks(canvas);
+    
+    //console.log("drawObjects")
     //Draw the ball, the robot positions and the obstacle positions
     drawObjects(canvas)
 }
@@ -390,11 +630,11 @@ function startRenderingLoop()
     {
         if(!CLIENT_ENABLED) return
         
-        var progress = timestamp - lastRender
         
         drawCanvas()
-
+        
         lastRender = timestamp
+        
         window.requestAnimationFrame(renderingLoop)
     }
 
@@ -449,7 +689,8 @@ function disableClient(reason)
     console.log("Disabling client (reason: "+reason+")")
 
     document.getElementById("body").style.visibility = "hidden";
-    document.getElementById("tasks-tab").innerHTML = "";
+    document.getElementById("simple-tasks-tab").innerHTML = "";
+    document.getElementById("complex-tasks-tab").innerHTML = "";
     currentTaskList = [];
     currentSocket = undefined;
 
@@ -463,22 +704,22 @@ function disableClient(reason)
 
 function sendTask(taskType, robotNumber) {}
 
-function selectTaskButton(button) {
+function toggleTaskButtonSelection(button) {
 
     var canvas = document.getElementById("field-canvas");
     if(canvas.currentlySelectedTaskButton == button)
     {
         canvas.currentlySelectedTaskButton = undefined;
-        console.log("Not task button selected")
+        console.log("Task button "+button.id+" unselected")
     }
     else 
     {
         canvas.currentlySelectedTaskButton = button;
-        console.log(document.getElementById("field-canvas").currentlySelectedTaskButton.selectionMode);
+        console.log("Task button "+button.id+" selected with mode "+document.getElementById("field-canvas").currentlySelectedTaskButton.selectionMode);
     }
 }
 
-function createTaskAssignmentButton(taskLabel, taskType, selectionMode) {
+function createTaskAssignmentButton(tab, taskLabel, taskType, selectionMode) {
 
     var outerDiv = document.createElement("DIV");
     outerDiv.classList.add("settings-horizontal-container")
@@ -504,6 +745,14 @@ function createTaskAssignmentButton(taskLabel, taskType, selectionMode) {
 
     btn.onmousedown = function(e){
         var canvas = document.getElementById("field-canvas");
+        
+        //Unselect the other selected task button if there is one
+        if(canvas.currentlySelectedTaskButton != undefined)
+        {
+            toggleButton(canvas.currentlySelectedTaskButton)
+            toggleTaskButtonSelection(canvas.currentlySelectedTaskButton);
+        }
+
         if(selectionMode === "noSelection")
         {
             //Highlight the button for 0.2 seconds after press to give visual feedback for the button press
@@ -515,13 +764,38 @@ function createTaskAssignmentButton(taskLabel, taskType, selectionMode) {
         else
         {
             toggleButton(e.target);
-            selectTaskButton(e.target);
+            toggleTaskButtonSelection(e.target);
+        }
+    };
+
+    btn.ontouchstart = function(e){
+        var canvas = document.getElementById("field-canvas");
+        
+        //Unselect the other selected task button if there is one
+        if(canvas.currentlySelectedTaskButton != undefined)
+        {
+            toggleButton(canvas.currentlySelectedTaskButton)
+            toggleTaskButtonSelection(canvas.currentlySelectedTaskButton);
+        }
+
+        if(selectionMode === "noSelection")
+        {
+            //Highlight the button for 0.2 seconds after press to give visual feedback for the button press
+            toggleButton(e.changedTouches[0].target)
+            setTimeout(function () {toggleButton(e.changedTouches[0].target)}, 200)
+
+            sendNewTask(ACTIVE_ROBOT_NUMBER, btn.taskType, "noSelection");         
+        }
+        else
+        {
+            toggleButton(e.changedTouches[0].target);
+            toggleTaskButtonSelection(e.changedTouches[0].target);
         }
     };
 
     innerDiv.appendChild(btn);               // Append the button to the inner DIV as a child
 
-    var tasksTab = document.getElementById("tasks-tab");
+    var tasksTab = document.getElementById(tab);
     tasksTab.appendChild(outerDiv);               // Append the outerDiv to the settings tab as a child
 
 }
@@ -531,7 +805,12 @@ function scheduleTaskReset()
     sendToWebSocket("resetTasks,"+ACTIVE_ROBOT_NUMBER);
 }
 
-function createResetTasksButton() {
+function scheduleDeleteTask(taskID)
+{
+    sendToWebSocket("deleteTask,"+ACTIVE_ROBOT_NUMBER+","+taskID);
+}
+
+function createResetTasksButton(tab) {
 
     var outerDiv = document.createElement("DIV");
     outerDiv.classList.add("settings-horizontal-container")
@@ -557,18 +836,111 @@ function createResetTasksButton() {
     btn.onmousedown = function(e){
         var canvas = document.getElementById("field-canvas");
 
+        //Unselect the selected task button if there is one
+        if(canvas.currentlySelectedTaskButton != undefined)
+        {
+            toggleButton(canvas.currentlySelectedTaskButton);
+            toggleTaskButtonSelection(canvas.currentlySelectedTaskButton);
+        }
+
         //Highlight the button for 1 seconds after press to give visual feedback for the button press
-        toggleButton(e.target)
-        setTimeout(function () {toggleButton(e.target)}, 200)
+        var oldColor = e.target.style.backgroundColor;
+        e.target.style.backgroundColor = "#000000";
+        setTimeout(function () {e.target.style.backgroundColor = oldColor}, 200)
+
+        scheduleTaskReset();
+    };
+
+    btn.ontouchstart = function(e){
+        var canvas = document.getElementById("field-canvas");
+
+        //Unselect the selected task button if there is one
+        if(canvas.currentlySelectedTaskButton != undefined)
+        {
+            toggleButton(canvas.currentlySelectedTaskButton);
+            toggleTaskButtonSelection(canvas.currentlySelectedTaskButton);
+        }
+
+        //Highlight the button for 1 seconds after press to give visual feedback for the button press
+        toggleButton(e.changedTouches[0].target)
+        setTimeout(function () {toggleButton(e.changedTouches[0].target)}, 200)
 
         scheduleTaskReset();
     };
 
     innerDiv.appendChild(btn);               // Append the button to the inner DIV as a child
 
-    var tasksTab = document.getElementById("tasks-tab");
+    var tasksTab = document.getElementById(tab);
     tasksTab.appendChild(outerDiv);               // Append the outerDiv to the settings tab as a child
 }
+
+function createTellInstructionsButton(tab) {
+
+    var outerDiv = document.createElement("DIV");
+    outerDiv.classList.add("settings-horizontal-container")
+    outerDiv.style.height = "18%";
+
+    var middleDiv = document.createElement("DIV");  
+    middleDiv.classList.add("settings-horizontal-container")  
+    middleDiv.style.height = "80%";
+    outerDiv.appendChild(middleDiv);
+    
+    var innerDiv = document.createElement("DIV");   
+    innerDiv.classList.add("settings-horizontal-container")        
+    innerDiv.style.height = "100%";     
+    innerDiv.style.justifyContent = "space-around"; 
+    middleDiv.appendChild(innerDiv);
+                
+
+    var btn = document.createElement("BUTTON");
+    btn.classList.add("settings-horizontal-container")
+    btn.innerHTML = "Tell instructions";
+    btn.taskType = "InstructionsSpeech";
+    btn.selectionMode = "noSelection";
+    btn.id = "tellInstructionsButton"
+
+    btn.onmousedown = function(e){
+        var canvas = document.getElementById("field-canvas");
+        
+        //Unselect the other selected task button if there is one
+        if(canvas.currentlySelectedTaskButton != undefined)
+        {
+            toggleButton(canvas.currentlySelectedTaskButton)
+            toggleTaskButtonSelection(canvas.currentlySelectedTaskButton);
+        }
+
+        //Highlight the button for 0.2 seconds after press to give visual feedback for the button press
+        var oldColor = e.target.style.backgroundColor;
+        e.target.style.backgroundColor = "#000000";
+        setTimeout(function () {e.target.style.backgroundColor = oldColor}, 200)
+
+        sendNewTask(ACTIVE_ROBOT_NUMBER, btn.taskType, "noSelection");       
+    };
+
+    btn.ontouchstart = function(e){
+        var canvas = document.getElementById("field-canvas");
+        
+        //Unselect the other selected task button if there is one
+        if(canvas.currentlySelectedTaskButton != undefined)
+        {
+            toggleButton(canvas.currentlySelectedTaskButton)
+            toggleTaskButtonSelection(canvas.currentlySelectedTaskButton);
+        }
+
+        //Highlight the button for 0.2 seconds after press to give visual feedback for the button press
+        toggleButton(e.changedTouches[0].target)
+        setTimeout(function () {toggleButton(e.changedTouches[0].target)}, 200)
+
+        sendNewTask(ACTIVE_ROBOT_NUMBER, btn.taskType, "noSelection");       
+    };
+
+    innerDiv.appendChild(btn);               // Append the button to the inner DIV as a child
+
+    var tasksTab = document.getElementById(tab);
+    tasksTab.appendChild(outerDiv);               // Append the outerDiv to the settings tab as a child
+
+}
+
 
 function createTaskPreview(taskLabel, taskID, position=undefined) {
 
@@ -578,8 +950,24 @@ function createTaskPreview(taskLabel, taskID, position=undefined) {
     div.taskID = taskID
 
     div.innerHTML = "("+taskID+") "+taskLabel
+    div.style.backgroundColor = taskColors[taskID];
 
     if(position!=undefined) div.innerHTML+="\n("+position[0]+", "+position[1]+")";
+
+    div.onmousedown = function(e){
+        
+        console.log("Task deletion scheduled for taskID: "+taskID)
+        var oldColor = e.target.style.backgroundColor;
+        e.target.style.backgroundColor = "#000000";
+        setTimeout(function () {e.target.style.backgroundColor = oldColor}, 200)
+        scheduleDeleteTask(taskID);
+    };
+
+    div.ontouchstart = function(e){
+        
+        console.log("Task deletion scheduled for taskID: "+taskID)
+        scheduleDeleteTask(taskID);
+    };
 
     var tasksPreview = document.getElementById("tasks-preview");
     tasksPreview.appendChild(div);               // Append the outerDiv to the settings tab as a child
@@ -612,10 +1000,10 @@ function enableClient()
     var canvasContainer = document.getElementById( "canvas-container" );
     canvasContainer.style.backgroundColor = canvasContainerBackgroundColor
     canvas = document.getElementById( "field-canvas" );
-    canvas.width = FIELD_WIDTH;
-    canvas.height = FIELD_HEIGHT;
-    canvas.unscaledMousePositionOnCanvas = [FIELD_WIDTH/2, FIELD_HEIGHT/2];
-    canvas.scaledMousePositionOnCanvas = [FIELD_WIDTH/2, FIELD_HEIGHT/2];
+    canvas.width = CANVAS_FIELD_WIDTH;
+    canvas.height = CANVAS_FIELD_HEIGHT;
+    canvas.unscaledMousePositionOnCanvas = [canvas.width/2, canvas.height/2];
+    canvas.scaledMousePositionOnCanvas = [canvas.width/2, canvas.height/2];
 
     canvas.addEventListener("mousemove", function(evt) 
     {   
@@ -629,9 +1017,10 @@ function enableClient()
         mouseOverCanvas = false;
     });
 
+    
     canvas.addEventListener("mousedown", function(evt) 
     {   
-        //console.log("click")
+        console.log("click")
         var clickPos = scaleMousePositionToField(evt.target, evt.clientX, evt.clientY);
         if(evt.target.currentlySelectedTaskButton != undefined)
         {
@@ -644,13 +1033,44 @@ function enableClient()
         }
     });
 
+
+
+    canvas.addEventListener("touchmove", function(evt) 
+    {   
+        mouseOverCanvas = true;
+        document.getElementById("field-canvas").unscaledMousePositionOnCanvas = viewportMouseToCanvasCoordinates(document.getElementById("field-canvas"), evt.changedTouches[0].pageX, evt.changedTouches[0].pageY);
+        document.getElementById("field-canvas").scaledMousePositionOnCanvas = scaleMousePositionToField(document.getElementById("field-canvas"), evt.changedTouches[0].pageX, evt.changedTouches[0].pageY)
+    });
+
+
+    canvas.addEventListener("touchend", function(evt) 
+    {   
+        console.log("click")
+        var clickPos = scaleMousePositionToField(document.getElementById("field-canvas"), evt.changedTouches[0].pageX, evt.changedTouches[0].pageY);
+        if(document.getElementById("field-canvas").currentlySelectedTaskButton != undefined)
+        {
+            
+            //Utils.assert(evt.changedTouches[0].target.ACTIVE_ROBOT_NUMBER != undefined, "Inconsistent situation: not having a robot selected should make the task buttons unclickable");
+            
+            sendNewTask(ACTIVE_ROBOT_NUMBER, document.getElementById("field-canvas").currentlySelectedTaskButton.taskType, document.getElementById("field-canvas").currentlySelectedTaskButton.selectionMode, clickPos[0], clickPos[1]);         
+            toggleButton(document.getElementById("field-canvas").currentlySelectedTaskButton);
+            document.getElementById("field-canvas").currentlySelectedTaskButton = undefined;
+        }
+        mouseOverCanvas = false;
+    });
+
     canvas.currentlySelectedTaskButton = undefined;
 
-    createTaskAssignmentButton("Go to position", "GoToPosition", "singlePosition")
-    createTaskAssignmentButton("Kick to position", "KickBallToPosition", "singlePosition")
-    createTaskAssignmentButton("Carry ball to position", "CarryBallToPosition", "singlePosition")
-    createTaskAssignmentButton("Score a goal", "ScoreGoalTask", "noSelection")
-    createResetTasksButton();
+    createTaskAssignmentButton("simple-tasks-tab", "Go to position", "GoToPosition", "singlePosition")
+    createTaskAssignmentButton("simple-tasks-tab", "Kick to position", "KickBallToPosition", "singlePosition")
+    createTaskAssignmentButton("simple-tasks-tab", "Carry ball to position", "CarryBallToPosition", "singlePosition")
+    createResetTasksButton("simple-tasks-tab", );
+    createTellInstructionsButton("simple-tasks-tab", );
+
+    createTaskAssignmentButton("complex-tasks-tab", "Score a goal", "ScoreGoalTask", "noSelection")
+    //createTaskAssignmentButton("complex-tasks-tab", "Defend field", "DefendFieldTask", "noSelection")
+    createResetTasksButton("complex-tasks-tab", );
+    createTellInstructionsButton("complex-tasks-tab", );
 
 }
 
@@ -714,13 +1134,13 @@ function setupSocket(webSocket)
         sendClientInfo(webSocket);
 
         //Start rendering the canvas
-        //enableClient();
+        enableClient();
 
         //Set up a ping pong method for keepalive
         //console.log("Setting up keepalive")
         keepalive_send_timeout = setInterval(requestKeepalive, KEEPALIVE_SEND_INTERVAL);
 
-        //startRenderingLoop();
+        startRenderingLoop();
     };
 
     webSocket.onerror = function (error) {
@@ -783,7 +1203,11 @@ function setupSocket(webSocket)
                 var robotNumber = message_fields[0]
 
                 //NOTICE: the y coordinate is inverted
-                robotNumbersToPositions[robotNumber] = [Math.floor(parseFloat(message_fields[1])), Math.floor(parseFloat(message_fields[2])), -Math.floor(parseFloat(message_fields[3]))]
+                robotNumbersToPositions[robotNumber] = [
+                    parseFloat(message_fields[1]), 
+                    Math.floor(parseFloat(message_fields[2])), 
+                    -Math.floor(parseFloat(message_fields[3]))
+                ];
             }
             else if(message_content.startsWith("ballPosition"))
             {
@@ -803,16 +1227,18 @@ function setupSocket(webSocket)
                     
                     //NOTICE: the y coordinate is inverted
                     obstaclesPositions.push([Math.floor(parseFloat(obsCoords[0])), -Math.floor(parseFloat(obsCoords[1]))])
-                }                
+                }              
             }
             else if(message_content.startsWith("taskQueue"))
             {
                 resetTaskList();
+                
+                message_content = message_content.replace(/\0.*$/g,'');
 
-                //console.log(message_content)
+                console.log(message_content)
                 var content_fields = message_content.split(";").slice(1)
                 
-                //console.log(content_fields)
+                console.log(content_fields)
                 lastReceivedTaskID = parseInt(content_fields[0].split(",")[1])
                 lastCompletedTaskID = parseInt(content_fields[0].split(",")[2])
                 //console.log(lastReceivedTaskID)
@@ -842,6 +1268,7 @@ function setupSocket(webSocket)
                     else
                     {
                         console.log("Wrong taskQueue format")
+                        console.log(message_content)
                         return;
                     }
                 }
@@ -857,8 +1284,8 @@ function waitForWebSocketConnection(webSocket)
         function () {
             if (webSocket.readyState == WebSocket.OPEN) {
             } else {
-                //console.log("Attempting connection of websocket...")
-                webSocket = new WebSocket("ws://localhost:4000");
+                console.log("Attempting connection of websocket...")
+                webSocket = new WebSocket("ws://"+SERVER_IP+":4000");
                 setupSocket(webSocket)
                 waitForWebSocketConnection(webSocket);
             }

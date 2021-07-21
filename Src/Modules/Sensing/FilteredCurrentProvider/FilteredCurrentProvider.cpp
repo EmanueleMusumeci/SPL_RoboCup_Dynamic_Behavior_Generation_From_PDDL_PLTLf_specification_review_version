@@ -98,7 +98,8 @@ void FilteredCurrentProvider::checkMotorMalfunction(FilteredCurrent& theFiltered
           //arms shall not play motorMalFunction
           if(i >= Joints::firstArmJoint && i < Joints::firstLegJoint)
           {
-            SystemCall::say(std::string("Arm damaged").c_str()); //probably only playing while doing get ups
+            ;
+            //SystemCall::say(std::string("Arm damaged").c_str()); //probably only playing while doing get ups
           }
           else
           {

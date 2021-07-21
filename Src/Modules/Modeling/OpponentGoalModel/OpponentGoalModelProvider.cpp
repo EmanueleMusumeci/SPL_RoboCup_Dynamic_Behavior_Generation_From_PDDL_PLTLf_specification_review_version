@@ -12,8 +12,9 @@ OpponentGoalModelProvider::OpponentGoalModelProvider(){}
 
 void OpponentGoalModelProvider::update(OpponentGoalModel& opponentGoalModel)
 {
-    opponentGoalModel.graphicalDebug = (GRAPHICAL_DEBUG==1 ? true : false);
-    opponentGoalModel.showWalls = (SHOW_WALLS==1 ? true : false);
+    opponentGoalModel.graphicalDebug = GRAPHICAL_DEBUG;
+    opponentGoalModel.showWalls = SHOW_WALLS;
+    opponentGoalModel.showRays = SHOW_RAYS;
 
     opponentGoalModel.useAreaDiscretization = (USE_AREA_DISCRETIZATION==1 ? true : false);
 

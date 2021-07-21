@@ -81,8 +81,8 @@ namespace HRI
       CarryBall,
       Kick,
       CarryAndKickToGoal,
-      //LookAt,
-      //SaySomething,
+      PerformInitialSpeech,
+      PerformInstructionsSpeech,
     });
 
     ENUM(TaskType,
@@ -95,6 +95,8 @@ namespace HRI
       ScoreGoalTask,
       //PointAtPosition,
       //PointAtBall,
+      InitialSpeech,
+      InstructionsSpeech,
     });
 
 }
@@ -120,10 +122,10 @@ STREAMABLE(Action,
   (HRI::ActionType) actionType,
   (Vector2f) target,
 });
-//CTOR for actions not based on a target
+//CTOR for target-based actions 
 inline Action::Action(HRI::ActionType actionType) : actionType(actionType), target(Vector2f(0,0)) 
 {
-  std::cout<<"actionType: "<<TypeRegistry::getEnumName(actionType)<<std::endl;
+  //std::cout<<"actionType: "<<TypeRegistry::getEnumName(actionType)<<std::endl;
   //Verify that the action is not target-based
   ASSERT(
     actionType!=HRI::ActionType::CarryBall 
@@ -133,15 +135,19 @@ inline Action::Action(HRI::ActionType actionType) : actionType(actionType), targ
     actionType!=HRI::ActionType::ReachPosition 
   );
 };
-//CTOR for target-based actions
+//CTOR for actions not based on a target
 inline Action::Action(HRI::ActionType actionType, Vector2f target) : actionType(actionType), target(target) 
 {
-  std::cout<<"actionType: "<<TypeRegistry::getEnumName(actionType)<<std::endl;
+  //std::cout<<"actionType: "<<TypeRegistry::getEnumName(actionType)<<std::endl;
   //Verify that the action is target-based
   ASSERT(
     actionType!=HRI::ActionType::Idle 
     &&
     actionType!=HRI::ActionType::ReachBall
+    &&
+    actionType!=HRI::ActionType::PerformInitialSpeech
+    &&
+    actionType!=HRI::ActionType::PerformInstructionsSpeech
   );
 };
 
@@ -192,7 +198,7 @@ STREAMABLE(HRIController,
   FUNCTION(void()) resetTaskQueue;
   FUNCTION(HRI::ActionType()) getCurrentActionType;
   FUNCTION(bool(bool condition)) checkActionCompleted;
-  FUNCTION(bool()) checkTaskCompleted;
+  FUNCTION(bool(bool playSound)) checkTaskCompleted;
   FUNCTION(void(Task)) addTask;
   FUNCTION(void(std::vector<Task>)) updateTasks;
   FUNCTION(std::string(Action action)) actionToString;
@@ -200,14 +206,13 @@ STREAMABLE(HRIController,
   FUNCTION(Action()) getCurrentAction;
   FUNCTION(Action()) nextAction;
   FUNCTION(bool()) isTaskComplete;
+  FUNCTION(void(int taskID)) deleteSingleTask;
 
-  /*
-  FUNCTION(Task(Vector2f position, int taskID)) GoToPositionTask;
-  FUNCTION(Task(Vector2f position, int taskID)) CarryBallToPositionTask;
-  FUNCTION(Task(Vector2f position, int taskID)) KickBallToPositionTask;
-  FUNCTION(Task(int taskID)) ScoreGoalTask;
-  */
- 
+  FUNCTION(void(bool initialSpeech, int taskID)) scheduleInstructionsSpeech;
+  FUNCTION(void()) scheduleIdleTask;
+
+  FUNCTION(void(bool playSound)) signalTaskCompleted;
+
   HRIController();
   ,
 
@@ -226,6 +231,11 @@ STREAMABLE(HRIController,
   (float) ballCarrierDistanceThreshold,
   (float) reachPositionDistanceThreshold,
   (float) kickDistanceThreshold,
+
+  (Vector2f) userPosition,
+  (float) userHeight,
+
+  (bool)(false) initialSpeechPerformed,
 
 });
 inline HRIController::HRIController() : taskQueue(), completedTasks() {}

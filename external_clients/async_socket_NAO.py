@@ -9,21 +9,18 @@ import math
 import twisted
 from twisted.internet import reactor, task
 
-#TODO In FieldGUI:
-#- Per ogni messaggio di task in arrivo, inviarlo al robot corretto (l'associazione client-robot sarà gestita dal client nodejs)
-#- Gestire keepalive con client nodejs  
-#- Al Nodejs deve essere inviata periodicamente la task queue attuale per ogni robot (il client js semplicemente leggerà quella e la stamperà in grafica 2d)
+#NOTICE: This node controls the task list BUT the IdleTask and the initial PerformInitialSpeechTask are hard-coded in the robot behavior
 
-def setup_read_socket(udpProtocol, reactor, ip, read_port, read_timeout, debug_message):
+def setup_read_socket(udpProtocol, reactor, local_interface_ip, read_port, read_timeout, debug_message):
     #Setup read socket
     if debug_message is not None: 
         print(debug_message)
     
     read_socket = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
 
-    read_addr = socket.getaddrinfo(ip, read_port, socket.AF_INET, socket.SOCK_DGRAM)[0]
+    read_addr = socket.getaddrinfo(local_interface_ip, read_port, socket.AF_INET, socket.SOCK_DGRAM)[0]
 
-    read_socket.bind((ip, read_port))
+    read_socket.bind((local_interface_ip, read_port))
     read_socket.setblocking(False)
     read_socket.settimeout(read_timeout)
     
@@ -31,27 +28,27 @@ def setup_read_socket(udpProtocol, reactor, ip, read_port, read_timeout, debug_m
     
     return reactor_read_socket, read_addr
 
-def setup_write_socket(ip, write_port, dest_port = None, debug_message = None):
+def setup_write_socket(local_interface_ip, write_port, remote_dest_ip, dest_port = None, debug_message = None):
     #Setup write socket
     if debug_message is not None: 
         print(debug_message)
     
     write_socket = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
 
-    write_addr = socket.getaddrinfo(ip, write_port, socket.AF_INET, socket.SOCK_DGRAM)[0]
+    write_addr = socket.getaddrinfo(local_interface_ip, write_port, socket.AF_INET, socket.SOCK_DGRAM)[0]
     
     dest_addr = None
     if dest_port is not None:
-        dest_addr = socket.getaddrinfo(ip, dest_port, socket.AF_INET, socket.SOCK_DGRAM)[0]
+        dest_addr = socket.getaddrinfo(remote_dest_ip, dest_port, socket.AF_INET, socket.SOCK_DGRAM)[0]
 
-    write_socket.bind((ip, write_port))
+    write_socket.bind((local_interface_ip, write_port))
     write_socket.setblocking(False)
     
     return write_socket, write_addr, dest_addr
 
 class NAOCommunicationController(twisted.internet.protocol.DatagramProtocol):
-    def __init__(self, reactor, robot_number, ip, 
-                write_port, dest_port, 
+    def __init__(self, reactor, robot_number, local_interface_ip, 
+                write_port, remote_dest_ip, dest_port, 
                 read_port, read_socket_timeout, 
                 active_client_timeout, 
                 fieldGUI):
@@ -61,12 +58,12 @@ class NAOCommunicationController(twisted.internet.protocol.DatagramProtocol):
         self.alive = False
         self.active_client_timeout = active_client_timeout
         
-        self.write_socket, self.write_addr, self.dest_addr = setup_write_socket(ip, write_port, dest_port=dest_port, 
-                                                                                debug_message=("Robot %d: UDP write port: %s" % (robot_number, write_port)))
+        self.write_socket, self.write_addr, self.dest_addr = setup_write_socket(local_interface_ip, write_port, remote_dest_ip, dest_port=dest_port, 
+                                                                                debug_message=("Writing from %s, with local port %s\n\t-> Robot %d: IP %s, UDP write port: %s" % (local_interface_ip, write_port, robot_number, remote_dest_ip, dest_port)))
         self.last_sent_message_timestamp = time.time()
 
-        self.read_socket, self.read_addr = setup_read_socket(self, reactor, ip, read_port, read_socket_timeout, 
-                                                                debug_message=("Robot %d: UDP read port: %s" % (robot_number, write_port)))
+        self.read_socket, self.read_addr = setup_read_socket(self, reactor, local_interface_ip, read_port, read_socket_timeout, 
+                                                                debug_message=("Listening on %s, with local port %s\n\t-> Robot %d: IP %s, UDP read port: %s" % (local_interface_ip, read_port, robot_number, remote_dest_ip, write_port)))
         self.last_received_message_timestamp = time.time()
         self.read_socket_timeout = read_socket_timeout
 
@@ -88,7 +85,7 @@ class NAOCommunicationController(twisted.internet.protocol.DatagramProtocol):
 
     def send_keepalive_response(self):
         self.send_string("yeah")
-        print("KEEPALIVE response sent %s" % b"yeah\x00")
+        #print("KEEPALIVE response sent %s" % b"yeah\x00")
 
     #MESSAGE HANDLERS
     def handleLastTaskIDMessage(self, content, message_info):
@@ -129,15 +126,16 @@ class NAOCommunicationController(twisted.internet.protocol.DatagramProtocol):
         content_fields = list(filter(None, content.split(";")[1:]))
         #print(content_fields)
 
-        lastReceivedTaskID = content_fields[0].split(",")[1]
-        lastCompletedTaskID = content_fields[0].split(",")[2]
+        lastReceivedTaskID = int(content_fields[0].split(",")[1])
+        lastCompletedTaskID = int(content_fields[0].split(",")[2])
         
         self.fieldGUI.resetRobotTaskQueue(self.robot_number, message_info["timestamp"], lastReceivedTaskID, lastCompletedTaskID)
         
         #If there isn't any task return
         if(len(content_fields) == 1): return
 
-        #print(content_fields)
+        print(content_fields)
+        print(len(self.fieldGUI.robot_tasks[self.robot_number]["tasks"]))
         for task in content_fields[1:]:
             task_fields = task.split(",")
             
@@ -153,6 +151,7 @@ class NAOCommunicationController(twisted.internet.protocol.DatagramProtocol):
             else:
                 print("Wrong taskQueue format")
                 raise
+        
 
 
     def handleMessage(self, data):
@@ -185,7 +184,7 @@ class NAOCommunicationController(twisted.internet.protocol.DatagramProtocol):
 
         #keep-alive message
         if content == "uthere?":
-            print("KEEPALIVE received from robot %s" % self.robot_number)
+            #print("KEEPALIVE received from robot %s" % self.robot_number)
             self.send_keepalive_response()
         else:
             if content.startswith("lastTaskID"):
@@ -201,16 +200,18 @@ class NAOCommunicationController(twisted.internet.protocol.DatagramProtocol):
                 self.handleObstaclesMessage(content, message_info)
 
             elif content.startswith("lastTaskQueue"):
-                #print(content)
+                print(content)
                 self.handleTaskQueueMessage(content, message_info)
                 print("Stopping task queue check")
                 if self.check_task_queue_task.running:
                     self.check_task_queue_task.stop()
 
     def send_string(self, string, terminator="\x00"):
+        print("Sending data to robot "+str(self.robot_number)+": "+string)
         self.send_data(str.encode(string+terminator))
     
     def send_data(self, data):
+        #print(self.dest_addr[4])
         self.write_socket.sendto(data, self.dest_addr[4])
         self.last_sent_message_timestamp = time.time()
 
@@ -269,6 +270,11 @@ class NAOCommunicationController(twisted.internet.protocol.DatagramProtocol):
                     self.fieldGUI.robot_tasks[self.robot_number]["reset"] = False
                     self.send_string("resetTasks")
 
+                if len(self.fieldGUI.robot_tasks[self.robot_number]["tasksToDelete"]) > 0:
+                    for taskID in self.fieldGUI.robot_tasks[self.robot_number]["tasksToDelete"]:
+                        self.send_string("deleteTask,"+taskID)
+                    self.fieldGUI.robot_tasks[self.robot_number]["tasksToDelete"] = []
+
                 for i, task in enumerate(self.fieldGUI.robot_tasks[self.robot_number]["tasks"]):
                     if(i > 0): 
                         task_list_string+= ";"
@@ -281,13 +287,13 @@ class NAOCommunicationController(twisted.internet.protocol.DatagramProtocol):
                             task_list_string+=","+str(parameter)
                     
                 
-                print(task_list_string)
+                #print(task_list_string)
                 self.send_string(task_list_string)
             else:
                 return
 
 class FieldGUI(twisted.internet.protocol.DatagramProtocol):
-    def __init__(self, reactor, local_ip, read_port, read_socket_timeout, write_port, client_port, active_client_timeout):
+    def __init__(self, reactor, local_websocket_interface_ip, read_port, read_socket_timeout, remote_dest_ip, write_port, client_port, active_client_timeout):
         self.ball_position = {"position_timestamp": None, "update_timestamp": time.time(), "last_seen_by_robot" : -1, "position" : (0, 0)}
 
         self.robot_positions = {}
@@ -296,12 +302,12 @@ class FieldGUI(twisted.internet.protocol.DatagramProtocol):
 
         self.obstacles = {"position_timestamp": None, "update_timestamp": time.time(), "obstacles" : []}
         
-        self.write_socket, self.write_addr, self.dest_addr = setup_write_socket(local_ip, write_port, dest_port=None, 
-                                                                                debug_message=("Web client UDP write port: %s" % (write_port)))
+        self.write_socket, self.write_addr, self.dest_addr = setup_write_socket(local_websocket_interface_ip, write_port, remote_dest_ip, dest_port=client_port, 
+                                                                                debug_message=("Web client LOCAL UDP write port: %s\n -> Web client REMOTE UDP read port: %s" % (write_port, client_port)))
         self.last_sent_message_timestamp = None
 
-        self.read_socket, self.read_addr = setup_read_socket(self, reactor, local_ip, read_port, read_socket_timeout, 
-                                                            debug_message=("Web client UDP read port: %s" % (write_port)))
+        self.read_socket, self.read_addr = setup_read_socket(self, reactor, local_websocket_interface_ip, read_port, read_socket_timeout, 
+                                                            debug_message=("Web client UDP read port: %s" % (read_port)))
         self.last_received_message_timestamp = None
 
         self.last_client_id = None
@@ -335,7 +341,10 @@ class FieldGUI(twisted.internet.protocol.DatagramProtocol):
             if task["parameters"] is not None:
                 message += ","+(",".join([str(param) for param in task["parameters"]]))
             
-            if len(self.robot_tasks[robotNumber]["tasks"]) > 0: message += ";";
+            if len(self.robot_tasks[robotNumber]["tasks"]) > 0 \
+            and \
+            i < len(self.robot_tasks[robotNumber]["tasks"]) - 1: 
+                message += ";"
         
         return message
             
@@ -356,12 +365,13 @@ class FieldGUI(twisted.internet.protocol.DatagramProtocol):
     #Only called in case the server just restarted after the crash and the robot was still running and had already assigned tasks
     #so the server will recover the control session
     def resetRobotTaskQueue(self, robotNumber, timestamp, lastReceivedTaskID, lastCompletedTaskID):
-        if robotNumber not in self.robot_tasks.keys():
-            self.robot_tasks[robotNumber] = {"last_timestamp": timestamp, "update_timestamp" : time.time(), "lastCompletedTaskID" : lastCompletedTaskID, "lastReceivedTaskID" : lastReceivedTaskID, "tasks" : [], "reset" : False}
+        #if robotNumber not in self.robot_tasks.keys():
+        self.robot_tasks[robotNumber] = {"last_timestamp": timestamp, "update_timestamp" : time.time(), "lastCompletedTaskID" : lastCompletedTaskID, "lastReceivedTaskID" : lastReceivedTaskID, "tasks" : [], "reset" : False, "tasksToDelete" : []}
+        
 
     def updateRobotLastTaskID(self, robotNumber, timestamp, lastReceivedTaskID, lastCompletedTaskID):
         if robotNumber not in self.robot_tasks.keys():
-            self.robot_tasks[robotNumber] = {"last_timestamp": timestamp, "update_timestamp" : time.time(), "lastCompletedTaskID" : lastCompletedTaskID, "lastReceivedTaskID" : lastReceivedTaskID, "tasks" : [], "reset" : False}
+            self.robot_tasks[robotNumber] = {"last_timestamp": timestamp, "update_timestamp" : time.time(), "lastCompletedTaskID" : lastCompletedTaskID, "lastReceivedTaskID" : lastReceivedTaskID, "tasks" : [], "reset" : False, "tasksToDelete" : []}
 
         else:
         #elif timestamp > self.robot_tasks[robotNumber]["last_timestamp"]:
@@ -374,7 +384,7 @@ class FieldGUI(twisted.internet.protocol.DatagramProtocol):
                 if task["taskID"] > self.robot_tasks[robotNumber]["lastCompletedTaskID"]:
                     new_tasks.append(task)
 
-            self.robot_tasks[robotNumber] = {"last_timestamp": timestamp, "update_timestamp" : time.time(), "lastCompletedTaskID" : lastCompletedTaskID, "lastReceivedTaskID" : lastReceivedTaskID, "tasks" : new_tasks, "reset" : False}
+            self.robot_tasks[robotNumber] = {"last_timestamp": timestamp, "update_timestamp" : time.time(), "lastCompletedTaskID" : lastCompletedTaskID, "lastReceivedTaskID" : lastReceivedTaskID, "tasks" : new_tasks, "reset" : False, "tasksToDelete" : self.robot_tasks[robotNumber]["tasksToDelete"]}
         
         self.update_client(robotNumber, self.generateLastQueueMessage(robotNumber))
 
@@ -406,7 +416,6 @@ class FieldGUI(twisted.internet.protocol.DatagramProtocol):
         #print("KEEPALIVE response sent: %s" % b"yeah\x00")
 
     def addTask(self, robotNumber, taskType, taskID, parameters = None):
-        
         #Don't add the task if it is already contained in the task list for the robot #robotNumber
         for task in self.robot_tasks[robotNumber]["tasks"]:
             if task["taskID"] == taskID:
@@ -420,7 +429,7 @@ class FieldGUI(twisted.internet.protocol.DatagramProtocol):
 
         print("Received message from client")
 
-        #print(data)
+        print(data)
 
         message_fields = data.split("|")
 
@@ -455,13 +464,19 @@ class FieldGUI(twisted.internet.protocol.DatagramProtocol):
 
         #keep-alive message
         if content == "uthere?":
-            print("KEEPALIVE received from client %s" % message_info["client_id"])
+            #print("KEEPALIVE received from client %s" % message_info["client_id"])
             self.send_keepalive_response()
         else:   
             if content.startswith("resetTasks"):
+                print(content)
                 print("resetTasks")
                 robotNumber = int(content.split(",")[1])
                 self.robot_tasks[robotNumber]["reset"] = True
+            elif content.startswith("deleteTask"):
+                print(content)
+                robotNumber = int(content.split(",")[1])
+                taskID = int(content.split(",")[2])
+                self.robot_tasks[robotNumber]["tasksToDelete"].append(str(taskID))
 
             elif content.startswith("taskType"):
                 content_fields = content.split(":")[1].split(",")
@@ -500,7 +515,19 @@ class FieldGUI(twisted.internet.protocol.DatagramProtocol):
 
 if __name__ == "__main__":
 
-    UDP_IP = "127.0.0.1"
+    USE_LOCALHOST = True
+
+
+    robotNumberToIPMap = {}
+    if(USE_LOCALHOST):
+        LOCAL_INTERFACE_IP = "127.0.0.1"
+        robotNumberToIPMap[3] = {"robotName" : "Caligola", "robotIP" : "127.0.0.1"}
+    else:
+        LOCAL_INTERFACE_IP = "10.0.255.226"
+        robotNumberToIPMap[3] = {"robotName" : "Caligola", "robotIP" : "10.0.19.17"}
+    
+    LOCAL_WEBSOCKET_INTERFACE_IP = "127.0.0.1"
+    FRONTEND_SOCKET_IP = "127.0.0.1"
     #UDP_IP = "localhost"
 
     #Notice: 
@@ -521,23 +548,22 @@ if __name__ == "__main__":
     LAST_TASK_ID_TIMEOUT = 1
     UPDATE_TASKS_TIMEOUT = 0.2
     
-    print("UDP target IP: %s" % UDP_IP)
-
-    WEB_SOCKET_IP = "127.0.0.1"
+    
     WEB_CLIENT_READ_PORT = 65300
     WEB_CLIENT_WRITE_PORT = 65400
     WEB_CLIENT_REMOTE_READ_PORT = 65301
     WEB_CLIENT_REMOTE_WRITE_PORT = 65401
 
-    fieldGUI = FieldGUI(reactor, UDP_IP, WEB_CLIENT_READ_PORT, READ_SOCKET_TIMEOUT, WEB_CLIENT_WRITE_PORT, WEB_CLIENT_REMOTE_READ_PORT, ALIVE_CLIENT_TIMEOUT)
+    print("LOCAL INTERFACE IP: %s" % LOCAL_INTERFACE_IP)
+    fieldGUI = FieldGUI(reactor, LOCAL_WEBSOCKET_INTERFACE_IP, WEB_CLIENT_READ_PORT, READ_SOCKET_TIMEOUT, FRONTEND_SOCKET_IP, WEB_CLIENT_WRITE_PORT, WEB_CLIENT_REMOTE_READ_PORT, ALIVE_CLIENT_TIMEOUT)
 
     robotCommunicationControllers = {}
-    for robot_number in ROBOT_LIST:
+    for robot_number in robotNumberToIPMap.keys():
         write_port = UDP_BASE_WRITE_PORT + robot_number
         read_port = UDP_BASE_READ_PORT + robot_number
         dest_port = UDP_BASE_DEST_PORT + robot_number
-        robotCommunicationControllers[robot_number] = NAOCommunicationController(reactor, robot_number, UDP_IP, 
-                                                                                write_port, dest_port, 
+        robotCommunicationControllers[robot_number] = NAOCommunicationController(reactor, robot_number, LOCAL_INTERFACE_IP, 
+                                                                                write_port, robotNumberToIPMap[robot_number]["robotIP"], dest_port, 
                                                                                 read_port,  READ_SOCKET_TIMEOUT,
                                                                                 ALIVE_CLIENT_TIMEOUT,
                                                                                 fieldGUI)

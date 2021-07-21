@@ -50,6 +50,7 @@ STREAMABLE_WITH_BASE(RobotPose, Pose2f, COMMA public BHumanMessageParticle<idRob
   (float)(unknownDeviation) deviation,            /**< The deviation of the robot pose. */
   (Matrix3f)(Matrix3f::Identity()) covariance,    /**< The covariance matrix of the estimated robot pose. */
   (unsigned)(0) timestampLastJump,                /**< Timestamp of last "big change" (jump) notificaion */
+
 });
 
 /**

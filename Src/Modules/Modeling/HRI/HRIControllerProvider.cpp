@@ -11,42 +11,26 @@
 #define DEBUG_NUMB(print_debug, message) \
   if(print_debug) std::cout<<"[Robot #"<<theRobotInfo.number<<"] " << message << std::endl; 
 
+#define __STRINGIFY_I(arg) #arg
+#define __STRINGIFY(arg) __STRINGIFY_I(arg)
+#define DEBUG_CODE(code) \
+  std::cout<<"[Robot #"<<std::to_string(theRobotInfo.number)<<"] "<<__STRINGIFY(code)<<": "<<std::to_string(code)<<std::endl;
+
 HRIControllerProvider::HRIControllerProvider(){}
 
 void HRIControllerProvider::update(HRIController& controller)
 {
     
+    DEBUG_NUMB(PRINT_DEBUG, "HRIController update function\n\n\n");
+
     controller.ballCarrierDistanceThreshold = BALL_CARRIER_DISTANCE_THRESHOLD;
     controller.kickDistanceThreshold = KICK_DISTANCE_THRESHOLD;
     controller.reachPositionDistanceThreshold = REACH_POSITION_DISTANCE_THRESHOLD;
 
-
-    //Lambda functions
-    
-    //Task creation
-    /*controller.GoToPositionTask = [&] (Vector2f position, int taskID) -> Task
-    {
-        return HRIControllerProvider::GoToPositionTask(position, taskID);
-    };
-
-    controller.CarryBallToPositionTask = [&] (Vector2f position, int taskID) -> Task
-    {
-        return HRIControllerProvider::CarryBallToPositionTask(position, taskID);
-    };
-
-    controller.KickBallToPositionTask = [&] (Vector2f position, int taskID) -> Task
-    {
-        return HRIControllerProvider::KickBallToPositionTask(position, taskID);
-    };
-
-    controller.ScoreGoalTask = [&] (int taskID) -> Task
-    {
-        return HRIControllerProvider::ScoreGoalTask(taskID);
-    };*/
+    controller.userPosition = userPosition;
+    controller.userHeight = userHeight;
 
 
-
-    DEBUG_NUMB(PRINT_DEBUG, "HRIController update function");
     //DEBUG_NUMB(PRINT_DEBUG, std::to_string(controller.taskQueue.empty()));
     
     controller.updateCurrentDestination = [&] (Vector2f destinationPose) -> void
@@ -54,6 +38,22 @@ void HRIControllerProvider::update(HRIController& controller)
         controller.currentRobotDestination = destinationPose;
     };
   
+    controller.scheduleInstructionsSpeech = [&] (bool initialSpeech, int taskID) -> void
+    {
+        if(controller.taskQueue.empty() || (controller.taskQueue.at(0).taskType != HRI::TaskType::InitialSpeech && controller.taskQueue.at(0).taskType != HRI::TaskType::InstructionsSpeech))
+        {
+            if(initialSpeech)
+            {
+                controller.taskQueue.insert(controller.taskQueue.begin(), InitialSpeechTask(taskID));
+                controller.lastReceivedTaskID = taskID;
+            }
+            else
+            {
+                controller.taskQueue.insert(controller.taskQueue.begin(), InstructionsSpeechTask(taskID, theRobotPose.translation));
+            }
+        }
+    };
+
     controller.updateCurrentBallDestination = [&] (Vector2f ballDestination) -> void
     {
         controller.currentBallDestination = ballDestination;
@@ -61,33 +61,56 @@ void HRIControllerProvider::update(HRIController& controller)
 
     controller.getCurrentTask = [&] () -> Task
     {
-        DEBUG_NUMB(PRINT_DEBUG, "Get current task");
+        DEBUG_NUMB(PRINT_DEBUG, "\n\ncontroller.getCurrentTask");
+        
+        //If no task is requested
         if(controller.taskQueue.empty()) 
         {
             DEBUG_NUMB(PRINT_DEBUG, "Task queue empty");
-            ::std::vector<Action> idleQueue = ::std::vector<Action>({IdleAction()});
-            Task idleTask = Task(HRI::TaskType::None, -1, idleQueue, theRobotPose.translation);
-            return idleTask; //SINGLETON;
+            if(!controller.initialSpeechPerformed && PERFORM_INITIAL_SPEECH)
+            {
+                DEBUG_NUMB(PRINT_DEBUG, "Perform initial speech");
+                controller.scheduleInstructionsSpeech(true, 0);
+                controller.initialSpeechPerformed = true;
+            }
+            else
+            {
+                DEBUG_NUMB(PRINT_DEBUG, "Idle task");
+                ::std::vector<Action> idleQueue = ::std::vector<Action>({IdleAction()});
+                Task idleTask = Task(HRI::TaskType::None, -1, idleQueue, theRobotPose.translation);
+                return idleTask; //SINGLETON;
+            }
         }
         return controller.taskQueue.at(0);
     };
 
+    controller.signalTaskCompleted = [&] (bool playSound) -> void
+    {
+        DEBUG_NUMB(PRINT_DEBUG, "Current tasks: "<<controller.tasksToString());
+        DEBUG_NUMB(PRINT_DEBUG, "taskCompleted");
+        controller.completedTasks.push_back(controller.taskQueue.at(0));
+        if(playSound) SoundPlayer::play("TaskCompleted.wav");
+        controller.nextTask();
+    };
+
     controller.nextTask = [&] () -> void
     {
-        DEBUG_NUMB(PRINT_DEBUG, "Going to next task");
+        DEBUG_NUMB(PRINT_DEBUG, "\n\ncontroller.nextTask");
         if(!controller.taskQueue.empty())
         {
+            DEBUG_NUMB(PRINT_DEBUG, "Task queue not empty");
             DEBUG_NUMB(PRINT_DEBUG, std::to_string(controller.taskQueue.at(0).taskID));
             controller.lastCompletedTaskID = controller.taskQueue.at(0).taskID;
             controller.taskQueue.erase(controller.taskQueue.begin());
             controller.currentAction = 0;
+            DEBUG_NUMB(PRINT_DEBUG, std::to_string(controller.currentAction));
         }    
-        DEBUG_NUMB(PRINT_DEBUG, "Gone to next task");    
+        //DEBUG_NUMB(PRINT_DEBUG, "Gone to next task");    
     };
 
     controller.getCurrentAction = [&] () -> Action
     {
-        DEBUG_NUMB(PRINT_DEBUG, "getCurrentAction");
+        //DEBUG_NUMB(PRINT_DEBUG, "getCurrentAction");
         if(controller.taskQueue.empty() || controller.taskQueue.at(0).actionQueue.empty()) return IdleAction();
         return controller.taskQueue.at(0).actionQueue.at(controller.currentAction);
     };
@@ -95,19 +118,54 @@ void HRIControllerProvider::update(HRIController& controller)
     //If current action was completed, remove it from the task
     controller.nextAction = [&] () -> Action
     {
-        DEBUG_NUMB(PRINT_DEBUG, "nextAction");
+        DEBUG_NUMB(PRINT_DEBUG, "\n\ncontroller.nextAction");
         if(!controller.isTaskComplete())
         {
-            DEBUG_NUMB(PRINT_DEBUG, "task not complete: current action before "<<controller.currentAction);
+            //DEBUG_NUMB(PRINT_DEBUG, "task not complete: current action before "<<controller.currentAction);
             controller.currentAction+=1;
-            DEBUG_NUMB(PRINT_DEBUG, "task not complete: current action after "<<controller.currentAction);
+            //DEBUG_NUMB(PRINT_DEBUG, "task not complete: current action after "<<controller.currentAction);
         }
-        controller.checkTaskCompleted();
+        controller.checkTaskCompleted(true);
         return controller.getCurrentAction();
+    };
+
+    controller.deleteSingleTask = [&] (int taskID) -> void
+    {
+        DEBUG_NUMB(PRINT_DEBUG, "\n\ncontroller.deleteSingleTask");
+        
+        DEBUG_NUMB(PRINT_DEBUG, "Current tasks: "<<controller.tasksToString());
+
+        
+        
+        if(controller.getCurrentTask().taskID == taskID) 
+        {
+            controller.nextTask();
+        }
+        else
+        {
+            Task* selectedTask = nullptr;
+            int i=0;
+            for(auto task : controller.taskQueue)
+            {
+                DEBUG_NUMB(PRINT_DEBUG, std::to_string(task.taskID));
+                if(task.taskID == taskID) 
+                {
+                    DEBUG_NUMB(PRINT_DEBUG, "found task "+std::to_string(task.taskID));
+                    selectedTask = &task;
+                    break;
+                }
+                i++;
+            }
+            
+            if(!selectedTask) return;
+            
+            controller.taskQueue.erase(controller.taskQueue.begin() + i);   
+        }
     };
 
     controller.resetTaskQueue = [&] () -> void
     {
+        DEBUG_NUMB(PRINT_DEBUG, "\n\ncontroller.resetTaskQueue");
         int maxTaskID = -1;
         for(auto task : controller.taskQueue)
         {
@@ -121,12 +179,17 @@ void HRIControllerProvider::update(HRIController& controller)
     
     controller.getCurrentActionType = [&] () -> HRI::ActionType
     {
+        DEBUG_NUMB(PRINT_DEBUG, "\n\ncontroller.getCurrentActionType");
+        DEBUG_CODE(controller.taskQueue.size());
+        DEBUG_CODE(controller.currentAction);
         if(controller.taskQueue.empty() || controller.taskQueue.at(0).actionQueue.empty()) return HRI::ActionType::Idle;
         return controller.taskQueue.at(0).actionQueue.at(controller.currentAction).actionType;
     };
 
     controller.checkActionCompleted = [&] (bool condition) -> bool
     {
+        DEBUG_NUMB(PRINT_DEBUG, "\n\ncontroller.checkActionCompleted");
+        std::cout<<"taskID: "<<controller.getCurrentTask().taskID<<std::endl;
         if(condition)
         {
             controller.nextAction();
@@ -137,19 +200,26 @@ void HRIControllerProvider::update(HRIController& controller)
 
     controller.isTaskComplete = [&] () -> bool
     {
+        DEBUG_NUMB(PRINT_DEBUG, "\n\ncontroller.isTaskComplete");
         if(controller.taskQueue.empty()) return false; //Idle task is never complete
+        DEBUG_NUMB(PRINT_DEBUG, "Current tasks: "<<controller.tasksToString());
+        DEBUG_NUMB(PRINT_DEBUG, "taskQueue not empty");
         DEBUG_NUMB(PRINT_DEBUG, "controller.taskQueue.at(0).taskSize: "<<controller.taskQueue.at(0).taskSize);
         DEBUG_NUMB(PRINT_DEBUG, "controller.currentAction: "<<controller.currentAction);
         return controller.currentAction >= controller.taskQueue.at(0).taskSize;
     };
 
-    controller.checkTaskCompleted = [&] () -> bool
+    controller.checkTaskCompleted = [&] (bool playSound) -> bool
     {
-        //DEBUG_NUMB(PRINT_DEBUG, "checkTaskCompleted");
+        DEBUG_NUMB(PRINT_DEBUG, "\n\ncontroller.checkTaskCompleted");
         if(controller.isTaskComplete())
         {
+            DEBUG_NUMB(PRINT_DEBUG, "Current tasks: "<<controller.tasksToString());
             DEBUG_NUMB(PRINT_DEBUG, "taskCompleted");
             controller.completedTasks.push_back(controller.taskQueue.at(0));
+
+            if(playSound) SoundPlayer::play("TaskCompleted.wav");
+
             controller.nextTask();
             return true;
         }
@@ -158,6 +228,7 @@ void HRIControllerProvider::update(HRIController& controller)
   
     controller.addTask = [&] (Task task) -> void
     {
+        DEBUG_NUMB(PRINT_DEBUG, "\n\ncontroller.addTask");
         DEBUG_NUMB(PRINT_DEBUG, "Adding task: task.taskID: "<<std::to_string(task.taskID)<<", controller.lastReceivedTaskID: "<<std::to_string(controller.lastReceivedTaskID));
         //Only add newer tasks, that have a higher taskID
         if(task.taskID <= controller.lastReceivedTaskID) return;
@@ -169,6 +240,7 @@ void HRIControllerProvider::update(HRIController& controller)
     
     controller.updateTasks = [&] (std::vector<Task> newTasks) -> void
     {
+        DEBUG_NUMB(PRINT_DEBUG, "\n\ncontroller.updateTasks");
         DEBUG_NUMB(PRINT_DEBUG, "Updating tasks");
         for(auto task : newTasks) controller.addTask(task);
         DEBUG_NUMB(PRINT_DEBUG, "Tasks updated");
@@ -176,6 +248,7 @@ void HRIControllerProvider::update(HRIController& controller)
 
     controller.actionToString = [&] (Action action) -> std::string
     {
+        DEBUG_NUMB(PRINT_DEBUG, "\n\ncontroller.actionToString");
         std::stringstream result;
         result<<"----Action: "<<TypeRegistry::getEnumName(action.actionType);
         switch(action.actionType)
@@ -218,6 +291,7 @@ void HRIControllerProvider::update(HRIController& controller)
 
     controller.tasksToString = [&] () -> std::string
     {
+        DEBUG_NUMB(PRINT_DEBUG, "\n\ncontroller.tasksToString");
         std::stringstream result;
         DEBUG_NUMB(PRINT_DEBUG, "controller.taskQueue.size(): "<<controller.taskQueue.size());
         int taskIndex = 0;
@@ -228,7 +302,7 @@ void HRIControllerProvider::update(HRIController& controller)
             int actionIndex = 0;
             for(auto action : task.actionQueue)
             {
-                if(taskIndex>0 || actionIndex >= controller.currentAction)
+                if(taskIndex>0 || actionIndex == controller.currentAction)
                     result<<controller.actionToString(action)<<std::string("\n");
                 actionIndex++;
             }
@@ -237,16 +311,14 @@ void HRIControllerProvider::update(HRIController& controller)
         return result.str();
     };
 
-    DEBUG_NUMB(PRINT_DEBUG, "Current tasks: "<<controller.tasksToString());
     
     //Update loop
 
     controller.GRAPHICAL_DEBUG = (GRAPHICAL_DEBUG==1 ? true : false);
 
-
     Task currentTask = controller.getCurrentTask();
 
-    if(controller.checkTaskCompleted())
+    if(controller.checkTaskCompleted(true))
     {
         return;
     }
@@ -270,35 +342,15 @@ void HRIControllerProvider::update(HRIController& controller)
                 controller.updateCurrentDestination(currentAction.target);
                 controller.updateCurrentBallDestination(globalBall);
                 
-                /*
-                DEBUG_NUMB(PRINT_DEBUG, "Current robot destination: ("<<controller.currentRobotDestination.x()<<", "<<controller.currentRobotDestination.y()<<")");
-                DEBUG_NUMB(PRINT_DEBUG, "Current robot position: ("<<theRobotPose.translation.x()<<", "<<theRobotPose.translation.y()<<")");
-                DEBUG_NUMB(PRINT_DEBUG, "Current ball destination: ("<<controller.currentBallDestination.x()<<", "<<controller.currentBallDestination.y()<<")");
-                DEBUG_NUMB(PRINT_DEBUG, "theLibCheck.distance(theRobotPose.translation, controller.currentRobotDestination): "<<theLibCheck.distance(theRobotPose.translation, controller.currentRobotDestination));
-                DEBUG_NUMB(PRINT_DEBUG, "reachPositionDistanceThreshold: "<<controller.reachPositionDistanceThreshold);
-                */
-
                 bool completed = controller.checkActionCompleted(
                     theLibCheck.distance(theRobotPose.translation, controller.currentRobotDestination)<controller.reachPositionDistanceThreshold
                 );
-                /*
-                DEBUG_NUMB(PRINT_DEBUG, "Current action: "<<controller.currentAction);
-                DEBUG_NUMB(PRINT_DEBUG, "Completed: "<<std::to_string(completed));
-                */
                 break;
             }
             case HRI::ActionType::ReachBall:
             {
                 controller.updateCurrentDestination(globalBall);
                 controller.updateCurrentBallDestination(globalBall);
-
-                
-                DEBUG_NUMB(PRINT_DEBUG, "Current robot destination: ("<<controller.currentRobotDestination.x()<<", "<<controller.currentRobotDestination.y()<<")");
-                DEBUG_NUMB(PRINT_DEBUG, "Current robot position: ("<<theRobotPose.translation.x()<<", "<<theRobotPose.translation.y()<<")");
-                DEBUG_NUMB(PRINT_DEBUG, "Current ball destination: ("<<controller.currentBallDestination.x()<<", "<<controller.currentBallDestination.y()<<")");
-                DEBUG_NUMB(PRINT_DEBUG, "theLibCheck.distance(theRobotPose.translation, controller.currentRobotDestination): "<<theLibCheck.distance(theRobotPose.translation, controller.currentRobotDestination));
-                DEBUG_NUMB(PRINT_DEBUG, "reachPositionDistanceThreshold: "<<controller.reachPositionDistanceThreshold);
-                
 
                 controller.checkActionCompleted(
                     theLibCheck.distance(theRobotPose.translation, controller.currentRobotDestination)<controller.reachPositionDistanceThreshold

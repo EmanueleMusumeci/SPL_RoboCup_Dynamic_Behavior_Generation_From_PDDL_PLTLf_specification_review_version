@@ -103,7 +103,7 @@ function openSubSubTab(e, tabName) {
     e.currentTarget.className += " active";
 }
 
-function updateLabel(e, labelName, value){
+/*function updateLabel(e, labelName, value){
     var label;
     if(labelName==undefined)
     {
@@ -124,8 +124,9 @@ function updateLabel(e, labelName, value){
         //print(label)
         label.innerHTML = label.baseString + ": "+value;
     }
-};
-function updateLabelFromElement(e, labelName, value){
+};*/
+
+/*function updateLabelFromElement(e, labelName, value){
     var label;
     if(labelName==undefined)
     {
@@ -176,7 +177,7 @@ function updateColorPreview(e, color, slider)
     //console.log(preview)
     //console.log(rgbToHex(color))
     preview.style.backgroundColor = rgbToHex(color);
-} 
+}*/
 
 function toggleButton(targetButton){
     if(targetButton.hasAttribute("noToggle")) return;
@@ -206,7 +207,7 @@ function toggleButton(targetButton){
     } else if(targetButton.innerHTML.includes("Resume"))
     {
         targetButton.innerHTML = targetButton.innerHTML.replace("Resume", "Pause")
-    }       
+    }
 };
 
 
@@ -233,9 +234,9 @@ function initializeButtons() {
         }
     }
 }
+initializeButtons();
 
-
-var inputs = document.getElementsByTagName("input");
+/*var inputs = document.getElementsByTagName("input");
 for(elem of inputs)
 {
     var parentLabels = elem.parentElement.getElementsByTagName("label")
@@ -259,14 +260,11 @@ for(elem of inputs)
         elem.secondLabel.baseString = elem.secondLabel.innerHTML;
         elem.secondLabel.innerHTML = elem.secondLabel.baseString + ": "+elem.value;
     }
-}
+}*/
 
 initializeSliders();
-initializeButtons();
 
-//document.getElementById("general-settings-tab").defaultTabButton = document.getElementById("Button_Bear")
-//document.getElementById("bear-appearance-tab").defaultTabButton = document.getElementById("Button_Bear_Material")
-//document.getElementById("tree-appearance-tab").defaultTabButton = document.getElementById("Button_Tree_Material")
+//document.getElementById("simple-tasks-tab").defaultTabButton = document.getElementById("BUTTON_NAME")
 
 document.getElementById("default-tab-button").click();
 

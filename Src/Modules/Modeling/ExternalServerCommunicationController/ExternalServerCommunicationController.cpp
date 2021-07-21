@@ -1,11 +1,13 @@
 #include "ExternalServerCommunicationController.h"
 #include "Modules/Modeling/HRI/HRIControllerProvider.h"
 #include "Tools/Modeling/Obstacle.h"
+#include "Platform/SystemCall.h"
 #include <unistd.h>
 #include <iostream>
 #include "Representations/BehaviorControl/Libraries/LibCheck.h"
 
-#define IP_ADDRESS "127.0.0.1"
+#include "Platform/File.h"
+
 
 #define CONTROL_DEVICE_COMMUNICATION_READ_PORT_BASE 65001
 #define CONTROL_DEVICE_COMMUNICATION_WRITE_PORT_BASE 65101
@@ -19,6 +21,7 @@
 #define LAST_TASK_ID_REQUEST_STRING std::string("lastTaskID?")
 #define LAST_TASK_QUEUE_REQUEST_STRING std::string("lastTaskQueue?")
 #define RESET_TASKS_STRING std::string("resetTasks")
+#define DELETE_TASK_STRING std::string("deleteTask")
 
 //Macro used to determine if a string starts with another string
 #define string_startswith(string, cmp_string) \
@@ -44,16 +47,38 @@ switch(##taskVar##)\
 //TODO Automatize using factories, based on the provided NetworkProtocol instance
 
 ExternalServerCommunicationController::ExternalServerCommunicationController(){
+    //Load file containing dir of the json specifications file
+    std::string bhdir = File::getBHDir();
+    InMapFile stream(bhdir + "/Config/Scenarios/Default/externalServerCommunicationController.cfg", true);
+    ASSERT(stream.exists());
+    
+    //Save the file dir as a string
+    stream.select("TARGET_IP_ADDRESS", -2, nullptr);
+    stream >> this->TARGET_IP_ADDRESS;
+    stream.deselect();
+
+    //Save the file dir as a string
+    stream.select("READ_IP_ADDRESS", -2, nullptr);
+    stream >> this->READ_IP_ADDRESS;
+    stream.deselect();
+
+    ASSERT(this->TARGET_IP_ADDRESS.length()>0);
+    ASSERT(this->READ_IP_ADDRESS.length()>0);
+
+    #ifdef TARGET_ROBOT
+        std::cout<<"#################################\n\n# LOCAL INTERFACE IP: "<<READ_IP_ADDRESS<<" - "<<SystemCall::getHostName()<<" #\n\n#################################"<<std::endl;
+        std::cout<<"#################################\n\n# TARGET INTERFACE IP: "<<TARGET_IP_ADDRESS<<" #\n\n#################################"<<std::endl;
+    #endif
 
     int write_port_number = CONTROL_DEVICE_COMMUNICATION_WRITE_PORT_BASE + theRobotInfo.number-1;
-    this->udp_write_socket.setTarget(IP_ADDRESS, write_port_number);
+    this->udp_write_socket.setTarget(TARGET_IP_ADDRESS.c_str(), write_port_number);
     this->udp_write_socket.setBlocking(false);
-    DEBUG_NUMB(true, "Write socket set on address: "<<IP_ADDRESS<<":"<<write_port_number);
+    DEBUG_NUMB(true, "Write socket set on address: "<<TARGET_IP_ADDRESS<<":"<<write_port_number);
 
     int read_port_number = CONTROL_DEVICE_COMMUNICATION_READ_PORT_BASE + theRobotInfo.number-1;
-    this->udp_read_socket.bind(IP_ADDRESS, read_port_number);
+    this->udp_read_socket.bind(READ_IP_ADDRESS.c_str(), read_port_number);
     this->udp_read_socket.setBlocking(false);
-    DEBUG_NUMB(true, "Read socket bound on address: "<<IP_ADDRESS<<":"<<read_port_number);
+    DEBUG_NUMB(true, "Read socket bound on address: "<<READ_IP_ADDRESS<<":"<<read_port_number);
     
     this->cycles_since_last_keepalive_check = 0; 
     this->client_alive = false;
@@ -111,6 +136,11 @@ std::string ExternalServerCommunicationController::last_task_queue_string(){
                 ret_string.append("ScoreGoal,"+std::to_string(task.taskID));
                 break;
             }
+            case HRI::TaskType::InitialSpeech:
+            {
+                ret_string.append("InitialSpeech,"+std::to_string(task.taskID));
+                break;
+            }
         }
     }
         
@@ -161,7 +191,7 @@ std::string ExternalServerCommunicationController::obstacles_to_sendable_string(
             ret_string.append(std::to_string(globalObstacle.y()));
         }
     }
-    std::cout<<"Obstacles: "<<ret_string<<std::endl;
+    if(PRINT_DEBUG) std::cout<<"Obstacles: "<<ret_string<<std::endl;
     return ret_string;
 }
 
@@ -183,6 +213,7 @@ void ExternalServerCommunicationController::send_data_string(std::string str, bo
 
     str = header + str;
     const char *s_str = str.c_str();
+    if(PRINT_DEBUG) std::cout<<str.c_str()<<std::endl;
     this->udp_write_socket.write(s_str, str.length());    
 }
 
@@ -202,23 +233,23 @@ std::vector<std::string> ExternalServerCommunicationController::getTokens(std::s
 
 void ExternalServerCommunicationController::handleMessage(std::string message, std::vector<Task>& currentTaskQueue)
 {
-    DEBUG_NUMB(PRINT_DEBUG,"Handling message: "<<message);
-    DEBUG_NUMB(PRINT_DEBUG,"Message length:"<<std::to_string(message.length()));
+    //DEBUG_NUMB(PRINT_DEBUG,"Handling message: "<<message);
+    //DEBUG_NUMB(PRINT_DEBUG,"Message length:"<<std::to_string(message.length()));
     
     if(string_startswith(message, ACTION_QUEUE_TAG_STRING))
     {
-        std::cout<<message<<std::endl;
+        if(PRINT_DEBUG) std::cout<<message<<std::endl;
         
         std::vector<std::string> taskTokens = getTokens(message, std::string("|"));
         
         ASSERT(taskTokens.size() == 2);
         taskTokens = getTokens(taskTokens[1], std::string(";"));
-        DEBUG_NUMB(PRINT_DEBUG, taskTokens.size());
+        //DEBUG_NUMB(PRINT_DEBUG, taskTokens.size());
 
         //For every token in sliced vector excluding first token (message tag)
         for(auto taskToken : std::vector<std::string>(taskTokens.begin(), taskTokens.end())) 
         {
-            std::cout<<taskToken<<std::endl;
+            //std::cout<<taskToken<<std::endl;
 
             std::vector<std::string> taskParameters = getTokens(taskToken, std::string(","));
             
@@ -232,7 +263,7 @@ void ExternalServerCommunicationController::handleMessage(std::string message, s
                 return;
             }
 
-            DEBUG_NUMB(PRINT_DEBUG, taskParameters.size());
+            //DEBUG_NUMB(PRINT_DEBUG, taskParameters.size());
             HRI::TaskType taskType = static_cast<HRI::TaskType>(TypeRegistry::getEnumValue(typeid(HRI::TaskType).name(), taskParameters[0]));
             
             //Based on task type, create the task instance and add it to the local task queue
@@ -244,7 +275,7 @@ void ExternalServerCommunicationController::handleMessage(std::string message, s
                 Vector2f position = Vector2f(coordX, coordY);
 
                 //Parse taskID
-                std::cout<<taskParameters[3]<<std::endl;
+                //std::cout<<taskParameters[3]<<std::endl;
                 int taskID = std::stoi(taskParameters[1]);
 
                 switch(taskType)
@@ -281,6 +312,13 @@ void ExternalServerCommunicationController::handleMessage(std::string message, s
                     case HRI::TaskType::ScoreGoalTask:
                     {
                         currentTaskQueue.push_back(HRIControllerProvider::ScoreGoalTask(taskID));
+                        break;
+                    }
+                    case HRI::TaskType::InstructionsSpeech:
+                    {
+                        //currentTaskQueue.push_back(HRIControllerProvider::InstructionsSpeechTask(taskID, theRobotPose.translation));
+                        theHRIController.scheduleInstructionsSpeech(false, taskID);
+                        break;
                     }
                     default:
                     {
@@ -288,11 +326,12 @@ void ExternalServerCommunicationController::handleMessage(std::string message, s
                         return;
                     }
                 }
+                DEBUG_NUMB(PRINT_DEBUG, currentTaskQueue.size());
                 
             }
             else
             {
-                std::cout<<"WRONG MESSAGE STRUCTURE: "<<message<<std::endl;
+                if(PRINT_DEBUG) std::cout<<"WRONG MESSAGE STRUCTURE: "<<message<<std::endl;
             }
         }
     }
@@ -308,12 +347,24 @@ void ExternalServerCommunicationController::handleMessage(std::string message, s
     {
         theHRIController.resetTaskQueue();
     }
+    if(string_startswith(message, DELETE_TASK_STRING))
+    {
+        std::cout<<message<<std::endl;
+        
+        std::vector<std::string> taskTokens = getTokens(message, std::string(","));
+
+        int taskID = std::stoi(taskTokens[1]);
+
+        if(PRINT_DEBUG) std::cout<<"Delete single task: "<<std::to_string(taskID)<<std::endl;
+        
+        theHRIController.deleteSingleTask(taskID);
+    }
 }
 
 
-//TODO tell the device which actions are completed -> simply send the lastCompletedTaskID
-//TODO receive actions from the device -> continuously receive the queued action (the device will deal with deleting completed actions from the queue)
-//Automatically add interactions
+//DONE tell the device which actions are completed -> simply send the lastCompletedTaskID
+//DONE receive actions from the device -> continuously receive the queued action (the device will deal with deleting completed actions from the queue)
+//TODO Automatically add interactions
 void ExternalServerCommunicationController::update(ExternalServerCommunicationControl& externalServerCommunicationControl) {
 
 
@@ -328,14 +379,7 @@ void ExternalServerCommunicationController::update(ExternalServerCommunicationCo
         return newTasks;
     };
 
-    /*externalServerCommunicationControl.currentTaskQueue = std::vector<Task>({
-                                                                            HRIControllerProvider::GoToPositionTask(Vector2f(1000.f, 1000.f), 0),
-                                                                            HRIControllerProvider::CarryBallToPositionTask(Vector2f(-2000.f, -2000.f), 1), 
-                                                                            HRIControllerProvider::KickBallToPositionTask(Vector2f(-4500.f, 0.f), 2)
-                                                                            });*/
-    /*externalServerCommunicationControl.currentTaskQueue = std::vector<Task>({
-                                                                            HRIControllerProvider::ScoreGoalTask(0)
-                                                                            });*/
+
     theHRIController.updateTasks(externalServerCommunicationControl.currentTaskQueue);
     externalServerCommunicationControl.currentTaskQueue.clear();
 
@@ -365,7 +409,7 @@ void ExternalServerCommunicationController::update(ExternalServerCommunicationCo
     }
     else
     {
-        DEBUG_NUMB(PRINT_DEBUG,"Nothing received");
+        //DEBUG_NUMB(PRINT_DEBUG,"Nothing received");
     }
     
     if(PERFORM_KEEPALIVE_CHECK)
@@ -435,8 +479,16 @@ void ExternalServerCommunicationController::update(ExternalServerCommunicationCo
     
     //DEBUG_NUMB(PRINT_DEBUG,"E");
     
+    //Addition task queue feedback to ensure synchronization of the task queue
+    if(this->cycles_since_task_queue_update % LAST_TASK_QUEUE_UPDATE_FREQUENCY == 0){
+        send_data_string(last_task_queue_string(), PREFIX_TIMESTAMP, PREFIX_ROBOT_NUMBER);
+        this->cycles_since_task_queue_update = 0;
+    }
+    this->cycles_since_task_queue_update++;
+
     //Message analysis
     if(recv_string.length()>0) handleMessage(recv_string, externalServerCommunicationControl.currentTaskQueue);
+
 }
 
 

@@ -32,6 +32,8 @@ void BallCarrierModel::draw() const
     const GameInfo& theGameInfo = static_cast<const GameInfo&>(Blackboard::getInstance()["GameInfo"]);
     const BallModel& theBallModel = static_cast<const BallModel&>(Blackboard::getInstance()["BallModel"]);
     const LibCheck& theLibCheck = static_cast<const LibCheck&>(Blackboard::getInstance()["LibCheck"]);
+    const FieldDimensions& theFieldDimensions = static_cast<const FieldDimensions&>(Blackboard::getInstance()["FieldDimensions"]);
+    const RobotPose& theRobotPose = static_cast<const RobotPose&>(Blackboard::getInstance()["RobotPose"]);
     
     #ifdef TARGET_SIM
     //STOLEN FROM PathPlannerProvider
@@ -121,6 +123,8 @@ void BallCarrierModel::draw() const
             5, ColorRGBA(200,200,0,255));
         }
         float ARROW_LENGTH = 100;
+        Pose2f staticApproachPoint = theBallCarrierModel.staticApproachPoint();
+        Pose2f dynamicApproachPoint = theBallCarrierModel.dynamicApproachPoint();
         CYLINDERARROW3D("representation:BallCarrierModel", 
               Vector3f(theBallCarrierModel.dynamicTarget.translation.x(), theBallCarrierModel.dynamicTarget.translation.y(), 10),
               Vector3f(theBallCarrierModel.dynamicTarget.translation.x()+ARROW_LENGTH*cos(theBallCarrierModel.dynamicTarget.rotation), theBallCarrierModel.dynamicTarget.translation.y()+ARROW_LENGTH*sin(theBallCarrierModel.dynamicTarget.rotation), 10),
@@ -131,20 +135,20 @@ void BallCarrierModel::draw() const
         
         //Draw the static approach point (farthest entry point to the approach area, determined by the chosen target)
         CYLINDERARROW3D("representation:BallCarrierModel", 
-              Vector3f(theBallCarrierModel.staticApproachPoint.translation.x(), theBallCarrierModel.staticApproachPoint.translation.y(), 10),
-              Vector3f(theBallCarrierModel.staticApproachPoint.translation.x()+ARROW_LENGTH*cos(theBallCarrierModel.staticApproachPoint.rotation), theBallCarrierModel.staticApproachPoint.translation.y()+ARROW_LENGTH*sin(theBallCarrierModel.staticApproachPoint.rotation), 10),
+              Vector3f(staticApproachPoint.translation.x(), staticApproachPoint.translation.y(), 10),
+              Vector3f(staticApproachPoint.translation.x()+ARROW_LENGTH*cos(staticApproachPoint.rotation), staticApproachPoint.translation.y()+ARROW_LENGTH*sin(staticApproachPoint.rotation), 10),
               10, 50, 20, ColorRGBA(255,0,0,255));
         SPHERE3D("representation:BallCarrierModel", 
-              theBallCarrierModel.staticApproachPoint.translation.x(), theBallCarrierModel.staticApproachPoint.translation.y(), 10, 30,
+              staticApproachPoint.translation.x(), staticApproachPoint.translation.y(), 10, 30,
               ColorRGBA(255,0,0,255));
                       
         //Draw the dynamic approach point (entry point to the approach area, determined by the chosen target and by the distance of the robot from the ball)
         CYLINDERARROW3D("representation:BallCarrierModel", 
-              Vector3f(theBallCarrierModel.dynamicApproachPoint.translation.x(), theBallCarrierModel.dynamicApproachPoint.translation.y(), 10),
-              Vector3f(theBallCarrierModel.dynamicApproachPoint.translation.x()+ARROW_LENGTH*cos(theBallCarrierModel.dynamicApproachPoint.rotation), theBallCarrierModel.dynamicApproachPoint.translation.y()+ARROW_LENGTH*sin(theBallCarrierModel.dynamicApproachPoint.rotation), 10),
+              Vector3f(dynamicApproachPoint.translation.x(), dynamicApproachPoint.translation.y(), 10),
+              Vector3f(dynamicApproachPoint.translation.x()+ARROW_LENGTH*cos(dynamicApproachPoint.rotation), dynamicApproachPoint.translation.y()+ARROW_LENGTH*sin(dynamicApproachPoint.rotation), 10),
               10, 50, 20, ColorRGBA(0,255,0,255));
         SPHERE3D("representation:BallCarrierModel", 
-              theBallCarrierModel.dynamicApproachPoint.translation.x(), theBallCarrierModel.dynamicApproachPoint.translation.y(), 10, 30,
+              dynamicApproachPoint.translation.x(), dynamicApproachPoint.translation.y(), 10, 30,
               ColorRGBA(0,0,255,255));
         
         //Draw the approach area
@@ -154,6 +158,146 @@ void BallCarrierModel::draw() const
         ARC3D("representation:BallCarrierModel",
               globalBall.x(), globalBall.y(), 10, theBallCarrierModel.minimumApproachDistance, 0, pi2, 5, ColorRGBA(0,0,0,255)
               );
+
+
+        bool useHeuristic = true;
+        Vector2f globalBall = theLibCheck.rel2Glob(theBallModel.estimate.position.x(), theBallModel.estimate.position.y()).translation;
+        if(globalBall.x() > theFieldDimensions.xPosOpponentGroundline - theBallCarrierModel.xRangeDistanceFromGoalToUseKicks.max)
+        {
+            useHeuristic = false;
+        }
+        Vector2f goalTarget = theLibCheck.goalTarget(false, useHeuristic);
+        if(theBallCarrierModel.useEscapeTarget(goalTarget))
+        {
+          Vector2f nearestObstacle = theBallCarrierModel.nearestObstacleToBall();
+          Vector2f globalNearestObstacle = theLibCheck.rel2Glob(nearestObstacle.x(), nearestObstacle.y()).translation;
+          //Draw the nearest obstacle escape danger zone
+          ARC3D("representation:BallCarrierModel",
+                globalNearestObstacle.x(), globalNearestObstacle.y(), 10, theBallCarrierModel.nearestObstacleEscapeRadius, 0, pi2, 5, ColorRGBA(255,0,255,255)
+                );
+        }
+
+        if(theBallCarrierModel.useLongKicksToCarry) 
+        {
+          SPHERE3D("representation:BallCarrierModel", 
+              theBallCarrierModel.firstTargetWithOneObstacleLeft.x(), theBallCarrierModel.firstTargetWithOneObstacleLeft.y(), 10, 30,
+              ColorRGBA(100,100,100,255));
+          
+          SPHERE3D("representation:BallCarrierModel", 
+              theBallCarrierModel.firstTargetWithOneObstacleRight.x(), theBallCarrierModel.firstTargetWithOneObstacleRight.y(), 10, 30,
+              ColorRGBA(100,100,100,255));
+          
+          SPHERE3D("representation:BallCarrierModel", 
+              theBallCarrierModel.firstTargetWithTwoObstacles.x(), theBallCarrierModel.firstTargetWithTwoObstacles.y(), 10, 30,
+              ColorRGBA(100,100,100,255));
+        }
+
+
+        if(theBallCarrierModel.useLongKicksToCarry) 
+        {
+          SPHERE3D("representation:BallCarrierModel", 
+              theBallCarrierModel.firstTargetWithOneObstacleLeft.x(), theBallCarrierModel.firstTargetWithOneObstacleLeft.y(), 10, 30,
+              ColorRGBA(100,100,100,255));
+          
+          SPHERE3D("representation:BallCarrierModel", 
+              theBallCarrierModel.firstTargetWithOneObstacleRight.x(), theBallCarrierModel.firstTargetWithOneObstacleRight.y(), 10, 30,
+              ColorRGBA(100,100,100,255));
+          
+          SPHERE3D("representation:BallCarrierModel", 
+              theBallCarrierModel.firstTargetWithTwoObstacles.x(), theBallCarrierModel.firstTargetWithTwoObstacles.y(), 10, 30,
+              ColorRGBA(100,100,100,255));
+        }
+        
+        if(theBallCarrierModel.USE_TRAJECTORY)
+        {
+          for(int i=0; i<theBallCarrierModel.TRAJECTORY.size(); i++)
+          {
+            ColorRGBA trajNodeColor = ColorRGBA(100,100,100,255);
+            if(i == theBallCarrierModel.currentTrajectoryNode)
+            {
+              trajNodeColor = ColorRGBA(0,255,0,255);
+            }
+
+            BallCarrierModel::TrajectoryNode currentNode =  theBallCarrierModel.TRAJECTORY.at(i);
+            SPHERE3D("representation:BallCarrierModel", 
+                currentNode.destination.x(), currentNode.destination.y(), 10, 30,
+                trajNodeColor);
+            LINE3D("representation:BallCarrierModel", 
+              currentNode.reachedAtXCoordinate, theFieldDimensions.yPosLeftSideline, 10, 
+              currentNode.reachedAtXCoordinate, theFieldDimensions.yPosRightSideline, 10, 
+              5, ColorRGBA(100,100,100,255));
+
+            if(i==0)
+            {
+              LINE3D("representation:BallCarrierModel", 
+                0.f, 0.f, 10, 
+                currentNode.destination.x(), currentNode.destination.y(), 10, 
+                20, ColorRGBA(100,100,100,255));
+
+            }
+            else if(i>0)
+            {
+              BallCarrierModel::TrajectoryNode prevNode =  theBallCarrierModel.TRAJECTORY.at(i-1);
+              LINE3D("representation:BallCarrierModel", 
+                prevNode.destination.x(), prevNode.destination.y(), 10, 
+                currentNode.destination.x(), currentNode.destination.y(), 10, 
+                20, ColorRGBA(100,100,100,255));
+
+            }
+          }
+        }
+
+        //Draw the nearest obstacle escape route
+        LINE3D("representation:BallCarrierModel", 
+          globalBall.x(), globalBall.y(), 10, 
+          theBallCarrierModel.nearestObstacleEscapeTarget.x(), theBallCarrierModel.nearestObstacleEscapeTarget.y(), 10, 
+          5, ColorRGBA(255,0,255,255));
+          
+        SPHERE3D("representation:BallCarrierModel", 
+          theBallCarrierModel.nearestObstacleEscapeTarget.x(), theBallCarrierModel.nearestObstacleEscapeTarget.y(), 10, 
+          30, ColorRGBA(255,0,255,255));
+                
+        //Kicking area
+          //Sides
+            //Outer
+            /*LINE3D("representation:BallCarrierModel", 
+              theFieldDimensions.xPosOpponentGroundline - theBallCarrierModel.xRangeDistanceFromGoalToUseKicks.max, theBallCarrierModel.yRangeDistanceFromGoalToUseKicksInner.max, 10, 
+              theFieldDimensions.xPosOpponentGroundline, theBallCarrierModel.yRangeDistanceFromGoalToUseKicksOuter.max, 10, 
+              6, ColorRGBA(200,200,200,255));
+            LINE3D("representation:BallCarrierModel", 
+              theFieldDimensions.xPosOpponentGroundline - theBallCarrierModel.xRangeDistanceFromGoalToUseKicks.max, theBallCarrierModel.yRangeDistanceFromGoalToUseKicksInner.min, 10, 
+              theFieldDimensions.xPosOpponentGroundline, theBallCarrierModel.yRangeDistanceFromGoalToUseKicksOuter.min, 10, 
+              6, ColorRGBA(200,200,200,255));
+              
+            //Inner
+            LINE3D("representation:BallCarrierModel", 
+              theFieldDimensions.xPosOpponentGroundline - theBallCarrierModel.xRangeDistanceFromGoalToUseKicks.min, theBallCarrierModel.yRangeDistanceFromGoalToUseKicksOuter.min, 10, 
+              theFieldDimensions.xPosOpponentGroundline, theBallCarrierModel.yRangeDistanceFromGoalToUseKicksInner.min, 10, 
+              6, ColorRGBA(0,0,150,255));
+            LINE3D("representation:BallCarrierModel", 
+              theFieldDimensions.xPosOpponentGroundline - theBallCarrierModel.xRangeDistanceFromGoalToUseKicks.min, theBallCarrierModel.yRangeDistanceFromGoalToUseKicksOuter.max, 10, 
+              theFieldDimensions.xPosOpponentGroundline, theBallCarrierModel.yRangeDistanceFromGoalToUseKicksInner.max, 10, 
+              6, ColorRGBA(0,0,150,255));
+
+          //Front
+          LINE3D("representation:BallCarrierModel", 
+            theFieldDimensions.xPosOpponentGroundline - theBallCarrierModel.xRangeDistanceFromGoalToUseKicks.min, theBallCarrierModel.yRangeDistanceFromGoalToUseKicksInner.min, 10, 
+            theFieldDimensions.xPosOpponentGroundline - theBallCarrierModel.xRangeDistanceFromGoalToUseKicks.min, theBallCarrierModel.yRangeDistanceFromGoalToUseKicksInner.max, 10, 
+            6, ColorRGBA(0,0,150,255));
+          LINE3D("representation:BallCarrierModel", 
+            theFieldDimensions.xPosOpponentGroundline - theBallCarrierModel.xRangeDistanceFromGoalToUseKicks.max, theBallCarrierModel.yRangeDistanceFromGoalToUseKicksOuter.max, 10, 
+            theFieldDimensions.xPosOpponentGroundline - theBallCarrierModel.xRangeDistanceFromGoalToUseKicks.max, theBallCarrierModel.yRangeDistanceFromGoalToUseKicksOuter.min, 10, 
+            6, ColorRGBA(200,200,200,255));*/
+
+          //Front
+          LINE3D("representation:BallCarrierModel", 
+            theFieldDimensions.xPosOpponentGroundline - theBallCarrierModel.xRangeDistanceFromGoalToUseKicks.min, theFieldDimensions.yPosLeftSideline, 10, 
+            theFieldDimensions.xPosOpponentGroundline - theBallCarrierModel.xRangeDistanceFromGoalToUseKicks.min, theFieldDimensions.yPosRightSideline, 10, 
+            6, ColorRGBA(0,0,150,255));
+          LINE3D("representation:BallCarrierModel", 
+            theFieldDimensions.xPosOpponentGroundline - theBallCarrierModel.xRangeDistanceFromGoalToUseKicks.max, theFieldDimensions.yPosLeftSideline, 10, 
+            theFieldDimensions.xPosOpponentGroundline - theBallCarrierModel.xRangeDistanceFromGoalToUseKicks.max, theFieldDimensions.yPosRightSideline, 10, 
+            6, ColorRGBA(200,200,200,255));
       }
     }
     #endif

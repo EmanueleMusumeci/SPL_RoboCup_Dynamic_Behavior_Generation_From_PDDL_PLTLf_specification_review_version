@@ -205,6 +205,7 @@ private:
   * returns the field center (exactly (0,0))
   * @param shootASAP If set to true, if the robot is near the goal, shoot in the spot nearest to where you're looking at ("As Soon As Possible"), else use the heuristic to decide
   * @param forceHeuristic If se to true, always use the heuristic to decide where to shoot
+  * @param splitSingleAreaInNSegments only when there is only one area, it is split in N (default 1) segments and then the one nearest to where the robot is looking is chosen
   * @return the Vector2f of the position selected to shoot
   * **/
  Vector2f goalTarget (bool shootASAP, bool forceHeuristic);

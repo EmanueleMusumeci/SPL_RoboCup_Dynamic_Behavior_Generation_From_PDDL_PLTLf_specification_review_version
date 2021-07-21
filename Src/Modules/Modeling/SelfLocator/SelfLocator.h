@@ -46,6 +46,8 @@
 #include "Tools/Modeling/SampleSet.h"
 #include "Tools/Module/Module.h"
 
+#define HRI
+
 MODULE(SelfLocator,
 {,
   REQUIRES(AlternativeRobotPoseHypothesis),
@@ -132,6 +134,10 @@ MODULE(SelfLocator,
     (float) covarianceScalarLongHorizontalLine,     /**< If a line is long and horizontal, its computed covariance is multiplied by this number. Choosing a number less than 1 thus means that the confidence in this measurement is higher. */
     (float) minLengthLongHorizontalLine,            /**< Minimum length (in millimeters) of a line to be considered as "long" */
     (float) yDifferenceLongHorizontalLine,          /**< Maximum difference between lineStart.y and lineEnd.y in pixels */
+
+    #ifdef HRI
+    (bool) HRIInitialGuess,                          /** Use a certain initial guess on the robot position for challenge1 */
+    #endif
   }),
 });
 

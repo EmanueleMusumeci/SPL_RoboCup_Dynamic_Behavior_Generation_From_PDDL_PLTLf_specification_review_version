@@ -39,6 +39,7 @@ STREAMABLE(OpponentGoalModel,
 
   (bool) graphicalDebug,
   (bool) showWalls,
+  (bool) showRays,
 
   (std::vector<FreeGoalTargetableArea>) freeGoalTargetableAreas,   /** Vector of discretized segments of goal line available as targets*/
   (float)(0.f) myGazeProjection,                                   /** Projection of robots gaze on the goal line*/

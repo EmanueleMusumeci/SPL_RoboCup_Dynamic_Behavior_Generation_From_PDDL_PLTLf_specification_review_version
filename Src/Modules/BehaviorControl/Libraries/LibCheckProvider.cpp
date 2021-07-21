@@ -2023,7 +2023,7 @@ Vector2f LibCheckProvider::goalTarget(bool shootASAP, bool forceHeuristic)
     //WATCH OUT: TEMPORARY FIX FOR THE CASE IN WHICH THERE IS NO TARGETABLE AREA, TO MANAGE IN STRIKER BEHAVIOR
     if(filteredFreeAreas.size()==0)
     {
-      //std::cout<<"No free area\n";
+      //std::cout<<"No free area\n"<<std::endl;
 
       //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       //return Vector2f(0,0);
@@ -2089,6 +2089,21 @@ Vector2f LibCheckProvider::goalTarget(bool shootASAP, bool forceHeuristic)
 
       //The freeAreas vector is sorted in a decreasing order of utility values, so I select the first area
       //std::cout << "Chosen area: ("<<filteredFreeAreas.at(0).begin<<", "<<filteredFreeAreas.at(0).end<<")"<<std::endl;
+      
+
+      //Split single area in two
+      /*FreeGoalTargetableArea leftArea = FreeGoalTargetableArea(filteredFreeAreas.at(0).begin, filteredFreeAreas.at(0).midpoint, 0.f);
+      FreeGoalTargetableArea rightArea = FreeGoalTargetableArea(filteredFreeAreas.at(0).midpoint, filteredFreeAreas.at(0).end, 0.f);
+      if(theRobotPose.translation.y() > filteredFreeAreas.at(0).midpoint)
+      {
+        targetPoint = leftArea.midpoint;
+      }
+      else
+      {
+        targetPoint = rightArea.midpoint;
+      }*/
+      
+      //Use whole area
       targetPoint = filteredFreeAreas.at(0).midpoint;
 
     }
@@ -2096,7 +2111,7 @@ Vector2f LibCheckProvider::goalTarget(bool shootASAP, bool forceHeuristic)
 
     //If I'm too near to the goal line, shoot inside the goal, else shoot on the goal line
     Vector2f target;
-    if (theRobotPose.translation.x() >= (theFieldDimensions.xPosOpponentGroundline - 600.f) &&
+    if (theRobotPose.translation.x() >= (theFieldDimensions.xPosOpponentGroundline - 1000.f) &&
             std::abs(theRobotPose.translation.y()) < 500.f )
         target = Vector2f(theFieldDimensions.xPosOpponentGroundline + 1000.f, targetPoint);
     else

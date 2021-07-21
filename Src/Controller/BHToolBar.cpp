@@ -81,7 +81,7 @@ void BHToolBar::requestStand(bool active)
   {
     lastRequest = QTime::currentTime();
     currentMotion = preUp;
-    //TODO: robot might jump after sitDown (workaround: playDead before stand) //this is bad, robot might fall if standing (due to lag)
+    
     setPlayDead();
     QTimer::singleShot(200, this, SLOT(setStand()));
   }

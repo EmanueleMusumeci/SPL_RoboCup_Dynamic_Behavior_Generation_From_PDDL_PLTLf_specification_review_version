@@ -71,6 +71,11 @@ class Utils {
         return output_range_start + ((output_range_end - output_range_start) / (input_range_end - input_range_start)) * (value - input_range_start);
     }
 
+    static generateRandomColor()
+    {
+        return "#" + Math.floor(Math.random()*16777215).toString(16)
+    }
+
     static vec2distance(vec1,vec2)
     {
         return Math.sqrt(Math.pow(vec1[0]-vec2[0],2)+Math.pow(vec1[1]-vec2[1],2))

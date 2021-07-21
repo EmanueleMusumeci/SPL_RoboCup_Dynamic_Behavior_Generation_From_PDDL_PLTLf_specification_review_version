@@ -1,9 +1,9 @@
 /**
- * @file C1ApproachAndCarryWithTwoStepRealignmentCard.cpp
+ * @file ApproachAndCarryWithTwoStepRealignmentCard.cpp
  *
- * This file implements a behavior to carry the ball forward in the field, avoiding obstacles.
+ * This file implements a behavior to carry the ball forward to a certain target in the field, avoiding obstacles.
  *
- * @author Emanuele Musumeci (based on Emanuele Antonioni's basic approacher behavior structure)
+ * @author Emanuele Musumeci
  */
 
 #include "Representations/BehaviorControl/BehaviorStatus.h"
@@ -21,91 +21,158 @@
 
 #include "Representations/HRI/HRIController.h"
 
+#include "Representations/Communication/RobotInfo.h"
+
 #include "Tools/Math/BHMath.h"
 #include "Platform/SystemCall.h"
 #include <string>
+
+
+#define __STRINGIFY_I(arg) #arg
+#define __STRINGIFY(arg) __STRINGIFY_I(arg)
+#define DEBUG_CODE(code) \
+  std::cout<<"[Robot #"<<std::to_string(theRobotInfo.number)<<"] "<<__STRINGIFY(code)<<": "<<std::to_string(code)<<std::endl;
+
+
 CARD(ApproachAndCarryWithTwoStepRealignmentCard,
 {,
   CALLS(Activity),
   CALLS(InWalkKick),
+
   CALLS(LookForward),
   CALLS(LookAtPoint),
+
+  CALLS(LookLeftAndRight),
+  CALLS(LookRightAndLeft),
+
+  CALLS(ParametricLookLeftAndRight),
+
   CALLS(Stand),
   CALLS(WalkAtRelativeSpeed),
   CALLS(WalkToTarget),
   CALLS(Kick),
   CALLS(WalkToTargetPathPlanner),
+  
+  CALLS(WalkToCarry),
   CALLS(GoalTarget),
   CALLS(SetTarget),
+  
   CALLS(KeyFrameArms),
+
+  CALLS(TurnToTargetThenTurnToUserThenPointAndSaySomething),
 
   REQUIRES(FieldBall),
   REQUIRES(BallModel),
   REQUIRES(BallCarrierModel),
   REQUIRES(LibCheck),
+  
   REQUIRES(FieldDimensions),
+  
   REQUIRES(RobotPose),
   REQUIRES(BallSpecification),
   REQUIRES(ObstacleModel),
 
-  REQUIRES(HRIController),
+  REQUIRES(RobotInfo),
 
   USES(BehaviorStatus),
 
-  //COMPLETES_ACTION(CarryBall),
+  REQUIRES(HRIController),
 
   LOADS_PARAMETERS(
   {,
-    (float) walkSpeed,
+    (float) normalWalkSpeed,
+    (float) slowerWalkSpeed,
+    (float) walkToBallWalkSpeed,
     
     (int) initialWaitTime,
-    (int) ballNotSeenTimeout,
-    (int) changeTargetTimeout,
+
     (int) realignmentTimeout,
+    (int) pathChangeTimeoutInsideCenterCircle,
+    (int) pathChangeTimeoutOutsideCenterCircle,
 
-    (Rangef) attemptRelocalizationEveryTimeRange,
-
-    (float) distanceFromGroundLineCardChangeThreshold,
+    (int) ballNotSeenTimeout,
+    (int) realignmentBallNotSeenTimeout,
+    
 
     (float) ballPositionChangedThreshold,
-    (float) targetPositionChangedThreshold,
+    
 
     (Rangef) approachXRange,
 
     (Rangef) approachYRange,
 
-    //Two ball alignment angle ranges: the smaller one is used as an escape condition when aligning the robot to the ball (we should be more precise), 
-    //the bigger one is used instead to decide when to realign (so we give more room to small errors in alignment) 
     (Rangef) smallBallAlignmentRange,
-    (Rangef) ballAlignmentRange,
 
-    (float) nearbyObstaclesRadius, //Radius inside which an obstacle is considered "nearby"
+    (float) nearbyObstacleRadius, //Radius inside which an obstacle is considered "nearby"
 
     (int) maxKickWaitTime,
 
+    (bool) goToCenterWhenSearchingForBall, //Recovery behavior, when ball is lost, the robot performs a 360° turn hoping to find it again. 
+                                           //If it doesn't find it it might have gone out so the robot goes back to the center of the field
+
+    (float) safetyObstacleRadius,         // default = 500; used to move hands for stability when not around obstacles
+    (float) dangerObstacleRadius,         //At and below this radius, the robot will walk at slowerWalkSpeed, between this and safetyObstacleRadius, the speed will be proportional to the distance, above safetyObstacleRadius, it will be normalWalkSpeed
+
+    (float) robotArmsRange,               //Clearance radius of an arm movement
+
+    (float) MAX_OBSTACLE_LOCALIZATION_DRIFT, //Maximum drift of an obstacle after which the path is recomputed
+
+    (bool) USE_FOOT_OFFSET,               //Use an offset added to the approach point to align the ball to the foot when InWalkKicking
+    (float) BALL_KICK_OFFSET_Y,           //Foot offset along the Y coordinate
+
+    (bool) LOOK_LEFT_AND_RIGHT_WHILE_ALIGNING,
+    (bool) LOOK_LEFT_AND_RIGHT_WHILE_WALKING_TO_BALL,
+    (bool) LOOK_LEFT_AND_RIGHT_WHILE_KICKING,
+    (float) MAX_LOOKING_ANGLE,
+
+    (float) LEFT_AND_RIGHT_LOOKING_SPEED,
+
+    (float) START_LOOKING_LEFT_AND_RIGHT_AT_X_COORDINATE,
+
+    (bool) WALK_ON_BALL,
+    (float) USE_IN_WALK_KICKS_FOR_DISTANCE_MORE_THAN,
+
+    (bool) SHOW_CONDITIONS_DEBUG,
+
     (bool) DEBUG_MODE,
+
+    (Rangef) FIRST_STEP_REALIGN_RANGE,
+
+    (bool) putArmsOnBack,
   }),
 });
 
 class ApproachAndCarryWithTwoStepRealignmentCard : public ApproachAndCarryWithTwoStepRealignmentCardBase
 {
 
-  // These two variables are used in order to let the robot say through PlaySound what is the distance from the target.
-  bool kickRequested = false;
   bool targetChosen = false;
 
-  float ballOffsetX = approachXRange.min + (approachXRange.max - approachXRange.min)/2;
-  //float smallBallOffsetX = approachXRange.min + (approachXRange.max - approachXRange.min)/3;
-  float smallBallOffsetX = ballOffsetX;
+  //To avoid oscillation in front of the goal
+  bool footChosen = false;
+  bool kickWithRightFoot = true;
+
+
+  float pathChangeTime = 0.f;
+  float pathChangeTimeout = pathChangeTimeoutInsideCenterCircle;
+
+  float walkSpeed = normalWalkSpeed;
 
   Vector2f chosenTarget;
   Vector2f goalTarget;
   Vector2f previousBallPosition;
-  int previousNearbyObstaclesCount;
+  int previousNearbyObstaclesCount = 0;
+  Vector2f nearestObstacleGlobalPositionWhenPathWasComputed = getNearestObstacle(true);
+  
+
+  //Ball searcher
+  bool isSearchingToggle = false;
+  float rotationVel;
+  Angle startingRobotAngleWhenSearching;
+  bool fullLoopRevolution = false;
 
   bool preconditions() const override
   {
-    std::cout<<"theHRIController.getCurrentActionType(): "<<TypeRegistry::getEnumName(theHRIController.getCurrentActionType())<<std::endl;
+    //std::cout<<"theHRIController.getCurrentActionType(): "<<TypeRegistry::getEnumName(theHRIController.getCurrentActionType())<<std::endl;
     return theHRIController.getCurrentActionType() == HRI::ActionType::CarryBall
           &&
           theLibCheck.distance(theLibCheck.rel2Glob(theBallModel.estimate.position.x(), theBallModel.estimate.position.y()), theHRIController.currentBallDestination) > theHRIController.ballCarrierDistanceThreshold;
@@ -113,6 +180,10 @@ class ApproachAndCarryWithTwoStepRealignmentCard : public ApproachAndCarryWithTw
 
   bool postconditions() const override
   {
+    DEBUG_CODE(theHRIController.ballCarrierDistanceThreshold)
+    DEBUG_CODE(theHRIController.currentBallDestination.x())
+    DEBUG_CODE(theHRIController.currentBallDestination.y())
+    DEBUG_CODE(theLibCheck.distance(theLibCheck.rel2Glob(theBallModel.estimate.position.x(), theBallModel.estimate.position.y()), theHRIController.currentBallDestination))
     return theHRIController.getCurrentActionType() != HRI::ActionType::CarryBall
           ||
           theLibCheck.distance(theLibCheck.rel2Glob(theBallModel.estimate.position.x(), theBallModel.estimate.position.y()), theHRIController.currentBallDestination) <= theHRIController.ballCarrierDistanceThreshold;
@@ -121,14 +192,35 @@ class ApproachAndCarryWithTwoStepRealignmentCard : public ApproachAndCarryWithTw
   option
   {
 
-    /*common_transition
+    common_transition
     {
-      if(theRobotPose.translation.x() > theFieldDimensions.centerCircleRadius 
-      && attemptRelocalizationEveryTimeRange.isInside(option_time % (int)((attemptRelocalizationEveryTimeRange.max - attemptRelocalizationEveryTimeRange.min)/2.f)))
+
+
+      if(isRobotInCenterCircle())
       {
-        goto attemptRelocalization;
+        pathChangeTimeout = pathChangeTimeoutInsideCenterCircle;
+      } 
+      else
+      {
+        pathChangeTimeout = pathChangeTimeoutOutsideCenterCircle;
       }
-    }*/
+
+      //Number of obstacles changed
+      if(!isSearchingToggle && countNearbyObstacles(nearbyObstacleRadius) != previousNearbyObstaclesCount && (option_time - pathChangeTime) > pathChangeTimeout)
+      {
+        std::cout<<"common transition -> choose_target: obstacle number changed: "<<std::to_string(previousNearbyObstaclesCount)<<" before, "<<std::to_string(countNearbyObstacles(nearbyObstacleRadius))<<"now"<<std::endl;
+        goto choose_target;
+      }
+
+      //Same number of obstacles but big position drift due to localization
+      if(!isSearchingToggle && theLibCheck.distance(getNearestObstacle(true), nearestObstacleGlobalPositionWhenPathWasComputed) > MAX_OBSTACLE_LOCALIZATION_DRIFT && (option_time - pathChangeTime) > pathChangeTimeout)
+      {
+        std::cout<<"common transition -> choose_target: obstacle position drift too high"<<std::endl;
+        goto choose_target;
+      }
+
+
+    }
 
     initial_state(start)
     {
@@ -136,7 +228,7 @@ class ApproachAndCarryWithTwoStepRealignmentCard : public ApproachAndCarryWithTw
       transition
       {
         if(state_time > initialWaitTime)
-          goto choose_target;
+          goto interactWithHuman;
       }
 
       action
@@ -148,30 +240,21 @@ class ApproachAndCarryWithTwoStepRealignmentCard : public ApproachAndCarryWithTw
       }
     }
 
-    /*state(attemptRelocalization)
-    {
-      transition
-      {
-        
-      }
-      action
-      {
-
-      }
-    }*/
 
     state(turnToBall)
     {
-      std::cout<<"turnToBall"<<std::endl;
+      
       transition
       {
         if(!theFieldBall.ballWasSeen(ballNotSeenTimeout))
-          goto searchForBall;
-        
-        if(//approachXRange.isInside(theBallModel.estimate.position.x())
-        //&& approachYRange.isInside(theBallModel.estimate.position.y()) &&
-        smallBallAlignmentRange.isInside(calcAngleToTarget(chosenTarget).toDegrees()))
         {
+          std::cout<<"turnToBall -> searchForBall: ball not found"<<std::endl;
+          goto searchForBall;
+        }
+
+        if(smallBallAlignmentRange.isInside(calcAngleToTarget(chosenTarget).toDegrees()))
+        {
+          std::cout<<"turnToBall -> choose_target: turned to ball"<<std::endl;
           goto choose_target;
         }
       }
@@ -180,16 +263,19 @@ class ApproachAndCarryWithTwoStepRealignmentCard : public ApproachAndCarryWithTw
       {
         theActivitySkill(BehaviorStatus::realigning_to_ball);
         
-        theKeyFrameArmsSkill(ArmKeyFrameRequest::back,false);
+        walkSpeed = decideWalkSpeed(dangerObstacleRadius, safetyObstacleRadius, slowerWalkSpeed, normalWalkSpeed);
+        theKeyFrameArmsSkill(decideArmsPosition(safetyObstacleRadius), false);
+
         theLookForwardSkill();
-        theWalkToTargetSkill(Pose2f(walkSpeed, walkSpeed, walkSpeed), Pose2f(theBallModel.estimate.position.angle(), 0.f, 0.f));
+        theWalkToTargetSkill(Pose2f(1.0f, walkSpeed, walkSpeed), Pose2f(theBallModel.estimate.position.angle(), 0.f, 0.f));
 
       }
     }
 
     state(choose_target)
     {
-      std::cout<<"choose_target"<<std::endl;
+      footChosen = false;
+
       transition
       {
 
@@ -197,89 +283,113 @@ class ApproachAndCarryWithTwoStepRealignmentCard : public ApproachAndCarryWithTw
         {
           goto debug_state;
         }
-        else
-        {
-          goto walkToBall;  
-        }
 
         if(targetChosen)
         {
           targetChosen = false;
-          goto walkToBall;
+
+          std::cout<<"choose_target -> secondStepAlignment: target chosen"<<std::endl;
+          goto secondStepAlignment;
         }
       }
       action
       {
+
         theActivitySkill(BehaviorStatus::choosing_target);
 
-        theKeyFrameArmsSkill(ArmKeyFrameRequest::back,false);
+        walkSpeed = decideWalkSpeed(dangerObstacleRadius, safetyObstacleRadius, slowerWalkSpeed, normalWalkSpeed);
+        theKeyFrameArmsSkill(decideArmsPosition(safetyObstacleRadius), false);
 
-        goalTarget = theLibCheck.goalTarget(false, true);
+        goalTarget = theLibCheck.goalTarget(false,true);
         chosenTarget = theBallCarrierModel.dynamicTarget.translation;
-        chosenTarget = theHRIController.currentBallDestination;
         previousBallPosition = theLibCheck.rel2Glob(theBallModel.estimate.position.x(), theBallModel.estimate.position.y()).translation;
-        previousNearbyObstaclesCount = countNearbyObstacles(nearbyObstaclesRadius);
+        previousNearbyObstaclesCount = countNearbyObstacles(nearbyObstacleRadius);
+        nearestObstacleGlobalPositionWhenPathWasComputed = getNearestObstacle(true);
+      
+        
         targetChosen = true;
-
+        pathChangeTime = option_time;
+        
         theLookAtPointSkill(Vector3f(theBallModel.estimate.position.x(), theBallModel.estimate.position.y(), 0.f));
         theStandSkill();
+
+//NOTICE: the foot is chosen (based on the nearest obstacle position) in choose_target because choose_target is visited every time 
+//the number or position of nearby obstacles changes
+        footChosen = true;
+        kickWithRightFoot = isRightFootUsedToKick();
+        //kickWithRightFoot = false;
+
       }
     }
 
     state(debug_state)
     {
-      transition
-      {}
-
       action
       {
         theActivitySkill(BehaviorStatus::debug_standing);
-
+        //theLookForwardSkill();          
+        Vector2f relativePenaltyMark = theLibCheck.glob2Rel(theFieldDimensions.xPosOpponentPenaltyMark, 0.f).translation;
+        if(relativePenaltyMark.x() >= 0)
+        {
+          if(relativePenaltyMark.y() > 0)
+          {
+            theParametricLookLeftAndRightSkill(0, abs(Angle(relativePenaltyMark.angle()).toDegrees()), 20, LEFT_AND_RIGHT_LOOKING_SPEED);
+          }
+          else
+          {
+            theParametricLookLeftAndRightSkill(abs(Angle(relativePenaltyMark.angle()).toDegrees()), 0, 20, LEFT_AND_RIGHT_LOOKING_SPEED);
+          }
+        }
         theStandSkill();
       }
     }
 
     state(walkToBall)
     {
-      //std::cout<<"walk"<<std::endl;
       transition
       {
 
         if(!theFieldBall.ballWasSeen(ballNotSeenTimeout))
         {
+          std::cout<<"walkToBall -> searchForBall: ball not found"<<std::endl;
           goto searchForBall;
         }
 
         //if the LOCAL ball is inside the approach on the x axis 
         //AND the LOCAL ball is inside the approach range on the y axis 
         //AND the robot is aligned with the target
+        float offsetBallYPosition;
+        if(USE_FOOT_OFFSET)
+        {
+          if(kickWithRightFoot)
+          {
+            offsetBallYPosition = theBallModel.estimate.position.y() + BALL_KICK_OFFSET_Y;
+          }
+          else
+          {
+            offsetBallYPosition = theBallModel.estimate.position.y() - BALL_KICK_OFFSET_Y;
+          }
+        }
+        else
+        {
+          offsetBallYPosition = theBallModel.estimate.position.y();
+        }
+
         if(approachXRange.isInside(theBallModel.estimate.position.x())
-        && approachYRange.isInside(theBallModel.estimate.position.y())
+        && approachYRange.isInside(offsetBallYPosition)
         && smallBallAlignmentRange.isInside(calcAngleToTarget(chosenTarget).toDegrees()))
         {
+          std::cout<<"walkToBall -> kick: OK to kick"<<std::endl;
           goto kick;
         }
         
-        //NEWLY ADDED
         if(theBallModel.estimate.position.norm() < approachXRange.max
         && approachXRange.isInside(theBallModel.estimate.position.x())
-        && !approachYRange.isInside(theBallModel.estimate.position.y()))
+        && !approachYRange.isInside(offsetBallYPosition))
         {
           //Case B: Robot is in the X range but not in the Y range
-          std::cout<<"kick: Case B"<<std::endl;
+          std::cout<<"walkToBall -> secondStepAlignment: Case B"<<std::endl;
           goto secondStepAlignment;
-        }
-
-        if(state_time > changeTargetTimeout)
-        {
-          std::cout<<"walkToBall: change target timeout -> choose_target"<<std::endl;
-          goto choose_target;
-        }
-
-        if(countNearbyObstacles(nearbyObstaclesRadius) > previousNearbyObstaclesCount)
-        {
-          std::cout<<"walkToBall: numberOfNearbyObstaclesChanged -> choose_target"<<std::endl;
-          goto choose_target;
         }
         
       }
@@ -288,203 +398,575 @@ class ApproachAndCarryWithTwoStepRealignmentCard : public ApproachAndCarryWithTw
       {
         theActivitySkill(BehaviorStatus::reaching_ball);
 
-        theKeyFrameArmsSkill(ArmKeyFrameRequest::back,false);
+        walkSpeed = decideWalkSpeed(dangerObstacleRadius, safetyObstacleRadius, slowerWalkSpeed, normalWalkSpeed);
+        theKeyFrameArmsSkill(decideArmsPosition(safetyObstacleRadius), false);
 
         Vector2f ballPositionRelative = theBallModel.estimate.position;
-        //Vector2f ballPositionGlobal = theLibCheck.rel2Glob(theBallModel.estimate.position.x(), theBallModel.estimate.position.y()).translation;
-        theLookAtPointSkill(Vector3f(ballPositionRelative.x(), ballPositionRelative.y(), 0.f));
+
+        //Look for landmarks while walking to the ball (far). If the robot is in the left side of the field start looking right, else left
         
-        theWalkToTargetPathPlannerSkill(Pose2f(1.f,1.f,1.f), theBallCarrierModel.staticApproachPoint);
+        if(LOOK_LEFT_AND_RIGHT_WHILE_WALKING_TO_BALL && theRobotPose.translation.x() > START_LOOKING_LEFT_AND_RIGHT_AT_X_COORDINATE)
+        {
+          callParametricLook();
+        }
+        else
+        {
+          theLookAtPointSkill(Vector3f(ballPositionRelative.x(), ballPositionRelative.y(), 0.f));
+        }
+        
+        theWalkToTargetPathPlannerSkill(Pose2f(1.0f, walkToBallWalkSpeed, walkToBallWalkSpeed), theBallCarrierModel.staticApproachPoint());
       }
     }
 
+//TOTEST
     state(firstStepAlignment)
     {
-      std::cout<<"firstStepRealignment"<<std::endl;
       transition
       {
-        if(theBallModel.estimate.position.x() - theBallSpecification.radius < approachXRange.min
-        && smallBallAlignmentRange.isInside(calcAngleToTarget(chosenTarget).toDegrees()))
+        
+        Vector2f globalBall = theLibCheck.rel2Glob(theBallModel.estimate.position.x(), theBallModel.estimate.position.y()).translation;
+
+        if(theBallModel.estimate.position.x() > FIRST_STEP_REALIGN_RANGE.max
+        )
         {
+          std::cout<<"firstStepAlignment -> secondStepAlignment"<<std::endl;
           goto secondStepAlignment;
         }
-      }
-      action
-      {
-        theActivitySkill(BehaviorStatus::realigning_to_ball);
-        theKeyFrameArmsSkill(ArmKeyFrameRequest::back,false);
-        theLookAtPointSkill(Vector3f(theBallModel.estimate.position.x(), theBallModel.estimate.position.y(), 0.f));
 
-        float firstStepXPos = (approachXRange.max - approachXRange.min)/2;
-        Pose2f firstStepPoseRelative = Pose2f(theLibCheck.angleToTarget(chosenTarget.x(), chosenTarget.y()), firstStepXPos, 0.f);
-        theWalkToTargetSkill(Pose2f(1.f,1.f,1.f), firstStepPoseRelative);
-      }
-    }
-
-    state(secondStepAlignment)
-    {
-      std::cout<<"secondStepRealignment"<<std::endl;
-      transition
-      {
-        if(approachXRange.isInside(theBallModel.estimate.position.x())
-        && approachYRange.isInside(theBallModel.estimate.position.y())
-        && smallBallAlignmentRange.isInside(calcAngleToTarget(chosenTarget).toDegrees()))
+        if(theFieldBall.ballWasSeen(realignmentBallNotSeenTimeout))
         {
-          goto kick;
-        }
-
-        //NEWLY ADDED
-        if(state_time > realignmentTimeout)
-        {
-          goto kick;
-        }
-
-      }
-      action
-      {
-        theActivitySkill(BehaviorStatus::realigning_to_ball);
-        theKeyFrameArmsSkill(ArmKeyFrameRequest::back,false);
-        theLookAtPointSkill(Vector3f(theBallModel.estimate.position.x(), theBallModel.estimate.position.y(), 0.f));
-
-        Pose2f secondStepXPos = theLibCheck.glob2Rel(theBallCarrierModel.staticApproachPoint.translation.x(), theBallCarrierModel.staticApproachPoint.translation.y());
-        Pose2f secondStepPoseRelative = Pose2f(theLibCheck.angleToTarget(theBallCarrierModel.dynamicTarget.translation.x(), theBallCarrierModel.dynamicTarget.translation.y()), secondStepXPos.translation.x(), secondStepXPos.translation.y());
-        theWalkToTargetSkill(Pose2f(1.f,1.f,1.f), secondStepPoseRelative);
-      }
-    }
-
-    state(kick)
-    {
-      //std::cout<<"kick"<<std::endl;
-      transition
-      {
-        if(!theFieldBall.ballWasSeen(ballNotSeenTimeout)){
           goto searchForBall;
         }
 
-        if(theLibCheck.distance(previousBallPosition, theLibCheck.rel2Glob(theBallModel.estimate.position.x(), theBallModel.estimate.position.y())) > ballPositionChangedThreshold)
+
+      }
+      action
+      {
+        theActivitySkill(BehaviorStatus::realigning_to_ball);
+
+        Vector2f globalBall = theLibCheck.rel2Glob(theBallModel.estimate.position.x(), theBallModel.estimate.position.y()).translation;
+
+        walkSpeed = decideWalkSpeed(dangerObstacleRadius, safetyObstacleRadius, slowerWalkSpeed, normalWalkSpeed);
+        theKeyFrameArmsSkill(decideArmsPosition(safetyObstacleRadius), false);
+
+        theLookAtPointSkill(Vector3f(theBallModel.estimate.position.x(), theBallModel.estimate.position.y(), 0.f));
+
+//TOTEST add robot turning towards the last known position of the ball while going backwards
+
+        float firstStepXPos = (approachXRange.max - approachXRange.min)/2;
+
+        theWalkAtRelativeSpeedSkill(Pose2f(theLibCheck.angleToTarget(globalBall.x(), globalBall.y()), -1.0, -globalBall.y()/3));
+      }
+    }
+
+
+    state(secondStepAlignment)
+    {
+      transition
+      {
+
+        float offsetBallYPosition;
+        if(USE_FOOT_OFFSET)
         {
+          if(kickWithRightFoot)
+          {
+            offsetBallYPosition = theBallModel.estimate.position.y() + BALL_KICK_OFFSET_Y;
+          }
+          else
+          {
+            offsetBallYPosition = theBallModel.estimate.position.y() - BALL_KICK_OFFSET_Y;
+          }
+        }
+        else
+        {
+          offsetBallYPosition = theBallModel.estimate.position.y();
+        }
+
+        if(theBallModel.estimate.position.norm() > approachXRange.max)
+        {
+          goto walkToBall;
+        }
+
+        //DEBUG_CODE(approachYRange.isInside(offsetBallYPosition));
+        //DEBUG_CODE(offsetBallYPosition);
+        if(approachXRange.isInside(theBallModel.estimate.position.x())
+        && approachYRange.isInside(offsetBallYPosition)
+        && smallBallAlignmentRange.isInside(Angle(theLibCheck.angleToTarget(theBallCarrierModel.dynamicTarget.translation.x(), theBallCarrierModel.dynamicTarget.translation.y())).toDegrees()))
+        {
+          std::cout<<"secondStepAlignment -> kick: OK to kick"<<std::endl;
+          goto kick;
+        }
+
+        if(state_time > realignmentTimeout)
+        {
+          std::cout<<"secondStepAlignment -> kick: TIMEOUT"<<std::endl;
+          goto kick;
+        }
+
+//BELOW copied from the KICK state
+        //Case E: Robot not in the X range but is behind the ball and is not in the Y range
+        //DEBUG_CODE(theBallModel.estimate.position.x() < approachXRange.min);
+        //DEBUG_CODE(theBallModel.estimate.position.x());
+        if(theBallModel.estimate.position.x() < approachXRange.min)
+        {
+          //DEBUG_CODE(FIRST_STEP_REALIGN_RANGE.isInside(theBallModel.estimate.position.x()));
+          if(FIRST_STEP_REALIGN_RANGE.isInside(theBallModel.estimate.position.x()))
+          {
+            //DEBUG_CODE(!approachYRange.isInside(offsetBallYPosition));
+            if(!approachYRange.isInside(offsetBallYPosition))
+            {
+              std::cout<<"kick -> firstStepAlignment: Case E"<<std::endl;
+              goto firstStepAlignment; //go back
+            }
+          }
+        }
+
+        if(!theFieldBall.ballWasSeen(ballNotSeenTimeout))
+        {
+          std::cout<<"secondStepAlignment -> searchForBall:"<<std::endl;
+          goto searchForBall;
+        }
+        
+        //Case F: Robot is between the target and the ball
+        if(theBallModel.estimate.position.x() < -theBallSpecification.radius*2)
+        {
+          if(approachYRange.isInside(offsetBallYPosition))
+          {
+            std::cout<<"secondStepAlignment -> walkToBall: Case F"<<std::endl;
+            goto walkToBall;
+          }
+        }
+        
+        //Case G: the robot is between the target and the ball and to the side wrt the ball
+        //DEBUG_CODE(theBallModel.estimate.position.x() < -theBallSpecification.radius*2);
+        //DEBUG_CODE(theBallModel.estimate.position.x());
+        if(theBallModel.estimate.position.x() < -theBallSpecification.radius*2)
+        {
+          //DEBUG_CODE(!approachYRange.isInside(offsetBallYPosition));
+          if(!approachYRange.isInside(offsetBallYPosition))
+          {  
+            std::cout<<"secondStepAlignment -> firstStepAlignment: Case G"<<std::endl;
+            goto firstStepAlignment;
+          }
+        }
+        
+
+      }
+      action
+      {
+        theActivitySkill(BehaviorStatus::realigning_to_ball);
+        
+        walkSpeed = decideWalkSpeed(dangerObstacleRadius, safetyObstacleRadius, slowerWalkSpeed, normalWalkSpeed);
+        theKeyFrameArmsSkill(decideArmsPosition(safetyObstacleRadius), false);
+        
+        float localGoalYCoordinate = theLibCheck.glob2Rel(theFieldDimensions.xPosOpponentGroundline, theFieldDimensions.yPosCenterGoal).translation.y();
+
+        if(LOOK_LEFT_AND_RIGHT_WHILE_ALIGNING && theRobotPose.translation.x() > START_LOOKING_LEFT_AND_RIGHT_AT_X_COORDINATE)
+        {
+          callParametricLook();
+        }
+        else
+        {
+          theLookAtPointSkill(Vector3f(theBallModel.estimate.position.x(), theBallModel.estimate.position.y(), 0.f));
+        }
+        
+
+        Vector2f staticApproachPoint = theBallCarrierModel.staticApproachPoint().translation;
+        Pose2f secondStepXPos = theLibCheck.glob2Rel(staticApproachPoint.x(), staticApproachPoint.y());
+        Pose2f secondStepPoseRelative = Pose2f(theLibCheck.angleToTarget(theBallCarrierModel.dynamicTarget.translation.x(), theBallCarrierModel.dynamicTarget.translation.y()), secondStepXPos.translation.x(), secondStepXPos.translation.y());
+        if(USE_FOOT_OFFSET)
+        {
+          if(kickWithRightFoot)
+          {
+            secondStepPoseRelative.translation.y() += BALL_KICK_OFFSET_Y;
+          }
+          else
+          {
+            secondStepPoseRelative.translation.y() -= BALL_KICK_OFFSET_Y;
+          }
+        }
+        
+        theWalkToTargetSkill(Pose2f(1.0f, walkSpeed, walkSpeed), secondStepPoseRelative);
+      }
+    }
+
+
+    state(kick)
+    {
+      transition
+      {
+
+        float offsetBallYPosition;
+        if(USE_FOOT_OFFSET)
+        {
+          if(kickWithRightFoot)
+          {
+            offsetBallYPosition = theBallModel.estimate.position.y() + BALL_KICK_OFFSET_Y;
+          }
+          else
+          {
+            offsetBallYPosition = theBallModel.estimate.position.y() - BALL_KICK_OFFSET_Y;
+          }
+        }
+        else
+        {
+          offsetBallYPosition = theBallModel.estimate.position.y();
+        }
+
+        if(!theFieldBall.ballWasSeen(ballNotSeenTimeout))
+        {
+          std::cout<<"kick -> searchForBall: ball not seen TIMEOUT"<<std::endl;
+          goto searchForBall;
+        }
+
+        if(theLibCheck.distance(previousBallPosition, theLibCheck.rel2Glob(theBallModel.estimate.position.x(), offsetBallYPosition)) > ballPositionChangedThreshold)
+        {
+          std::cout<<"kick -> choose_target: ball moved too much"<<std::endl;
           goto choose_target;
         }
 
         Vector2f ballPositionGlobal = theLibCheck.rel2Glob(theBallModel.estimate.position.x(), theBallModel.estimate.position.y()).translation;
 
-//IMPORTANT: IDEA TO IGNORE ANGLE OF THE ROBOT WRT TARGET! 
-//Rotate the local ball position wrt the target: local coordinates of the ball depend heavily on the angle
-
         //Refer to the drawing BallCarriern Alignment chart for case letters:
         //https://docs.google.com/drawings/d/1FcS2yrCbGkUmbWM1GRGHuXTYnEhcrbkovdwFayTGWkc/edit?usp=sharing
 
         //Case 0: if the robot is too far away from the ball, just walkToBall
-        if(theLibCheck.distance(theRobotPose, ballPositionGlobal) > approachXRange.max)
+        if(theLibCheck.distance(theRobotPose, ballPositionGlobal) >= approachXRange.max)
         {
-          std::cout<<"kick: Case 0"<<std::endl;
+          std::cout<<"kick -> walkToBall: Case 0"<<std::endl;
           goto walkToBall;
         }
-        else if(approachXRange.isInside(theBallModel.estimate.position.x()))
+        
+        //DEBUG_CODE(theBallModel.estimate.position.x());
+        //DEBUG_CODE(offsetBallYPosition);
+        //Case B: Robot is in the X range but not in the Y range
+        if(approachXRange.isInside(theBallModel.estimate.position.x()))
         {
-          //Case B: Robot is in the X range but not in the Y range
-          if(!approachYRange.isInside(theBallModel.estimate.position.y()))
+          if(!approachYRange.isInside(offsetBallYPosition))
           {
-            std::cout<<"kick: Case B"<<std::endl;
+            std::cout<<"kick -> secondStepAlignent: Case B"<<std::endl;
             goto secondStepAlignment;
           }
-          //else, it's ok to InWalkKick, as the robot is anyway well aligned
         }
-        else if(theBallModel.estimate.position.x() >= approachXRange.max)
+        
+        //Case E: Robot not in the X range but is behind the ball and is not in the Y range 
+        //DEBUG_CODE(theBallModel.estimate.position.x() < approachXRange.min);
+        if(theBallModel.estimate.position.x() < approachXRange.min)
         {
-          std::cout<<"kick: Case C"<<std::endl;
-          //Case C: Robot is too far from the ball (and behind it, otherwise the theBallModel.estimate.position.x() would be negative)
-          goto walkToBall;
-        }
-        else if(theBallModel.estimate.position.x() < approachXRange.min)
-        {
-          if(theBallModel.estimate.position.x() > theBallSpecification.radius)
+          //DEBUG_CODE(FIRST_STEP_REALIGN_RANGE.isInside(theBallModel.estimate.position.x()));
+          if(FIRST_STEP_REALIGN_RANGE.isInside(theBallModel.estimate.position.x()))
           {
-            //Case D: Robot is exactly behind the ball but too near 
-            if(approachYRange.isInside(theBallModel.estimate.position.y()))
+            //DEBUG_CODE(!approachYRange.isInside(offsetBallYPosition));
+            if(!approachYRange.isInside(offsetBallYPosition))
             {
-              //Case D + wrong angle
-              if(!smallBallAlignmentRange.isInside(calcAngleToTarget(chosenTarget).toDegrees()))
-              {
-                //If it is not aligned to the target first turn to the target, then the conditions will be checked again to perform further necessary alignments
-                std::cout<<"kick: Case D + wrong angle"<<std::endl;
-                goto turnToBall;
-              }
-              //else, it's ok to InWalkKick, as the robot is anyway well aligned
-            }
-            //Case E: the robot is not behind the ball
-            else
-            {
-              std::cout<<"kick: Case E"<<std::endl;
+              std::cout<<"kick -> firstStepAlignment: Case E"<<std::endl;
               goto firstStepAlignment; //go back
             }
           }
-          else
+        }
+        
+        //Case D + wrong angle: Robot not in the X range but is behind the ball and is in the Y range but is not aligned (angle) to the ball
+        if(theBallModel.estimate.position.x() < approachXRange.min)
+        {
+          if(theBallModel.estimate.position.x() > theBallSpecification.radius*2)
           {
-            //Case F: Robot is between the target and the ball
-            if(approachYRange.isInside(theBallModel.estimate.position.y()))
+            if(approachYRange.isInside(offsetBallYPosition))
             {
-              std::cout<<"kick: Case F"<<std::endl;
-              goto walkToBall;
+              if(!smallBallAlignmentRange.isInside(calcAngleToTarget(chosenTarget).toDegrees()))
+              {
+                //If it is not aligned to the target first turn to the target, then the conditions will be checked again to perform further necessary alignments
+                std::cout<<"kick -> turnToBall: Case D + wrong angle"<<std::endl;
+                goto turnToBall;
+              }
             }
-            else
-            {
-              //Case G: the ball is to the side or behind wrt the robot and the robot is not in front of the ball
-              std::cout<<"kick: Case G"<<std::endl;
-              goto firstStepAlignment;
-            }
+          }
+        }
+
+//NOTICE: I've put the transition to the search state before the transitions to the G and F states because it is unlikely that 
+//we know that the ball is behind us
+        if(!theFieldBall.ballWasSeen(ballNotSeenTimeout))
+        {
+          std::cout<<"kick -> searchForBall:"<<std::endl;
+          goto searchForBall;
+        }
+        
+        //Case F: Robot is between the target and the ball
+        if(theBallModel.estimate.position.x() < -theBallSpecification.radius*2)
+        {
+          if(approachYRange.isInside(offsetBallYPosition))
+          {
+            std::cout<<"kick -> walkToBall: Case F"<<std::endl;
+            goto walkToBall;
+          }
+        }
+        
+        //Case G: the robot is between the target and the ball and to the side wrt the ball
+        //DEBUG_CODE(theBallModel.estimate.position.x() < -theBallSpecification.radius*2);
+        if(theBallModel.estimate.position.x() < -theBallSpecification.radius*2)
+        {
+          //DEBUG_CODE(!approachYRange.isInside(offsetBallYPosition));
+          if(!approachYRange.isInside(offsetBallYPosition))
+          {  
+            std::cout<<"kick -> firstStepAlignment: Case G"<<std::endl;
+            goto firstStepAlignment;
           }
         }
 
         if(state_time > maxKickWaitTime)
         {  
-          std::cout<<"KICK TIMEOUT"<<std::endl;
+          std::cout<<"kick -> choose_target: TIMEOUT"<<std::endl;
           goto choose_target;
         }
+
+//If we get here, the robot is in case A of the diagram aka perfectly aligned. Now we check the alignment angle
+        //Case A but WRONG ANGLE: Robot is perfectly aligned but with a wrong angle
+        /*if(!smallBallAlignmentRange.isInside(calcAngleToTarget(chosenTarget).toDegrees()) && option_time - timeFromLastRealignment > angleRealignmentTimeout)
+        {
+          goto secondStepAlignment;
+        }*/
       }
 
       action
       {
         theActivitySkill(BehaviorStatus::kicking_to_dynamic_target);
         
-        theKeyFrameArmsSkill(ArmKeyFrameRequest::back,false);
+        Vector2f nearestObs = getNearestObstacle();
+        
 
-        //Kick with the foot that is nearest to the ball
-        if(theBallModel.estimate.position.y()>0)
+        walkSpeed = decideWalkSpeed(dangerObstacleRadius, safetyObstacleRadius, slowerWalkSpeed, normalWalkSpeed);
+        theKeyFrameArmsSkill(decideArmsPosition(safetyObstacleRadius), false);
+
+        Vector2f globalBall = theLibCheck.rel2Glob(theBallModel.estimate.position.x(), theBallModel.estimate.position.y()).translation;
+
+        //Kick with the foot that is nearest to the obstacle that is nearest to the ball
+        if(WALK_ON_BALL /*&& theLibCheck.distance(globalBall, chosenTarget) > USE_IN_WALK_KICKS_FOR_DISTANCE_MORE_THAN*/)
         {
-          theInWalkKickSkill(WalkKickVariant(WalkKicks::forward, Legs::right), Pose2f(Angle::fromDegrees(0.f), theBallModel.estimate.position.x(), theBallModel.estimate.position.y()));
+          theWalkToTargetSkill(Pose2f(1.0f, walkSpeed, walkSpeed), theBallModel.estimate.position);
         }
         else
         {
-          theInWalkKickSkill(WalkKickVariant(WalkKicks::forward, Legs::left), Pose2f(Angle::fromDegrees(0.f), theBallModel.estimate.position.x(), theBallModel.estimate.position.y()));
+          if(kickWithRightFoot)
+          {
+            theInWalkKickSkill(WalkKickVariant(WalkKicks::forward, Legs::right), Pose2f(Angle::fromDegrees(0.f), theBallModel.estimate.position.x(), theBallModel.estimate.position.y() + BALL_KICK_OFFSET_Y));
+            //theKickSkill(false, (float) 9000.f, false); // parameters: (kick_type, mirror, distance, armsFixed)
+          }
+          else
+          {
+            theInWalkKickSkill(WalkKickVariant(WalkKicks::forward, Legs::left), Pose2f(Angle::fromDegrees(0.f), theBallModel.estimate.position.x(), theBallModel.estimate.position.y() - BALL_KICK_OFFSET_Y));
+            //theKickSkill(false, (float) 9000.f, false); // parameters: (kick_type, mirror, distance, armsFixed)
+          }
         }
-        theLookAtPointSkill(Vector3f(theBallModel.estimate.position.x(), theBallModel.estimate.position.y(), 0.f));
+        
+        if(LOOK_LEFT_AND_RIGHT_WHILE_KICKING && theRobotPose.translation.x() > START_LOOKING_LEFT_AND_RIGHT_AT_X_COORDINATE)
+        {
+          callParametricLook();
+        }
+        else
+        {
+          theLookAtPointSkill(Vector3f(theBallModel.estimate.position.x(), theBallModel.estimate.position.y(), 0.f));
+        }
         theGoalTargetSkill(goalTarget);
         theSetTargetSkill(chosenTarget);
       }
     }
 
-    state(searchForBall)
+    state(interactWithHuman)
     {
       transition
       {
-        std::cout<< "search" <<std::endl;
-        if(theFieldBall.ballWasSeen())
+        if(theTurnToTargetThenTurnToUserThenPointAndSaySomethingSkill.isDone())
+        {
+          std::cout<<"speakToHuman -> stand: sound finished playing"<<std::endl;
           goto choose_target;
+        }
+      }
+
+      action
+      {
+        theTurnToTargetThenTurnToUserThenPointAndSaySomethingSkill(theHRIController.currentBallDestination, 
+                                                                  Vector3f(theHRIController.userPosition.x(), theHRIController.userPosition.y(), theHRIController.userHeight),
+                                                                  Vector3f(theHRIController.currentBallDestination.x(), theHRIController.currentBallDestination.y(), 0.f),
+                                                                  std::string("CarryingTheBall.wav"));
+      }
+    }
+
+    state(searchForBall)
+    {
+      footChosen = false;
+
+      transition
+      {
+        if(theFieldBall.ballWasSeen(ballNotSeenTimeout)) 
+        {
+          isSearchingToggle = false;
+          fullLoopRevolution = false;
+          
+          std::cout<<"searchForBall -> choose_target: ball found"<<std::endl;
+          goto choose_target;
+        }
+
+        if (goToCenterWhenSearchingForBall
+                && fullLoopRevolution 
+                    && !theFieldBall.ballWasSeen(ballNotSeenTimeout))
+        {
+          fullLoopRevolution = false;
+
+          std::cout<<"searchForBall -> lookForBallAtCenter: ball not found"<<std::endl;
+          goto lookForBallAtCenter;
+        }
       }
 
       action
       {
         
         theActivitySkill(BehaviorStatus::searching_for_ball);
+        Pose2f robotPose = theRobotPose;
+        previousBallPosition = theLibCheck.rel2Glob(theBallModel.estimate.position.x(), theBallModel.estimate.position.y()).translation;
+        Vector2f lastPercievedBallPosition = theLibCheck.rel2Glob(theBallModel.lastPerception.x(),theBallModel.lastPerception.y() ).translation;
 
-        theKeyFrameArmsSkill(ArmKeyFrameRequest::back,false);
-        theLookForwardSkill();
-        //TODO choose a direction and do the complete turn to find the ball
-        theWalkAtRelativeSpeedSkill(Pose2f(walkSpeed, 0.f, 0.f));
+        walkSpeed = decideWalkSpeed(dangerObstacleRadius, safetyObstacleRadius, slowerWalkSpeed, normalWalkSpeed);
+        theKeyFrameArmsSkill(decideArmsPosition(safetyObstacleRadius), false);
+
+        float angleToBall = Angle(theLibCheck.angleToTarget( lastPercievedBallPosition.x(), 
+                                                       lastPercievedBallPosition.y())).toDegrees();
+
+        if(angleToBall > 0)
+        {
+          theLookLeftAndRightSkill();
+        }
+        else
+        {
+          theLookRightAndLeftSkill();
+        }
+
+        if (!isSearchingToggle)
+        {
+
+          startingRobotAngleWhenSearching = Angle(theRobotPose.rotation);
+          rotationVel = angleToBall > 0 ? walkSpeed : -walkSpeed;
+          isSearchingToggle = true;          
+        }
+        theWalkAtRelativeSpeedSkill(Pose2f(rotationVel, 0.f, 0.f));
+             
+        
+        float angleDiff = theRobotPose.rotation.toDegrees() - startingRobotAngleWhenSearching.toDegrees();
+
+        if(rotationVel > 0)
+        {
+          fullLoopRevolution = angleDiff < 0 
+                                  && Rangef(-60,60).isInside(angleDiff)
+                                      && !Rangef(-10,10).isInside(angleDiff);
+        }
+        else
+        {
+          fullLoopRevolution = angleDiff > 0
+                                  && Rangef(-60,60).isInside(angleDiff)
+                                      && !Rangef(-10,10).isInside(angleDiff);
+        }
+        
+        
       }
     }
 
+    state (lookForBallAtCenter)
+    {
+      transition 
+      {
+        if(theFieldBall.ballWasSeen(ballNotSeenTimeout))
+        {
+          isSearchingToggle = false;
+
+          std::cout<<"lookForBallAtCenter -> walkToBall: ball found"<<std::endl;
+          goto walkToBall;
+        }
+
+      }
+      action
+      {
+        theActivitySkill(BehaviorStatus::reaching_ball);
+
+
+        theLookLeftAndRightSkill();
+        if(theLibCheck.distance(theRobotPose, Pose2f(0.f, -850.f, 0.f)) > 300.f)
+        {
+          theWalkToTargetPathPlannerSkill(Pose2f(1.0f, walkSpeed, walkSpeed), Pose2f(0.f, -850.f, 0.f));
+        }
+        else
+        {
+          walkSpeed = decideWalkSpeed(dangerObstacleRadius, safetyObstacleRadius, slowerWalkSpeed, normalWalkSpeed);
+          theKeyFrameArmsSkill(decideArmsPosition(safetyObstacleRadius), false);
+          theWalkAtRelativeSpeedSkill(Pose2f(-theRobotPose.rotation,0.f,0.f));
+        }
+      }
+    }
+  }
+
+  Vector2f getNearestObstacle(bool global = false) const
+  {
+    Vector2f nearestObstacle;
+    float nearestObstacleDistance = -1;
+    for(auto obs : theObstacleModel.obstacles)
+    {
+      float currentObsDistance = obs.center.norm();
+      if(nearestObstacleDistance == -1 || obs.center.norm() < nearestObstacleDistance)
+      {
+          nearestObstacle = Vector2f(obs.center.x(), obs.center.y());
+          nearestObstacleDistance = currentObsDistance;     
+      }
+    }
+
+    if(global) 
+      return theLibCheck.rel2Glob(nearestObstacle.x(), nearestObstacle.y()).translation;
+    else 
+      return nearestObstacle;
+  }
+  
+  float decideWalkSpeed(float minObstacleRadius, float maxObstacleRadius, float minWalkSpeed, float maxWalkSpeed)
+  {
+    float distanceFromNearestObs = theLibCheck.distance(theRobotPose.translation, getNearestObstacle(true));
+    if(distanceFromNearestObs > maxObstacleRadius)
+    {
+      return maxWalkSpeed;
+    }
+    else if(distanceFromNearestObs < maxObstacleRadius && distanceFromNearestObs > minObstacleRadius)
+    {
+      return theLibCheck.mapToInterval(distanceFromNearestObs - minObstacleRadius, minObstacleRadius, maxObstacleRadius, minWalkSpeed, maxWalkSpeed);
+    }
+    else
+    {
+      return minWalkSpeed;
+    }
+  }
+
+  ArmKeyFrameRequest::ArmKeyFrameId decideArmsPosition(float maxObstacleRadius)
+  {
+    Vector2f nearestObs = getNearestObstacle(true);
+    if(theLibCheck.distance(theRobotPose.translation, nearestObs) > maxObstacleRadius
+      || theRobotPose.translation.x() > nearestObs.x() + robotArmsRange
+      || !putArmsOnBack)
+    {
+      return ArmKeyFrameRequest::useDefault;
+    }
+    else 
+    {
+      return ArmKeyFrameRequest::back;
+    }
+  }
+
+  bool isRightFootUsedToKick()
+  {
+    if(getNearestObstacle().y() < -300.f && kickWithRightFoot)
+    {
+      return false;
+    }
+    else if(getNearestObstacle().y() > 300.f && !kickWithRightFoot)
+    {
+      return true;
+    }
+    else
+    {
+      return kickWithRightFoot;
+    }
   }
 
   Angle calcAngleToGoal() const
@@ -502,10 +984,91 @@ class ApproachAndCarryWithTwoStepRealignmentCard : public ApproachAndCarryWithTw
     int obstacleCount = 0;
     for(auto obs : theObstacleModel.obstacles)
     {
-      obstacleCount++;
+      if(theLibCheck.distance(obs.center, theRobotPose) < distanceRadius)
+      {
+        obstacleCount++;
+      }
     }  
 
     return obstacleCount;
+  }
+
+  Vector2f chooseGoalTarget()
+  {
+    bool useHeuristic = true;
+    
+    Vector2f globalBall = theLibCheck.rel2Glob(theBallModel.estimate.position.x(), theBallModel.estimate.position.y()).translation;
+
+    if(globalBall.x() > theFieldDimensions.xPosOpponentGroundline - theBallCarrierModel.xRangeDistanceFromGoalToUseKicks.max)
+    {
+      useHeuristic = false;
+    }
+
+    return theLibCheck.goalTarget(false, useHeuristic);
+  }
+
+  bool isRobotInCenterCircle()
+  {
+    return theRobotPose.translation.norm() < theFieldDimensions.centerCircleRadius;
+  }
+
+  /*bool useLongKick()
+  {
+    return false;
+  }*/
+
+  void callParametricLook()
+  {
+    /*
+    Vector2f relativePenaltyMark = theLibCheck.glob2Rel(theFieldDimensions.xPosOpponentPenaltyMark, 0.f).translation;
+    if(relativePenaltyMark.x() >= 0)
+    {
+      if(relativePenaltyMark.y() < 0)
+      {
+        theParametricLookLeftAndRightSkill(0, abs(Angle(relativePenaltyMark.angle()).toDegrees()), 20, LEFT_AND_RIGHT_LOOKING_SPEED);
+      }
+      else
+      {
+        theParametricLookLeftAndRightSkill(abs(Angle(relativePenaltyMark.angle()).toDegrees()), 0, 20, LEFT_AND_RIGHT_LOOKING_SPEED);
+      }
+    }
+    */
+
+    float lookingAngle;
+    if(theRobotPose.translation.x() <= theFieldDimensions.xPosOpponentPenaltyMark)
+    {
+        lookingAngle = theLibCheck.mapToInterval(theRobotPose.translation.x(), 0, theFieldDimensions.xPosOpponentPenaltyMark, 0, MAX_LOOKING_ANGLE);
+    }
+    else
+    {
+        lookingAngle = MAX_LOOKING_ANGLE - theLibCheck.mapToInterval(theRobotPose.translation.x(), theFieldDimensions.xPosOpponentPenaltyMark, theFieldDimensions.xPosOpponentGroundline, 0, 90);
+    }
+
+    /*if(theRobotPose.translation.y() > 0)
+    {
+        theParametricLookLeftAndRightSkill(0, lookingAngle, 20, LEFT_AND_RIGHT_LOOKING_SPEED);
+    }
+    else
+    {
+        theParametricLookLeftAndRightSkill(lookingAngle, 0, 20, LEFT_AND_RIGHT_LOOKING_SPEED);
+    }*/
+
+    Vector2f relativePenaltyMark = theLibCheck.glob2Rel(theFieldDimensions.xPosOpponentPenaltyMark, 0.f).translation;
+    if(relativePenaltyMark.x() >= 0)
+    {
+      //if(relativePenaltyMark.y() > 0)
+      //{
+        theParametricLookLeftAndRightSkill(0, lookingAngle, 20, LEFT_AND_RIGHT_LOOKING_SPEED);
+      //}
+      //else
+      //{
+      //  theParametricLookLeftAndRightSkill(lookingAngle, 0, 20, LEFT_AND_RIGHT_LOOKING_SPEED);
+      //}
+    }
+    else
+    {
+      theLookAtPointSkill(Vector3f(theBallModel.estimate.position.x(), theBallModel.estimate.position.y(), 0.f));
+    }
   }
 };
 

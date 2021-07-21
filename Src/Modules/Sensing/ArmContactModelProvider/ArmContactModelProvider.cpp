@@ -182,7 +182,7 @@ void ArmContactModelProvider::update(ArmContactModel& model)
     {
       lastSoundTime = theFrameInfo.time;
       if(SystemCall::getMode() == SystemCall::physicalRobot)
-        SystemCall::playSound("arm.wav");
+        ;//SystemCall::playSound("arm.wav");
     }
   }
 }

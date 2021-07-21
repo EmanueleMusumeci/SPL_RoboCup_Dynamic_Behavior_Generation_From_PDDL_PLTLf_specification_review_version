@@ -23,6 +23,8 @@
 
 #include "Representations/HRI/HRIController.h"
 
+#include "Platform/Linux/SoundPlayer.h"
+
 #include <iostream>
 #include <ostream>
 
@@ -49,6 +51,12 @@ MODULE(HRIControllerProvider,
       (float) BALL_CARRIER_DISTANCE_THRESHOLD,                      /** Minimum distance of the ball from its destination to declare the CarryBall action completed */ 
       (float) KICK_DISTANCE_THRESHOLD,                              /** Minimum distance of the ball from its destination to declare the Kick action completed */ 
       (float) REACH_POSITION_DISTANCE_THRESHOLD,                    /** Minimum distance of the robot from its destination to declare the ReachPosition action completed */ 
+
+      (Vector2f) userPosition,
+      (float) userHeight,
+
+      (bool) PERFORM_INITIAL_SPEECH,
+
     }),
 });
 
@@ -65,6 +73,8 @@ public:
   static Task CarryBallToPositionTask(Vector2f position, int taskID);
   static Task KickBallToPositionTask(Vector2f position, int taskID);
   static Task ScoreGoalTask(int taskID);
+  static Task InstructionsSpeechTask(int taskID, Vector2f position);
+  static Task InitialSpeechTask(int taskID);
 
 private:
   void update(HRIController& controller) override;
@@ -102,4 +112,18 @@ inline Task HRIControllerProvider::ScoreGoalTask(int taskID)
   actionQueue.push_back(Action(HRI::ActionType::ReachBall));
   actionQueue.push_back(Action(HRI::ActionType::CarryAndKickToGoal));
   return Task(HRI::TaskType::ScoreGoalTask, taskID, actionQueue, Vector2f(0,0));
+}
+
+inline Task HRIControllerProvider::InstructionsSpeechTask(int taskID, Vector2f position)
+{
+  std::vector<Action> actionQueue;
+  actionQueue.push_back(Action(HRI::ActionType::PerformInstructionsSpeech));
+  return Task(HRI::TaskType::InstructionsSpeech, taskID, actionQueue, position);
+}
+
+inline Task HRIControllerProvider::InitialSpeechTask(int taskID)
+{
+  std::vector<Action> actionQueue;
+  actionQueue.push_back(Action(HRI::ActionType::PerformInitialSpeech));
+  return Task(HRI::TaskType::InitialSpeech, taskID, actionQueue, Vector2f(0,0));
 }

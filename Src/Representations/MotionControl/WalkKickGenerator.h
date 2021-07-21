@@ -26,6 +26,8 @@ namespace WalkKicks
              // SIMULATOR: It performs well, it covers not so much distance ( like 10% of the field ) . 
              // REAL:      It performs like in the simulator.
 
+    forwardShort, 
+    
     //Select in the call the leg to use, select right to move the ball left, select left to move the ball right
     lateral, // SIMULATOR: It is not so much precise, but it is quite stable
              // REAL: To be tested.

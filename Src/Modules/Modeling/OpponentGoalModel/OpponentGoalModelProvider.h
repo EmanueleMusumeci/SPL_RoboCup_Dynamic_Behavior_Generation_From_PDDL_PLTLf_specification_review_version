@@ -34,6 +34,7 @@ MODULE(OpponentGoalModelProvider,
       //goalTarget constants
       (bool) GRAPHICAL_DEBUG,                                      /** Shows a graphical debug render in SimRobot */
       (bool) SHOW_WALLS,                                           /** Show targetable areas as 3D colored walls */
+      (bool) SHOW_RAYS,                                            /** Show rays for free targetable areas */     
 
       (bool) USE_AREA_DISCRETIZATION,                              /** Use free areas discretization + utility-based choice of target */ 
 

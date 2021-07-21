@@ -43,45 +43,41 @@ void HRIController::draw() const
   // drawing of the model in the field view
   const HRIController& theHRIController = static_cast<const HRIController&>(Blackboard::getInstance()["HRIController"]);
   const LibCheck& theLibCheck = static_cast<const LibCheck&>(Blackboard::getInstance()["LibCheck"]);
-  if(theHRIController.taskQueue.empty()) return;
 
-//TODO DRAW function for Idle
-  std::cout<<"HRIController actionType: "<<theHRIController.getCurrentActionType()<<std::endl;
 
   switch(theHRIController.getCurrentActionType())
   {
     case HRI::ActionType::Idle:
     {
         DEBUG_DRAWING3D("representation:HRIController", "field")
-        {}
+        {
+          const RobotPose& theRobotPose = static_cast<const RobotPose&>(Blackboard::getInstance()["RobotPose"]);          
+          ARC3D("representation:HRIController",
+            theRobotPose.translation.x(), theRobotPose.translation.y(), 10, 200, 0, pi2, 5, ColorRGBA(127,127,127,255)
+          );
+        };
         break;
     }
     case HRI::ActionType::ReachPosition:
     {
-        std::cout<<"ReachPosition"<<std::endl;
-        std::cout<<"theHRIController.currentRobotDestination.x()"<<theHRIController.currentRobotDestination.x()<<std::endl;
         DEBUG_DRAWING3D("representation:HRIController", "field")
         {
           const RobotPose& theRobotPose = static_cast<const RobotPose&>(Blackboard::getInstance()["RobotPose"]);
           const LibCheck& theLibCheck = static_cast<const LibCheck&>(Blackboard::getInstance()["LibCheck"]);
 
-        std::cout<<"A"<<std::endl;
           //SPHERE3D("representation:HRIController", theRobotPose.translation.x(), theRobotPose.translation.y(), 10, 10, ColorRGBA(0,255,0,255));  
           ARC3D("representation:HRIController",
                 theRobotPose.translation.x(), theRobotPose.translation.y(), 10, 200, 0, pi2, 5, ColorRGBA(0,255,0,255)
                 );
           
-        std::cout<<"B"<<std::endl;
           //SPHERE3D("representation:HRIController", theHRIController.currentRobotDestination.x(), theHRIController.currentRobotDestination.y(), 10, 10, ColorRGBA(0,255,0,255));
           CROSS3D("representation:HRIController", theHRIController.currentRobotDestination.x(), theHRIController.currentRobotDestination.y(), 10, 100, 10, ColorRGBA(255,0,0,255));
           
-        std::cout<<"C"<<std::endl;
           CYLINDERARROW3D("representation:HRIController", 
             Vector3f(theRobotPose.translation.x(), theRobotPose.translation.y(), 10),
             Vector3f(theHRIController.currentRobotDestination.x(), theHRIController.currentRobotDestination.y(), 10),
             10, 50, 20, ColorRGBA(0,255,0,255));
 
-        std::cout<<"D"<<std::endl;
         };
         break;
     }
@@ -115,6 +111,9 @@ void HRIController::draw() const
       const BallCarrierModel& theBallCarrierModel = static_cast<const BallCarrierModel&>(Blackboard::getInstance()["BallCarrierModel"]);
       const BallModel& theBallModel = static_cast<const BallModel&>(Blackboard::getInstance()["BallModel"]);
 
+      Pose2f staticApproachPoint = theBallCarrierModel.staticApproachPoint();
+      Pose2f dynamicApproachPoint = theBallCarrierModel.dynamicApproachPoint();
+
       Vector2f globalBall = theLibCheck.rel2Glob(theBallModel.estimate.position.x(), theBallModel.estimate.position.y()).translation;
       float angleToBall = theLibCheck.angleToBall;
       DEBUG_DRAWING3D("representation:HRIController", "field")
@@ -184,20 +183,20 @@ void HRIController::draw() const
         
         //Draw the static approach point (farthest entry point to the approach area, determined by the chosen target)
         CYLINDERARROW3D("representation:HRIController", 
-              Vector3f(theBallCarrierModel.staticApproachPoint.translation.x(), theBallCarrierModel.staticApproachPoint.translation.y(), 10),
-              Vector3f(theBallCarrierModel.staticApproachPoint.translation.x()+ARROW_LENGTH*cos(theBallCarrierModel.staticApproachPoint.rotation), theBallCarrierModel.staticApproachPoint.translation.y()+ARROW_LENGTH*sin(theBallCarrierModel.staticApproachPoint.rotation), 10),
+              Vector3f(staticApproachPoint.translation.x(), staticApproachPoint.translation.y(), 10),
+              Vector3f(staticApproachPoint.translation.x()+ARROW_LENGTH*cos(staticApproachPoint.rotation), staticApproachPoint.translation.y()+ARROW_LENGTH*sin(staticApproachPoint.rotation), 10),
               10, 50, 20, ColorRGBA(255,0,0,255));
         SPHERE3D("representation:HRIController", 
-              theBallCarrierModel.staticApproachPoint.translation.x(), theBallCarrierModel.staticApproachPoint.translation.y(), 10, 30,
+              staticApproachPoint.translation.x(), staticApproachPoint.translation.y(), 10, 30,
               ColorRGBA(255,0,0,255));
                       
         //Draw the dynamic approach point (entry point to the approach area, determined by the chosen target and by the distance of the robot from the ball)
         CYLINDERARROW3D("representation:HRIController", 
-              Vector3f(theBallCarrierModel.dynamicApproachPoint.translation.x(), theBallCarrierModel.dynamicApproachPoint.translation.y(), 10),
-              Vector3f(theBallCarrierModel.dynamicApproachPoint.translation.x()+ARROW_LENGTH*cos(theBallCarrierModel.dynamicApproachPoint.rotation), theBallCarrierModel.dynamicApproachPoint.translation.y()+ARROW_LENGTH*sin(theBallCarrierModel.dynamicApproachPoint.rotation), 10),
+              Vector3f(dynamicApproachPoint.translation.x(), dynamicApproachPoint.translation.y(), 10),
+              Vector3f(dynamicApproachPoint.translation.x()+ARROW_LENGTH*cos(dynamicApproachPoint.rotation), dynamicApproachPoint.translation.y()+ARROW_LENGTH*sin(dynamicApproachPoint.rotation), 10),
               10, 50, 20, ColorRGBA(0,255,0,255));
         SPHERE3D("representation:HRIController", 
-              theBallCarrierModel.dynamicApproachPoint.translation.x(), theBallCarrierModel.dynamicApproachPoint.translation.y(), 10, 30,
+              dynamicApproachPoint.translation.x(), dynamicApproachPoint.translation.y(), 10, 30,
               ColorRGBA(0,0,255,255));
         
         //Draw the approach area
@@ -222,6 +221,9 @@ void HRIController::draw() const
         const LibCheck& theLibCheck = static_cast<const LibCheck&>(Blackboard::getInstance()["LibCheck"]);
         const BallCarrierModel& theBallCarrierModel = static_cast<const BallCarrierModel&>(Blackboard::getInstance()["BallCarrierModel"]);
 
+        Pose2f staticApproachPoint = theBallCarrierModel.staticApproachPoint();
+        Pose2f dynamicApproachPoint = theBallCarrierModel.dynamicApproachPoint();
+
         //SPHERE3D("representation:HRIController", theRobotPose.translation.x(), theRobotPose.translation.y(), 10, 10, ColorRGBA(0,255,0,255));
         ARC3D("representation:HRIController",
               theRobotPose.translation.x(), theRobotPose.translation.y(), 10, 200, 0, pi2, 5, ColorRGBA(0,255,0,255)
@@ -230,20 +232,20 @@ void HRIController::draw() const
         Vector2f globalBall = theLibCheck.rel2Glob(theBallModel.estimate.position.x(), theBallModel.estimate.position.y()).translation;
         //Draw the static approach point (farthest entry point to the approach area, determined by the chosen target)
         CYLINDERARROW3D("representation:HRIController", 
-              Vector3f(theBallCarrierModel.staticApproachPoint.translation.x(), theBallCarrierModel.staticApproachPoint.translation.y(), 10),
-              Vector3f(theBallCarrierModel.staticApproachPoint.translation.x()+ARROW_LENGTH*cos(theBallCarrierModel.staticApproachPoint.rotation), theBallCarrierModel.staticApproachPoint.translation.y()+ARROW_LENGTH*sin(theBallCarrierModel.staticApproachPoint.rotation), 10),
+              Vector3f(staticApproachPoint.translation.x(), staticApproachPoint.translation.y(), 10),
+              Vector3f(staticApproachPoint.translation.x()+ARROW_LENGTH*cos(staticApproachPoint.rotation), staticApproachPoint.translation.y()+ARROW_LENGTH*sin(staticApproachPoint.rotation), 10),
               10, 50, 20, ColorRGBA(255,0,0,255));
         SPHERE3D("representation:HRIController", 
-              theBallCarrierModel.staticApproachPoint.translation.x(), theBallCarrierModel.staticApproachPoint.translation.y(), 10, 30,
+              staticApproachPoint.translation.x(), staticApproachPoint.translation.y(), 10, 30,
               ColorRGBA(255,0,0,255));
                       
         //Draw the dynamic approach point (entry point to the approach area, determined by the chosen target and by the distance of the robot from the ball)
         CYLINDERARROW3D("representation:HRIController", 
-              Vector3f(theBallCarrierModel.dynamicApproachPoint.translation.x(), theBallCarrierModel.dynamicApproachPoint.translation.y(), 10),
-              Vector3f(theBallCarrierModel.dynamicApproachPoint.translation.x()+ARROW_LENGTH*cos(theBallCarrierModel.dynamicApproachPoint.rotation), theBallCarrierModel.dynamicApproachPoint.translation.y()+ARROW_LENGTH*sin(theBallCarrierModel.dynamicApproachPoint.rotation), 10),
+              Vector3f(dynamicApproachPoint.translation.x(), dynamicApproachPoint.translation.y(), 10),
+              Vector3f(dynamicApproachPoint.translation.x()+ARROW_LENGTH*cos(dynamicApproachPoint.rotation), dynamicApproachPoint.translation.y()+ARROW_LENGTH*sin(dynamicApproachPoint.rotation), 10),
               10, 50, 20, ColorRGBA(0,255,0,255));
         SPHERE3D("representation:HRIController", 
-              theBallCarrierModel.dynamicApproachPoint.translation.x(), theBallCarrierModel.dynamicApproachPoint.translation.y(), 10, 30,
+              dynamicApproachPoint.translation.x(), dynamicApproachPoint.translation.y(), 10, 30,
               ColorRGBA(0,0,255,255));
         
         //Draw the approach area
@@ -269,6 +271,9 @@ void HRIController::draw() const
       const BallCarrierModel& theBallCarrierModel = static_cast<const BallCarrierModel&>(Blackboard::getInstance()["BallCarrierModel"]);
       const BallModel& theBallModel = static_cast<const BallModel&>(Blackboard::getInstance()["BallModel"]);
 
+      Pose2f staticApproachPoint = theBallCarrierModel.staticApproachPoint();
+      Pose2f dynamicApproachPoint = theBallCarrierModel.dynamicApproachPoint();
+
       Vector2f globalBall = theLibCheck.rel2Glob(theBallModel.estimate.position.x(), theBallModel.estimate.position.y()).translation;
       float angleToBall = theLibCheck.angleToBall;
       DEBUG_DRAWING3D("representation:HRIController", "field")
@@ -338,20 +343,20 @@ void HRIController::draw() const
         
         //Draw the static approach point (farthest entry point to the approach area, determined by the chosen target)
         CYLINDERARROW3D("representation:HRIController", 
-              Vector3f(theBallCarrierModel.staticApproachPoint.translation.x(), theBallCarrierModel.staticApproachPoint.translation.y(), 10),
-              Vector3f(theBallCarrierModel.staticApproachPoint.translation.x()+ARROW_LENGTH*cos(theBallCarrierModel.staticApproachPoint.rotation), theBallCarrierModel.staticApproachPoint.translation.y()+ARROW_LENGTH*sin(theBallCarrierModel.staticApproachPoint.rotation), 10),
+              Vector3f(staticApproachPoint.translation.x(), staticApproachPoint.translation.y(), 10),
+              Vector3f(staticApproachPoint.translation.x()+ARROW_LENGTH*cos(staticApproachPoint.rotation), staticApproachPoint.translation.y()+ARROW_LENGTH*sin(staticApproachPoint.rotation), 10),
               10, 50, 20, ColorRGBA(255,0,0,255));
         SPHERE3D("representation:HRIController", 
-              theBallCarrierModel.staticApproachPoint.translation.x(), theBallCarrierModel.staticApproachPoint.translation.y(), 10, 30,
+              staticApproachPoint.translation.x(), staticApproachPoint.translation.y(), 10, 30,
               ColorRGBA(255,0,0,255));
                       
         //Draw the dynamic approach point (entry point to the approach area, determined by the chosen target and by the distance of the robot from the ball)
         CYLINDERARROW3D("representation:HRIController", 
-              Vector3f(theBallCarrierModel.dynamicApproachPoint.translation.x(), theBallCarrierModel.dynamicApproachPoint.translation.y(), 10),
-              Vector3f(theBallCarrierModel.dynamicApproachPoint.translation.x()+ARROW_LENGTH*cos(theBallCarrierModel.dynamicApproachPoint.rotation), theBallCarrierModel.dynamicApproachPoint.translation.y()+ARROW_LENGTH*sin(theBallCarrierModel.dynamicApproachPoint.rotation), 10),
+              Vector3f(dynamicApproachPoint.translation.x(), dynamicApproachPoint.translation.y(), 10),
+              Vector3f(dynamicApproachPoint.translation.x()+ARROW_LENGTH*cos(dynamicApproachPoint.rotation), dynamicApproachPoint.translation.y()+ARROW_LENGTH*sin(dynamicApproachPoint.rotation), 10),
               10, 50, 20, ColorRGBA(0,255,0,255));
         SPHERE3D("representation:HRIController", 
-              theBallCarrierModel.dynamicApproachPoint.translation.x(), theBallCarrierModel.dynamicApproachPoint.translation.y(), 10, 30,
+              dynamicApproachPoint.translation.x(), dynamicApproachPoint.translation.y(), 10, 30,
               ColorRGBA(0,0,255,255));
         
         //Draw the approach area
@@ -363,6 +368,11 @@ void HRIController::draw() const
               );
       };
       break;
+    }
+    default:
+    {
+      DEBUG_DRAWING3D("representation:HRIController", "field")
+      {};
     }    
   }
   #endif

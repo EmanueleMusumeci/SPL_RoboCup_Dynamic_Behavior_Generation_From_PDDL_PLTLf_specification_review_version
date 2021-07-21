@@ -42,8 +42,11 @@ void OpponentGoalModel::draw() const
         for(const auto& targetableArea : freeGoalTargetableAreas)
         {
           if(theRobotPose.translation.x()>0){
-            LINE3D("representation:OpponentGoalModel", theRobotPose.translation.x(), theRobotPose.translation.y(), 10, theFieldDimensions.xPosOpponentGroundline, targetableArea.begin, 10, 1, ColorRGBA(red,green,0));
-            LINE3D("representation:OpponentGoalModel", theRobotPose.translation.x(), theRobotPose.translation.y(), 10, theFieldDimensions.xPosOpponentGroundline, targetableArea.end, 10, 1, ColorRGBA(red,green,0));    
+            if(theOpponentGoalModel.showRays)
+            {
+              LINE3D("representation:OpponentGoalModel", theRobotPose.translation.x(), theRobotPose.translation.y(), 10, theFieldDimensions.xPosOpponentGroundline, targetableArea.begin, 10, 1, ColorRGBA(red,green,0));
+              LINE3D("representation:OpponentGoalModel", theRobotPose.translation.x(), theRobotPose.translation.y(), 10, theFieldDimensions.xPosOpponentGroundline, targetableArea.end, 10, 1, ColorRGBA(red,green,0));    
+            }
             if(theOpponentGoalModel.showWalls)
             {
               int WALL_DEPTH = 20;

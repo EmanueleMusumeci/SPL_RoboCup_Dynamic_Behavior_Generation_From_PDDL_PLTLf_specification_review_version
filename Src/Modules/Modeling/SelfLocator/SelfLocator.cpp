@@ -12,8 +12,11 @@
 #include "Tools/Math/Probabilistics.h"
 #include "Tools/Math/Eigen.h"
 #include <algorithm>
+#include <iostream>
 
 using namespace std;
+
+#define HRI
 
 SelfLocator::SelfLocator() : perceptRegistration(theCameraInfo, theCameraMatrix, theCirclePercept,
   theFieldDimensions, theFrameInfo, theGameInfo,
@@ -80,8 +83,20 @@ SelfLocator::SelfLocator() : perceptRegistration(theCameraInfo, theCameraMatrix,
   // Create sample set with samples at the typical walk-in positions
   samples = new SampleSet<UKFSample>(numberOfSamples);
 
-  for(int i = 0; i < samples->size(); ++i)
-    samples->at(i).init(getNewPoseAtWalkInPosition(), walkInPoseDeviation, nextSampleNumber++, 0.5f);
+  /*for(int i = 0; i < samples->size(); ++i)
+    samples->at(i).init(getNewPoseAtWalkInPosition(), walkInPoseDeviation, nextSampleNumber++, 0.5f);*/
+
+//Set initial guess to our certain challenge1 starting position
+#ifdef HRI
+  if(HRIInitialGuess)
+  {
+    std::cout<<"HELLO"<<std::endl;
+    //Assign all particles the same starting position with walkInPoseDeviation 
+    //(providing a lower deviation than defaultPoseDeviation because we are certain about the robot position)
+    for(int i = 0; i < samples->size(); ++i)
+      samples->at(i).init(Pose2f(0_deg, -850.f, 0.f), walkInPoseDeviation, nextSampleNumber++, 0.5f);
+  }
+#endif
 }
 
 SelfLocator::~SelfLocator()

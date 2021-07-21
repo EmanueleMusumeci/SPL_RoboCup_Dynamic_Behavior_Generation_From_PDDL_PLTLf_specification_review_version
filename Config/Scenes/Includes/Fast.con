@@ -34,8 +34,6 @@ mr KeyStates LogDataProvider Motion
 
 #Goal Targeting System
 mr OpponentGoalModel OpponentGoalModelProvider Cognition
-#Striker Potential Field module
-mr BallCarrierPFModel BallCarrierPFModelProvider Cognition
 #Striker Ball Carrier module
 mr BallCarrierModel BallCarrierModelProvider Cognition
 

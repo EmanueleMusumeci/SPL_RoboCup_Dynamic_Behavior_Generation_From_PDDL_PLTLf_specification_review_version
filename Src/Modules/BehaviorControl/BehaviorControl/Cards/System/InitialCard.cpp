@@ -25,12 +25,14 @@ class InitialCard : public InitialCardBase
 {
   bool preconditions() const override
   {
+    std::cout<<"INITIAL_CARD"<<std::endl;
     return theGameInfo.state == STATE_INITIAL;
   }
 
   bool postconditions() const override
   {
-    return theGameInfo.state != STATE_INITIAL;
+    //return theGameInfo.state != STATE_INITIAL;
+    return theSpecialActionSkill.isDone();
   }
 
   void execute() override

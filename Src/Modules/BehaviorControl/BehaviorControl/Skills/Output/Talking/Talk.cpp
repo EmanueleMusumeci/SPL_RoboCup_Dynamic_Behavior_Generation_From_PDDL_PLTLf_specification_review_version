@@ -9,6 +9,11 @@
 
 #include "Platform/SystemCall.h"
 #include "Representations/BehaviorControl/Skills.h"
+#ifdef TARGET_SIM
+  #include "Platform/Linux/SoundPlayer.h"
+#else
+  #include "Platform/Nao/SoundPlayer.h"
+#endif
 #include <string>
 
 SKILL_IMPLEMENTATION(TalkImpl,
@@ -26,6 +31,11 @@ class TalkImpl : public TalkImplBase
       SystemCall::say(s.text.c_str());
       lastThingSaid = s.text;
     }
+  }
+
+  bool isPlaying(const Say& s)
+  {
+    return SoundPlayer::isPlaying();
   }
 
   void execute(const PlaySound& p) override

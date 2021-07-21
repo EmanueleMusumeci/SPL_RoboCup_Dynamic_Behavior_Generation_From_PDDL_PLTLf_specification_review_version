@@ -58,9 +58,11 @@ MODULE(ExternalServerCommunicationController,
       (int) ROBOT_POSE_UPDATE_FREQUENCY,            /** Number of cycles between two different robot pose updates to client device */
       (int) BALL_POSITION_UPDATE_FREQUENCY,         /** Number of cycles between two different ball info updates to client device */
       (int) OBSTACLES_UPDATE_FREQUENCY,             /** Number of cycles between two different obstacles info updates to client device */
+      (int) LAST_TASK_QUEUE_UPDATE_FREQUENCY,             /** Number of cycles between two different task queue updates to client device */
 
       (bool) PREFIX_TIMESTAMP,                      /** Add the timestamp at the beginning of the message */
       (bool) PREFIX_ROBOT_NUMBER,                   /** Add the robot number to the message */
+
     }),
 });
 
@@ -72,10 +74,14 @@ private:
 public:
     UdpComm udp_write_socket;
     UdpComm udp_read_socket;
+
+    std::string TARGET_IP_ADDRESS;          /** IP address of the Python server in the frontend pipeline */
+    std::string READ_IP_ADDRESS;            /** IP address of this robot in the LAN */
     
     int cycles_since_robot_pose_update;
     int cycles_since_ball_update;
     int cycles_since_obstacles_update;
+    int cycles_since_task_queue_update;
 
     int cycles_since_last_keepalive_check;
     

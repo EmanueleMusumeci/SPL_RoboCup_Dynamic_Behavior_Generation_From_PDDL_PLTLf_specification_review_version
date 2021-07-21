@@ -6,7 +6,7 @@
  * @author Arne Hasselbring
  */
 
-#define challenge1
+#define HRI
 
 #include "Representations/Communication/GameInfo.h"
 #include "Representations/Communication/TeamInfo.h"
@@ -22,7 +22,7 @@ CARD(GameplayCard,
   LOADS_PARAMETERS(
   {,
 
-#ifndef challenge1
+#ifndef HRI
     (DeckOfCards<CardRegistry>) ownKickoff,
     (DeckOfCards<CardRegistry>) opponentKickoff,
     (DeckOfCards<CardRegistry>) ownFreeKick,
@@ -35,7 +35,7 @@ CARD(GameplayCard,
     (DeckOfCards<CardRegistry>) goalie,
     (DeckOfCards<CardRegistry>) searcher,
 #else 
-    (DeckOfCards<CardRegistry>) C1striker,
+    (DeckOfCards<CardRegistry>) HRIstriker,
     (DeckOfCards<CardRegistry>) goalie,
     (DeckOfCards<CardRegistry>) searcher,
 #endif
@@ -46,7 +46,8 @@ class GameplayCard : public GameplayCardBase
 {
   bool preconditions() const override
   {
-    return theGameInfo.state == STATE_PLAYING;
+    //return theGameInfo.state == STATE_PLAYING;
+    return true;
   }
 
   bool postconditions() const override
@@ -57,11 +58,10 @@ class GameplayCard : public GameplayCardBase
   void execute() override
   {
 
-#ifdef challenge1
-      dealer.deal(C1striker)->call();
-      setState("C1striker");
-
-#else 
+    #ifdef HRI
+      dealer.deal(HRIstriker)->call();
+      setState("HRIstriker");
+    #else
         // ASSERT(theGameInfo.state == STATE_PLAYING);
     // if(theGameInfo.setPlay != SET_PLAY_NONE)
     // {

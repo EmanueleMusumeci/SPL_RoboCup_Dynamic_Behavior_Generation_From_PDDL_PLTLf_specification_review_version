@@ -246,12 +246,55 @@ namespace Skills
   SKILL_INTERFACE(PlaySound, (const std::string&) name);
 
   /**
+   * This skill turns the robot's head to the user and plays an audio file
+   * @param userPosition The 3D position of the user's face
+   * @param sound_file_name The name of the sound file
+   */
+  SKILL_INTERFACE(TurnToUserAndSaySomething, (Vector3f) userPosition, (const std::string&) sound_file_name);
+
+  /**
+   * This skill turns the robot to the target, then turns its head to the user and plays an audio file
+   * @param targetPosition The 3D position of the target
+   * @param userPosition The 3D position of the user's face
+   * @param sound_file_name The name of the sound file
+   */
+  SKILL_INTERFACE(TurnToTargetThenTurnToUserAndSaySomething, (Vector2f) targetPosition, (Vector3f) userPosition, (const std::string&) sound_file_name);
+
+  /**
+   * This skill turns the robot's head to the user, makes it point with its arm to a certain positon and then plays an audio file
+   * @param userPosition The 3D position of the user's face
+   * @param pointAtPosition The 3D position of the target to point
+   * @param sound_file_name The name of the sound file
+   */
+  SKILL_INTERFACE(TurnToUserThenPointAndSaySomething, (Vector3f) userPosition, (Vector3f) pointAtPosition, (const std::string&) sound_file_name);
+
+  /**
+   * This skill turns the robot to the target, then turns its head to the user, makes it point with its arm to a certain positon and then plays an audio file
+   * @param targetPosition The 3D position of the target
+   * @param userPosition The 3D position of the user's face
+   * @param pointAtPosition The 3D position of the target to point
+   * @param sound_file_name The name of the sound file
+   */
+  SKILL_INTERFACE(TurnToTargetThenTurnToUserThenPointAndSaySomething, (Vector2f) targetPosition, (Vector3f) userPosition, (Vector3f) pointAtPosition, (const std::string&) sound_file_name);
+
+  /**
    * This skill makes the Nao say something if it differs from what was said in the last frame.
    * @param name The text to be synthesized and pronounced
    */
   SKILL_INTERFACE(Say, (const std::string&) text);
 
   SKILL_INTERFACE(LookLeftAndRight);
+  SKILL_INTERFACE(LookRightAndLeft);
+
+  /**
+   * This skill moves the head left and right between a leftAngle and a rightAngle BOTH POSITIVE, using a certain headTilt, at a certain speed.
+   * @param leftAngle pan angle reached by the head when moving left
+   * @param rightAngle pan angle reached by the head when moving right
+   * @param headTilt tilt angle of the head through the whole movement
+   * @param speed pan rotation speed 
+   */
+  SKILL_INTERFACE(ParametricLookLeftAndRight, (float) leftAngle, (float) rightAngle, (float) headTilt, (float) speed);
+
 
 
    /**
