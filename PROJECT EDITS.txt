@@ -1,4 +1,0 @@
-Edits added for the project:
-
-1) ExternalServerCommunicationController (both representation and module) manages the communication with the external device
-2) HRIController (both representation and module) interacts with the communication controller to hold info used by the HRI routine
