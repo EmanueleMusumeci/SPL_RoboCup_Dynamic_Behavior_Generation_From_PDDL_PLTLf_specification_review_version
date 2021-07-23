@@ -88,6 +88,13 @@ To compile **(for all OS versions)**:
 * move to `Linux/` folder - `$ cd RoboCup/hri_vision/spqrnao2021/Make/Linux`
 * compile the code - `$ make CONFIG=<Develop/Debug/Release>` 
 
+### Install Python dependencies
+* Using a python package manager install the `twisted` package (e.g. `pip install twisted`)
+
+### Install NodeJS dependencies
+* Install NodeJS
+* Using npm install the `websocket` package (e.g. `npm install websocket`)
+
 ## Running
 
 The network infrastructure is set to run on localhost. Make sure you're connected to a network anyway, even if not connected to the internet (to have the loopback work anyway)
