@@ -6,10 +6,6 @@ if(typeof console === "undefined"){
     console = {};
 }
 
-//DONE: Terminare protocollo di rete (task queue attuale, conviene inviare i task attuali dal backend in caso di disconnessione e riconnessione del client, invio di task appena assegnati)
-//DONE: Implementare rappresentazione grafica task queue
-//DONE: Imporre al server NodeJS di disabilitare il client se il backend è inattivo!!!
-
 var ACTIVE_ROBOT_NUMBER = 3
     
 var canvas;
