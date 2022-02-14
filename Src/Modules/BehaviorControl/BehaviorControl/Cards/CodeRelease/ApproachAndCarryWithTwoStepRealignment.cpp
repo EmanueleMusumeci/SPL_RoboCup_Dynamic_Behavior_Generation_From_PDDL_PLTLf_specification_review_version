@@ -19,7 +19,7 @@
 #include "Tools/BehaviorControl/Framework/Card/CabslCard.h"
 #include "Representations/BehaviorControl/Libraries/LibCheck.h"
 
-#include "Representations/HRI/HRIController.h"
+#include "Representations/HRI/TaskController.h"
 
 #include "Representations/Communication/RobotInfo.h"
 
@@ -76,7 +76,7 @@ CARD(ApproachAndCarryWithTwoStepRealignmentCard,
 
   USES(BehaviorStatus),
 
-  REQUIRES(HRIController),
+  REQUIRES(TaskController),
 
   LOADS_PARAMETERS(
   {,
@@ -172,21 +172,21 @@ class ApproachAndCarryWithTwoStepRealignmentCard : public ApproachAndCarryWithTw
 
   bool preconditions() const override
   {
-    //std::cout<<"theHRIController.getCurrentActionType(): "<<TypeRegistry::getEnumName(theHRIController.getCurrentActionType())<<std::endl;
-    return theHRIController.getCurrentActionType() == HRI::ActionType::CarryBall
+    //std::cout<<"theTaskController.getCurrentActionType(): "<<TypeRegistry::getEnumName(theTaskController.getCurrentActionType())<<std::endl;
+    return theTaskController.getCurrentActionType() == HRI::ActionType::CarryBall
           &&
-          theLibCheck.distance(theLibCheck.rel2Glob(theBallModel.estimate.position.x(), theBallModel.estimate.position.y()), theHRIController.currentBallDestination) > theHRIController.ballCarrierDistanceThreshold;
+          theLibCheck.distance(theLibCheck.rel2Glob(theBallModel.estimate.position.x(), theBallModel.estimate.position.y()), theTaskController.currentBallDestination) > theTaskController.ballCarrierDistanceThreshold;
   }
 
   bool postconditions() const override
   {
-    DEBUG_CODE(theHRIController.ballCarrierDistanceThreshold)
-    DEBUG_CODE(theHRIController.currentBallDestination.x())
-    DEBUG_CODE(theHRIController.currentBallDestination.y())
-    DEBUG_CODE(theLibCheck.distance(theLibCheck.rel2Glob(theBallModel.estimate.position.x(), theBallModel.estimate.position.y()), theHRIController.currentBallDestination))
-    return theHRIController.getCurrentActionType() != HRI::ActionType::CarryBall
+    DEBUG_CODE(theTaskController.ballCarrierDistanceThreshold)
+    DEBUG_CODE(theTaskController.currentBallDestination.x())
+    DEBUG_CODE(theTaskController.currentBallDestination.y())
+    DEBUG_CODE(theLibCheck.distance(theLibCheck.rel2Glob(theBallModel.estimate.position.x(), theBallModel.estimate.position.y()), theTaskController.currentBallDestination))
+    return theTaskController.getCurrentActionType() != HRI::ActionType::CarryBall
           ||
-          theLibCheck.distance(theLibCheck.rel2Glob(theBallModel.estimate.position.x(), theBallModel.estimate.position.y()), theHRIController.currentBallDestination) <= theHRIController.ballCarrierDistanceThreshold;
+          theLibCheck.distance(theLibCheck.rel2Glob(theBallModel.estimate.position.x(), theBallModel.estimate.position.y()), theTaskController.currentBallDestination) <= theTaskController.ballCarrierDistanceThreshold;
   }
 
   option
@@ -783,9 +783,9 @@ class ApproachAndCarryWithTwoStepRealignmentCard : public ApproachAndCarryWithTw
 
       action
       {
-        theTurnToTargetThenTurnToUserThenPointAndSaySomethingSkill(theHRIController.currentBallDestination, 
-                                                                  Vector3f(theHRIController.userPosition.x(), theHRIController.userPosition.y(), theHRIController.userHeight),
-                                                                  Vector3f(theHRIController.currentBallDestination.x(), theHRIController.currentBallDestination.y(), 0.f),
+        theTurnToTargetThenTurnToUserThenPointAndSaySomethingSkill(theTaskController.currentBallDestination, 
+                                                                  Vector3f(theTaskController.userPosition.x(), theTaskController.userPosition.y(), theTaskController.userHeight),
+                                                                  Vector3f(theTaskController.currentBallDestination.x(), theTaskController.currentBallDestination.y(), 0.f),
                                                                   std::string("CarryingTheBall.wav"));
       }
     }

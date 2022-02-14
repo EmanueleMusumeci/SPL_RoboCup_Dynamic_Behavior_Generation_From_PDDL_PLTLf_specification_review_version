@@ -24,7 +24,7 @@
 #include "Representations/Communication/TeamData.h"
 #include "Tools/Math/BHMath.h"
 
-#include "Representations/HRI/HRIController.h"
+#include "Representations/HRI/TaskController.h"
 
 #include "Platform/SystemCall.h"
 #include <string>
@@ -73,7 +73,7 @@ CARD(ApproachAndKickCard,
   REQUIRES(GameInfo),
   REQUIRES(TeamPlayersModel),
 
-  REQUIRES(HRIController),
+  REQUIRES(TaskController),
 
 
   USES(BehaviorStatus),
@@ -143,17 +143,17 @@ class ApproachAndKickCard : public ApproachAndKickCardBase
 
   bool preconditions() const override
   {
-    //std::cout<<"theHRIController.getCurrentActionType(): "<<TypeRegistry::getEnumName(theHRIController.getCurrentActionType())<<std::endl;
-    return theHRIController.getCurrentActionType() == HRI::ActionType::Kick
+    //std::cout<<"theTaskController.getCurrentActionType(): "<<TypeRegistry::getEnumName(theTaskController.getCurrentActionType())<<std::endl;
+    return theTaskController.getCurrentActionType() == HRI::ActionType::Kick
           &&
-          theLibCheck.distance(theLibCheck.rel2Glob(theBallModel.estimate.position.x(), theBallModel.estimate.position.y()), theHRIController.currentBallDestination) > theHRIController.kickDistanceThreshold;
+          theLibCheck.distance(theLibCheck.rel2Glob(theBallModel.estimate.position.x(), theBallModel.estimate.position.y()), theTaskController.currentBallDestination) > theTaskController.kickDistanceThreshold;
   }
 
   bool postconditions() const override
   {
-    return theHRIController.getCurrentActionType() != HRI::ActionType::Kick
+    return theTaskController.getCurrentActionType() != HRI::ActionType::Kick
           ||
-          theLibCheck.distance(theLibCheck.rel2Glob(theBallModel.estimate.position.x(), theBallModel.estimate.position.y()), theHRIController.currentBallDestination) <= theHRIController.kickDistanceThreshold;
+          theLibCheck.distance(theLibCheck.rel2Glob(theBallModel.estimate.position.x(), theBallModel.estimate.position.y()), theTaskController.currentBallDestination) <= theTaskController.kickDistanceThreshold;
   }
 
   option
@@ -202,9 +202,9 @@ class ApproachAndKickCard : public ApproachAndKickCardBase
 
       action
       {
-        theTurnToTargetThenTurnToUserThenPointAndSaySomethingSkill(theHRIController.currentBallDestination, 
-                                                                  Vector3f(theHRIController.userPosition.x(), theHRIController.userPosition.y(), theHRIController.userHeight),
-                                                                  Vector3f(theHRIController.currentBallDestination.x(), theHRIController.currentBallDestination.y(), 0.f),
+        theTurnToTargetThenTurnToUserThenPointAndSaySomethingSkill(theTaskController.currentBallDestination, 
+                                                                  Vector3f(theTaskController.userPosition.x(), theTaskController.userPosition.y(), theTaskController.userHeight),
+                                                                  Vector3f(theTaskController.currentBallDestination.x(), theTaskController.currentBallDestination.y(), 0.f),
                                                                   std::string("KickingToGoal.wav"));
       }
     }
@@ -253,7 +253,7 @@ class ApproachAndKickCard : public ApproachAndKickCardBase
         theActivitySkill(BehaviorStatus::choosing_target);
 
         goalTarget = theLibCheck.goalTarget(false, true);
-        chosenTarget = theHRIController.currentBallDestination;
+        chosenTarget = theTaskController.currentBallDestination;
         previousBallPosition = theLibCheck.rel2Glob(theBallModel.estimate.position.x(), theBallModel.estimate.position.y()).translation;
 
         targetChosen = true;

@@ -1,5 +1,5 @@
 /**
- * @file HRIControllerProvider.h
+ * @file TaskControllerProvider.h
  *
  * This module keeps track of the state of execution of the Obstacle Avoidance HRI routine 
  *  
@@ -13,7 +13,7 @@
 #include "Representations/Modeling/RobotPose.h"
 #include "Representations/Modeling/BallModel.h"
 #include "Representations/Configuration/FieldDimensions.h"
-#include "Representations/HRI/HRIController.h"
+#include "Representations/HRI/TaskController.h"
 #include "Representations/Modeling/ExternalServerCommunicationController/ExternalServerCommunicationControl.h"
 #include "Representations/Communication/GameInfo.h"
 #include "Representations/Communication/RobotInfo.h"
@@ -21,14 +21,14 @@
 #include "Representations/Configuration/BallSpecification.h"
 #include "Representations/BehaviorControl/Libraries/LibCheck.h"
 
-#include "Representations/HRI/HRIController.h"
+#include "Representations/HRI/TaskController.h"
 
 #include "Platform/Linux/SoundPlayer.h"
 
 #include <iostream>
 #include <ostream>
 
-MODULE(HRIControllerProvider,
+MODULE(TaskControllerProvider,
 {,
     REQUIRES(LibCheck),
     REQUIRES(FieldDimensions),
@@ -40,7 +40,7 @@ MODULE(HRIControllerProvider,
 
     USES(BehaviorStatus),
 
-    PROVIDES(HRIController),
+    PROVIDES(TaskController),
     
     LOADS_PARAMETERS(
     {,
@@ -52,36 +52,41 @@ MODULE(HRIControllerProvider,
       (float) KICK_DISTANCE_THRESHOLD,                              /** Minimum distance of the ball from its destination to declare the Kick action completed */ 
       (float) REACH_POSITION_DISTANCE_THRESHOLD,                    /** Minimum distance of the robot from its destination to declare the ReachPosition action completed */ 
 
-      (Vector2f) userPosition,
-      (float) userHeight,
+      (Vector2f) userPosition,                                      /** Position of the human user */
+      (float) userHeight,                                           /** Height of the human user */
 
-      (bool) PERFORM_INITIAL_SPEECH,
+      (bool) PERFORM_INITIAL_SPEECH,                                /** Tells whether the robot should perform the initial speech */
 
     }),
 });
 
 /**
- * @class HRIControllerProvider
+ * @class TaskControllerProvider
  * A module that provides the model of the opponent goal
  */
-class HRIControllerProvider: public HRIControllerProviderBase
+class TaskControllerProvider: public TaskControllerProviderBase
 {
 public:
-  /** Constructor*/
-  HRIControllerProvider();
+  /** Constructor */
+  TaskControllerProvider();
+
+  /* One constructor for each task type */
+  /* These tasks take a position as argument, that has a different meaning for each one */
   static Task GoToPositionTask(Vector2f position, int taskID);
   static Task CarryBallToPositionTask(Vector2f position, int taskID);
   static Task KickBallToPositionTask(Vector2f position, int taskID);
-  static Task ScoreGoalTask(int taskID);
   static Task InstructionsSpeechTask(int taskID, Vector2f position);
+
+  /* These tasks take no additional argument (except the taskID) */
+  static Task ScoreGoalTask(int taskID);
   static Task InitialSpeechTask(int taskID);
 
 private:
-  void update(HRIController& controller) override;
+  void update(TaskController& controller) override;
   bool checkCompleted(HRI::ActionType actionType);
 };
 
-inline Task HRIControllerProvider::GoToPositionTask(Vector2f position, int taskID)
+inline Task TaskControllerProvider::GoToPositionTask(Vector2f position, int taskID)
 {
   std::vector<Action> actionQueue;
   actionQueue.push_back(Action(HRI::ActionType::ReachPosition, position));
@@ -89,7 +94,7 @@ inline Task HRIControllerProvider::GoToPositionTask(Vector2f position, int taskI
   return Task(HRI::TaskType::GoToPosition, taskID, actionQueue, position);
 }
 
-inline Task HRIControllerProvider::CarryBallToPositionTask(Vector2f position, int taskID)
+inline Task TaskControllerProvider::CarryBallToPositionTask(Vector2f position, int taskID)
 {
   std::vector<Action> actionQueue;
   actionQueue.push_back(Action(HRI::ActionType::ReachBall));
@@ -98,7 +103,7 @@ inline Task HRIControllerProvider::CarryBallToPositionTask(Vector2f position, in
   return Task(HRI::TaskType::CarryBallToPosition, taskID, actionQueue, position);
 }
 
-inline Task HRIControllerProvider::KickBallToPositionTask(Vector2f position, int taskID)
+inline Task TaskControllerProvider::KickBallToPositionTask(Vector2f position, int taskID)
 {
   std::vector<Action> actionQueue;
   actionQueue.push_back(Action(HRI::ActionType::ReachBall));
@@ -106,7 +111,7 @@ inline Task HRIControllerProvider::KickBallToPositionTask(Vector2f position, int
   return Task(HRI::TaskType::KickBallToPosition, taskID, actionQueue, position);
 }
 
-inline Task HRIControllerProvider::ScoreGoalTask(int taskID)
+inline Task TaskControllerProvider::ScoreGoalTask(int taskID)
 {
   std::vector<Action> actionQueue;
   actionQueue.push_back(Action(HRI::ActionType::ReachBall));
@@ -114,14 +119,14 @@ inline Task HRIControllerProvider::ScoreGoalTask(int taskID)
   return Task(HRI::TaskType::ScoreGoalTask, taskID, actionQueue, Vector2f(0,0));
 }
 
-inline Task HRIControllerProvider::InstructionsSpeechTask(int taskID, Vector2f position)
+inline Task TaskControllerProvider::InstructionsSpeechTask(int taskID, Vector2f position)
 {
   std::vector<Action> actionQueue;
   actionQueue.push_back(Action(HRI::ActionType::PerformInstructionsSpeech));
   return Task(HRI::TaskType::InstructionsSpeech, taskID, actionQueue, position);
 }
 
-inline Task HRIControllerProvider::InitialSpeechTask(int taskID)
+inline Task TaskControllerProvider::InitialSpeechTask(int taskID)
 {
   std::vector<Action> actionQueue;
   actionQueue.push_back(Action(HRI::ActionType::PerformInitialSpeech));

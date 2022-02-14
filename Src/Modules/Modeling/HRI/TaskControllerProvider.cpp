@@ -1,28 +1,31 @@
 /**
- * @file HRIControllerProvider.cpp
+ * @file TaskControllerProvider.cpp
  *
  * This module keeps track of the state of execution of the Obstacle Avoidance HRI routine 
  * 
  * @author <A href="mailto:musumeci.1653885@studenti.uniroma1.it">Emanuele Musumeci</A>
  */
 
-#include "HRIControllerProvider.h"
+#include "TaskControllerProvider.h"
 
+//Prints a debug message prefixed by the robot number
 #define DEBUG_NUMB(print_debug, message) \
   if(print_debug) std::cout<<"[Robot #"<<theRobotInfo.number<<"] " << message << std::endl; 
 
+//Prints a debug message prefixed by the robot number, showing the code being debugged and its computed value
 #define __STRINGIFY_I(arg) #arg
 #define __STRINGIFY(arg) __STRINGIFY_I(arg)
 #define DEBUG_CODE(code) \
   std::cout<<"[Robot #"<<std::to_string(theRobotInfo.number)<<"] "<<__STRINGIFY(code)<<": "<<std::to_string(code)<<std::endl;
 
-HRIControllerProvider::HRIControllerProvider(){}
+TaskControllerProvider::TaskControllerProvider(){}
 
-void HRIControllerProvider::update(HRIController& controller)
+void TaskControllerProvider::update(TaskController& controller)
 {
     
-    DEBUG_NUMB(PRINT_DEBUG, "HRIController update function\n\n\n");
+    DEBUG_NUMB(PRINT_DEBUG, "TaskController update function\n\n\n");
 
+    //CFG parameters
     controller.ballCarrierDistanceThreshold = BALL_CARRIER_DISTANCE_THRESHOLD;
     controller.kickDistanceThreshold = KICK_DISTANCE_THRESHOLD;
     controller.reachPositionDistanceThreshold = REACH_POSITION_DISTANCE_THRESHOLD;
@@ -33,11 +36,25 @@ void HRIControllerProvider::update(HRIController& controller)
 
     //DEBUG_NUMB(PRINT_DEBUG, std::to_string(controller.taskQueue.empty()));
     
+    /* Update current desired destination for the robot */
     controller.updateCurrentDestination = [&] (Vector2f destinationPose) -> void
     {
         controller.currentRobotDestination = destinationPose;
     };
+
+    /* Update current desired destination for the ball */
+    controller.updateCurrentBallDestination = [&] (Vector2f ballDestination) -> void
+    {
+        controller.currentBallDestination = ballDestination;
+    };
+
   
+
+    /* Schedules an instruction speech task by adding it at the head of the queue: 
+        - if at the beginning of the routine a InitialSpeechTask or an InstructionsSpeech (depending on the value of the initialSpeech flag) is scheduled (in which the robot will face the human and play its speech sound) 
+        OR
+        - if the first task in the queue is not an InitialSpeech or an InstructionsSpeech (to avoid repeating it)
+    */
     controller.scheduleInstructionsSpeech = [&] (bool initialSpeech, int taskID) -> void
     {
         if(controller.taskQueue.empty() || (controller.taskQueue.at(0).taskType != HRI::TaskType::InitialSpeech && controller.taskQueue.at(0).taskType != HRI::TaskType::InstructionsSpeech))
@@ -54,11 +71,14 @@ void HRIControllerProvider::update(HRIController& controller)
         }
     };
 
-    controller.updateCurrentBallDestination = [&] (Vector2f ballDestination) -> void
-    {
-        controller.currentBallDestination = ballDestination;
-    };
-
+    /* Get the current task that the robot has to execute, based on the task queue:
+        - if the queue is empty:
+            if the PERFORM_INITIAL_SPEECH flag is true:
+                -- schedules an InitialSpeech if it has never been performed before
+                -- else returns an IdleTask (WITHOUT ADDING IT TO THE QUEUE), during which the robot 
+                    will face the human and wait (saying something from time to time) 
+        then return the first task in the queue                   
+     */
     controller.getCurrentTask = [&] () -> Task
     {
         DEBUG_NUMB(PRINT_DEBUG, "\n\ncontroller.getCurrentTask");
@@ -84,6 +104,9 @@ void HRIControllerProvider::update(HRIController& controller)
         return controller.taskQueue.at(0);
     };
 
+    /* Pushes the first task in the queue (current task) to the completedTasks queue, 
+        if playSound is true plays a sound announcing that the task has been completed
+        and then calls the nextTask method */
     controller.signalTaskCompleted = [&] (bool playSound) -> void
     {
         DEBUG_NUMB(PRINT_DEBUG, "Current tasks: "<<controller.tasksToString());
@@ -93,6 +116,11 @@ void HRIControllerProvider::update(HRIController& controller)
         controller.nextTask();
     };
 
+    /* IF the task queue is NOT EMPTY:
+        1) sets the lastCompletedTaskID to the one of the first task in the queue (the currently executed one) 
+        2) erases that task from the taskQueue
+        3) resets the currentAction index (tracking the index of the action in the actionQueue of the current task)
+    */
     controller.nextTask = [&] () -> void
     {
         DEBUG_NUMB(PRINT_DEBUG, "\n\ncontroller.nextTask");
@@ -108,6 +136,10 @@ void HRIControllerProvider::update(HRIController& controller)
         //DEBUG_NUMB(PRINT_DEBUG, "Gone to next task");    
     };
 
+    /* Returns the current action:
+        - If the task queue is empty or the actionQueue of the current task is empty, returns the IdleAction
+        - Else, return the action in the actionQueue of the current task at the controller.currentAction position
+    */
     controller.getCurrentAction = [&] () -> Action
     {
         //DEBUG_NUMB(PRINT_DEBUG, "getCurrentAction");
@@ -115,7 +147,13 @@ void HRIControllerProvider::update(HRIController& controller)
         return controller.taskQueue.at(0).actionQueue.at(controller.currentAction);
     };
 
-    //If current action was completed, remove it from the task
+    /* Transitions to the next action:
+        - If the current task is not completed, increment the currentAction counter
+        Then
+            1) Check if task is completed 
+                -> If it is completed, the checkTaskCompleted method will transition to the next task!
+            2) Return the new current action
+    */
     controller.nextAction = [&] () -> Action
     {
         DEBUG_NUMB(PRINT_DEBUG, "\n\ncontroller.nextAction");
@@ -129,6 +167,7 @@ void HRIControllerProvider::update(HRIController& controller)
         return controller.getCurrentAction();
     };
 
+    /* Performs all necessary operations to transition to next task */
     controller.deleteSingleTask = [&] (int taskID) -> void
     {
         DEBUG_NUMB(PRINT_DEBUG, "\n\ncontroller.deleteSingleTask");
@@ -136,13 +175,15 @@ void HRIControllerProvider::update(HRIController& controller)
         DEBUG_NUMB(PRINT_DEBUG, "Current tasks: "<<controller.tasksToString());
 
         
-        
+        //If the task to delete is the current one, simply go to the next task
         if(controller.getCurrentTask().taskID == taskID) 
         {
             controller.nextTask();
         }
         else
         {
+            //ELSE
+            //Find the task with the taskID to be deleted
             Task* selectedTask = nullptr;
             int i=0;
             for(auto task : controller.taskQueue)
@@ -156,16 +197,19 @@ void HRIControllerProvider::update(HRIController& controller)
                 }
                 i++;
             }
-            
+            //If it's not been found, simply return
             if(!selectedTask) return;
             
+            //else erase it from the queue (the lastCompletedTaskID mechanism will do the rest)
             controller.taskQueue.erase(controller.taskQueue.begin() + i);   
         }
     };
 
+    /* Resets the current task queue and sets the controller accordingly */
     controller.resetTaskQueue = [&] () -> void
     {
         DEBUG_NUMB(PRINT_DEBUG, "\n\ncontroller.resetTaskQueue");
+        //Find the maximum taskID (lastReceivedTaskID and lastCompletedTaskID will be set to this value +1)
         int maxTaskID = -1;
         for(auto task : controller.taskQueue)
         {
@@ -177,6 +221,7 @@ void HRIControllerProvider::update(HRIController& controller)
         controller.currentAction = 0;
     };
     
+    /* Return the actionType field of the current action (or the Idle ActionType in case of IdleTask) */
     controller.getCurrentActionType = [&] () -> HRI::ActionType
     {
         DEBUG_NUMB(PRINT_DEBUG, "\n\ncontroller.getCurrentActionType");
@@ -186,6 +231,9 @@ void HRIControllerProvider::update(HRIController& controller)
         return controller.taskQueue.at(0).actionQueue.at(controller.currentAction).actionType;
     };
 
+    /* Check if action was completed using the boolean value passed as input (that is supposed to be the one associated with the condition) 
+            -> in case of COMPLETED action CALL the nextAction method
+    */
     controller.checkActionCompleted = [&] (bool condition) -> bool
     {
         DEBUG_NUMB(PRINT_DEBUG, "\n\ncontroller.checkActionCompleted");
@@ -198,6 +246,7 @@ void HRIControllerProvider::update(HRIController& controller)
         return false;
     };
 
+    /* Tells if the the currentAction index is equal to the size of the actionQueue of the current task (NOTICE: tjhe IdleTask is NEVER completed)*/
     controller.isTaskComplete = [&] () -> bool
     {
         DEBUG_NUMB(PRINT_DEBUG, "\n\ncontroller.isTaskComplete");
@@ -209,6 +258,7 @@ void HRIControllerProvider::update(HRIController& controller)
         return controller.currentAction >= controller.taskQueue.at(0).taskSize;
     };
 
+    /* Checks if the current Task has been completed and in that case transitions to the next task. Returns a boolean value */
     controller.checkTaskCompleted = [&] (bool playSound) -> bool
     {
         DEBUG_NUMB(PRINT_DEBUG, "\n\ncontroller.checkTaskCompleted");
@@ -225,7 +275,8 @@ void HRIControllerProvider::update(HRIController& controller)
         }
         return false;
     };
-  
+
+    /* Add a new task to the current task queue ONLY if its taskID lower than the lastReceivedTaskID (else this task is obsolete and has to be ignored) */  
     controller.addTask = [&] (Task task) -> void
     {
         DEBUG_NUMB(PRINT_DEBUG, "\n\ncontroller.addTask");
@@ -238,6 +289,7 @@ void HRIControllerProvider::update(HRIController& controller)
         DEBUG_NUMB(PRINT_DEBUG, "Task added");
     };
     
+    /* Adds all tasks from a std::vector of tasks */
     controller.updateTasks = [&] (std::vector<Task> newTasks) -> void
     {
         DEBUG_NUMB(PRINT_DEBUG, "\n\ncontroller.updateTasks");
@@ -246,6 +298,7 @@ void HRIControllerProvider::update(HRIController& controller)
         DEBUG_NUMB(PRINT_DEBUG, "Tasks updated");
     };
 
+    /* [DEBUG] Prints an action-specific debug string */
     controller.actionToString = [&] (Action action) -> std::string
     {
         DEBUG_NUMB(PRINT_DEBUG, "\n\ncontroller.actionToString");
@@ -289,6 +342,7 @@ void HRIControllerProvider::update(HRIController& controller)
         return result.str();
     };
 
+    /* [DEBUG] Prints a task-specific debug string and the action-specific string of the current action and all the following ones */
     controller.tasksToString = [&] () -> std::string
     {
         DEBUG_NUMB(PRINT_DEBUG, "\n\ncontroller.tasksToString");
@@ -311,25 +365,41 @@ void HRIControllerProvider::update(HRIController& controller)
         return result.str();
     };
 
-    
-    //Update loop
+
+    /* 
+     _________________
+    |                 |
+    |   Update loop   |
+    |_________________|
+
+    */
 
     controller.GRAPHICAL_DEBUG = (GRAPHICAL_DEBUG==1 ? true : false);
 
+    //1) Get current task
     Task currentTask = controller.getCurrentTask();
 
+    /*2) Call checkTaskCompleted:
+        2.1) Checks if current task is completed
+        2.2 A) In case it is, transitions to the next task (if there is one)
+    */
     if(controller.checkTaskCompleted(true))
     {
         return;
     }
+    // 2.2 B) ELSE
     else
     {
+        // 2.2.1) Get current action
         Action currentAction = controller.getCurrentAction();
 
         Vector2f globalBall = theLibCheck.rel2Glob(theBallModel.estimate.position.x(), theBallModel.estimate.position.y()).translation;
-
+        
+        // 2.2.2) Based on the current action type, check if the completion conditions for that type are verified
+        //          -> checkActionCompleted TRANSITIONS to the next action if conditions are verified
         switch(currentAction.actionType)
         {
+            //No completion CONDITION for the Idle action (the only action of the Idle task) -> It is automatically overwritten once a real task is added
             case HRI::ActionType::Idle:
             {
                 controller.updateCurrentDestination(theRobotPose.translation);
@@ -337,6 +407,7 @@ void HRIControllerProvider::update(HRIController& controller)
                 
                 break;
             }
+            //ReachPosition CONDITION: the robot is within controller.reachPositionDistanceThreshold mm from the desired destination controller.currentRobotDestination
             case HRI::ActionType::ReachPosition:
             {
                 controller.updateCurrentDestination(currentAction.target);
@@ -347,6 +418,7 @@ void HRIControllerProvider::update(HRIController& controller)
                 );
                 break;
             }
+            //ReachBall CONDITION:: the robot is within controller.reachPositionDistanceThreshold mm from the ball
             case HRI::ActionType::ReachBall:
             {
                 controller.updateCurrentDestination(globalBall);
@@ -357,6 +429,7 @@ void HRIControllerProvider::update(HRIController& controller)
                 );
                 break;
             }
+            //CarryBall CONDITION:: the ball is within controller.ballCarrierDistanceThreshold mm from the desired target controller.currentBallDestination
             case HRI::ActionType::CarryBall:
             {
                 controller.updateCurrentDestination(globalBall);
@@ -367,6 +440,7 @@ void HRIControllerProvider::update(HRIController& controller)
                 );
                 break;
             }
+            //Kick CONDITION:: the ball is within controller.kickDistanceThreshold mm from the desired target controller.currentBallDestination
             case HRI::ActionType::Kick:
             {
                 controller.updateCurrentDestination(globalBall);
@@ -377,6 +451,7 @@ void HRIControllerProvider::update(HRIController& controller)
                 );
                 break;
             }
+            //Kick CONDITION:: the ball is within controller.kickDistanceThreshold mm from the desired target controller.currentBallDestination (which is the goal center)
             case HRI::ActionType::CarryAndKickToGoal:
             {
                 Vector2f goalTarget = theLibCheck.goalTarget(false, true);
@@ -394,4 +469,4 @@ void HRIControllerProvider::update(HRIController& controller)
 }
 
 
-MAKE_MODULE(HRIControllerProvider, modeling)
+MAKE_MODULE(TaskControllerProvider, modeling)

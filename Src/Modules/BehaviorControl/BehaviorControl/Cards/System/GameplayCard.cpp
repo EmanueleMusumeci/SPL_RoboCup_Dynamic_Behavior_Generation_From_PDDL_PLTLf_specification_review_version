@@ -35,7 +35,7 @@ CARD(GameplayCard,
     (DeckOfCards<CardRegistry>) goalie,
     (DeckOfCards<CardRegistry>) searcher,
 #else 
-    (DeckOfCards<CardRegistry>) HRIstriker,
+    (DeckOfCards<CardRegistry>) TaskBasedStriker,
     (DeckOfCards<CardRegistry>) goalie,
     (DeckOfCards<CardRegistry>) searcher,
 #endif
@@ -59,8 +59,8 @@ class GameplayCard : public GameplayCardBase
   {
 
     #ifdef HRI
-      dealer.deal(HRIstriker)->call();
-      setState("HRIstriker");
+      dealer.deal(TaskBasedStriker)->call();
+      setState("TaskBasedStriker");
     #else
         // ASSERT(theGameInfo.state == STATE_PLAYING);
     // if(theGameInfo.setPlay != SET_PLAY_NONE)

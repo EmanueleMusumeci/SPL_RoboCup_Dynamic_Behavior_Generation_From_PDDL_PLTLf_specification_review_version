@@ -15,7 +15,7 @@
 #include "Tools/BehaviorControl/Framework/Skill/CabslSkill.h"
 #include "Representations/BehaviorControl/Libraries/LibCheck.h"
 
-#include "Representations/HRI/HRIController.h"
+#include "Representations/HRI/TaskController.h"
 
 #include "Tools/Math/BHMath.h"
 #include "Platform/SystemCall.h"
@@ -39,7 +39,7 @@ SKILL_IMPLEMENTATION(TurnToUserThenPointAndSaySomethingImpl,
   REQUIRES(LibCheck),
   REQUIRES(RobotPose),
 
-  REQUIRES(HRIController),
+  REQUIRES(TaskController),
 
   USES(BehaviorStatus),
 

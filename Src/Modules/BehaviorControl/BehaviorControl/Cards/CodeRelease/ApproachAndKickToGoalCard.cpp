@@ -24,7 +24,7 @@
 #include "Representations/Communication/TeamData.h"
 #include "Tools/Math/BHMath.h"
 
-#include "Representations/HRI/HRIController.h"
+#include "Representations/HRI/TaskController.h"
 
 #include "Platform/SystemCall.h"
 #include <string>
@@ -75,7 +75,7 @@ CARD(ApproachAndKickToGoalCard,
   REQUIRES(GameInfo),
   REQUIRES(TeamPlayersModel),
 
-  REQUIRES(HRIController),
+  REQUIRES(TaskController),
 
   USES(BehaviorStatus),
   USES(TeamData),
@@ -146,8 +146,8 @@ class ApproachAndKickToGoalCard : public ApproachAndKickToGoalCardBase
     Vector2f globalBall = theLibCheck.rel2Glob(theBallModel.estimate.position.x(), theBallModel.estimate.position.y()).translation;
 
     std::cout<<"ApproachAndKickToGoalCard preconditions"<<std::endl;
-    //std::cout<<"theHRIController.getCurrentActionType(): "<<TypeRegistry::getEnumName(theHRIController.getCurrentActionType())<<std::endl;
-    return theHRIController.getCurrentActionType() == HRI::ActionType::CarryAndKickToGoal
+    //std::cout<<"theTaskController.getCurrentActionType(): "<<TypeRegistry::getEnumName(theTaskController.getCurrentActionType())<<std::endl;
+    return theTaskController.getCurrentActionType() == HRI::ActionType::CarryAndKickToGoal
             &&
             theBallCarrierModel.xRangeDistanceFromGoalToUseKicks.isInside(theFieldDimensions.xPosOpponentGroundline - globalBall.x())
               &&
@@ -160,8 +160,8 @@ class ApproachAndKickToGoalCard : public ApproachAndKickToGoalCardBase
   bool postconditions() const override
   {
     std::cout<<"ApproachAndKickToGoalCard postconditions"<<std::endl;
-    //std::cout<<"theHRIController.getCurrentActionType(): "<<TypeRegistry::getEnumName(theHRIController.getCurrentActionType())<<std::endl;
-    return theHRIController.getCurrentActionType() != HRI::ActionType::CarryAndKickToGoal
+    //std::cout<<"theTaskController.getCurrentActionType(): "<<TypeRegistry::getEnumName(theTaskController.getCurrentActionType())<<std::endl;
+    return theTaskController.getCurrentActionType() != HRI::ActionType::CarryAndKickToGoal
             ||
             (
               (!theBallCarrierModel.xRangeDistanceFromGoalToUseKicks.isInside(theFieldDimensions.xPosOpponentGroundline - theLibCheck.rel2Glob(theBallModel.estimate.position.x(), theBallModel.estimate.position.y()).translation.x())
@@ -215,9 +215,9 @@ class ApproachAndKickToGoalCard : public ApproachAndKickToGoalCardBase
 
       action
       {
-        theTurnToTargetThenTurnToUserAndSaySomethingSkill(theHRIController.currentBallDestination, 
-                                                                  Vector3f(theHRIController.userPosition.x(), theHRIController.userPosition.y(), theHRIController.userHeight),
-                                                                  //Vector3f(theHRIController.currentBallDestination.x(), theHRIController.currentBallDestination.y(), 0.f),
+        theTurnToTargetThenTurnToUserAndSaySomethingSkill(theTaskController.currentBallDestination, 
+                                                                  Vector3f(theTaskController.userPosition.x(), theTaskController.userPosition.y(), theTaskController.userHeight),
+                                                                  //Vector3f(theTaskController.currentBallDestination.x(), theTaskController.currentBallDestination.y(), 0.f),
                                                                   std::string("KickingToGoal.wav"));
       }
     }
@@ -265,8 +265,8 @@ class ApproachAndKickToGoalCard : public ApproachAndKickToGoalCardBase
       {
         theActivitySkill(BehaviorStatus::choosing_target);
 
-        goalTarget = theHRIController.currentBallDestination;
-        chosenTarget = theHRIController.currentBallDestination;
+        goalTarget = theTaskController.currentBallDestination;
+        chosenTarget = theTaskController.currentBallDestination;
         previousBallPosition = theLibCheck.rel2Glob(theBallModel.estimate.position.x(), theBallModel.estimate.position.y()).translation;
 
         targetChosen = true;

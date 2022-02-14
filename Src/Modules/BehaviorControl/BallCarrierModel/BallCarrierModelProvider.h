@@ -21,7 +21,7 @@
 #include "Representations/Configuration/FieldDimensions.h"
 #include "Representations/BehaviorControl/Libraries/LibCheck.h"
 #include "Representations/BehaviorControl/Libraries/LibPathPlanner.h"
-#include "Representations/HRI/HRIController.h"
+#include "Representations/HRI/TaskController.h"
 #include <iostream>
 
 MODULE(BallCarrierModelProvider,
@@ -35,7 +35,7 @@ MODULE(BallCarrierModelProvider,
     REQUIRES(RobotPose),
     REQUIRES(ObstacleModel),
 
-    REQUIRES(HRIController),
+    REQUIRES(TaskController),
 
     PROVIDES(BallCarrierModel),
     LOADS_PARAMETERS(

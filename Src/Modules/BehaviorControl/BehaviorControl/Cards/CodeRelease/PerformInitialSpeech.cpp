@@ -17,7 +17,7 @@
 #include "Tools/BehaviorControl/Framework/Card/CabslCard.h"
 #include "Representations/BehaviorControl/Libraries/LibCheck.h"
 
-#include "Representations/HRI/HRIController.h"
+#include "Representations/HRI/TaskController.h"
 #include "Tools/BehaviorControl/Framework/BehaviorContext.h"
 
 #include "Tools/Math/BHMath.h"
@@ -38,7 +38,7 @@ CARD(PerformInitialSpeechCard,
   REQUIRES(RobotPose),
   REQUIRES(RobotInfo),
 
-  REQUIRES(HRIController),
+  REQUIRES(TaskController),
 
   USES(BehaviorStatus),
 
@@ -83,12 +83,12 @@ class PerformInitialSpeechCard : public PerformInitialSpeechCardBase
   bool speechStarted = false;
   bool preconditions() const override
   {
-    return theHRIController.getCurrentActionType() == HRI::ActionType::PerformInitialSpeech || theHRIController.getCurrentActionType() == HRI::ActionType::PerformInstructionsSpeech;
+    return theTaskController.getCurrentActionType() == HRI::ActionType::PerformInitialSpeech || theTaskController.getCurrentActionType() == HRI::ActionType::PerformInstructionsSpeech;
   }
 
   bool postconditions() const override
   {
-    return theHRIController.getCurrentActionType() != HRI::ActionType::PerformInitialSpeech && theHRIController.getCurrentActionType() != HRI::ActionType::PerformInstructionsSpeech;
+    return theTaskController.getCurrentActionType() != HRI::ActionType::PerformInitialSpeech && theTaskController.getCurrentActionType() != HRI::ActionType::PerformInstructionsSpeech;
   }
 
 
@@ -103,12 +103,12 @@ class PerformInitialSpeechCard : public PerformInitialSpeechCardBase
         GOTO(DEBUG_MODE, debug_state, "Debug mode");
         if(state_time > initialWaitTime)
         {
-          if(theHRIController.getCurrentActionType() == HRI::ActionType::PerformInstructionsSpeech)
+          if(theTaskController.getCurrentActionType() == HRI::ActionType::PerformInstructionsSpeech)
             goto turnToUser;
         }
         else
         {
-          if(theHRIController.getCurrentActionType() == HRI::ActionType::PerformInitialSpeech)
+          if(theTaskController.getCurrentActionType() == HRI::ActionType::PerformInitialSpeech)
             goto reachInitialPose;
         }
 
@@ -151,16 +151,16 @@ class PerformInitialSpeechCard : public PerformInitialSpeechCardBase
     {
       transition
       {
-        GOTO(smallAlignmentRange.isInside(calcAngleToTarget(theHRIController.userPosition).toDegrees()), startSpeech, "Reached initial position");
+        GOTO(smallAlignmentRange.isInside(calcAngleToTarget(theTaskController.userPosition).toDegrees()), startSpeech, "Reached initial position");
       }
 
       action
       {
         theActivitySkill(BehaviorStatus::walking_to_initial_position);
-        theWalkToTargetSkill(Pose2f(1.0f, walkSpeed, walkSpeed), Pose2f(calcAngleToTarget(theHRIController.userPosition), 0.f, 0.f));
+        theWalkToTargetSkill(Pose2f(1.0f, walkSpeed, walkSpeed), Pose2f(calcAngleToTarget(theTaskController.userPosition), 0.f, 0.f));
                 
-        Vector2f localLookTarget = theLibCheck.glob2Rel(theHRIController.userPosition.x(), theHRIController.userPosition.y()).translation;
-        theLookAtPointSkill(Vector3f(localLookTarget.x(), localLookTarget.y(), theHRIController.userHeight));
+        Vector2f localLookTarget = theLibCheck.glob2Rel(theTaskController.userPosition.x(), theTaskController.userPosition.y()).translation;
+        theLookAtPointSkill(Vector3f(localLookTarget.x(), localLookTarget.y(), theTaskController.userHeight));
       }
     }
 
@@ -175,11 +175,11 @@ class PerformInitialSpeechCard : public PerformInitialSpeechCardBase
         {
             if(!speechStarted)
             {
-              if(theHRIController.getCurrentActionType() == HRI::ActionType::PerformInitialSpeech)
+              if(theTaskController.getCurrentActionType() == HRI::ActionType::PerformInitialSpeech)
               {
                 SoundPlayer::play("InitialSpeech.wav");
               }
-              else if(theHRIController.getCurrentActionType() == HRI::ActionType::PerformInstructionsSpeech)
+              else if(theTaskController.getCurrentActionType() == HRI::ActionType::PerformInstructionsSpeech)
               {
                 SoundPlayer::play("InstructionsSpeech.wav");                
               }
@@ -189,8 +189,8 @@ class PerformInitialSpeechCard : public PerformInitialSpeechCardBase
             theActivitySkill(BehaviorStatus::givingInitialSpeech);
             theStandSkill();
 
-            Vector2f localLookTarget = theLibCheck.glob2Rel(theHRIController.userPosition.x(), theHRIController.userPosition.y()).translation;
-            theLookAtPointSkill(Vector3f(localLookTarget.x(), localLookTarget.y(), theHRIController.userHeight));
+            Vector2f localLookTarget = theLibCheck.glob2Rel(theTaskController.userPosition.x(), theTaskController.userPosition.y()).translation;
+            theLookAtPointSkill(Vector3f(localLookTarget.x(), localLookTarget.y(), theTaskController.userHeight));
         }
     }
 
@@ -211,8 +211,8 @@ class PerformInitialSpeechCard : public PerformInitialSpeechCardBase
           theStandSkill();
           theActivitySkill(BehaviorStatus::givingInitialSpeech);
           
-          Vector2f localLookTarget = theLibCheck.glob2Rel(theHRIController.userPosition.x(), theHRIController.userPosition.y()).translation;
-          theLookAtPointSkill(Vector3f(localLookTarget.x(), localLookTarget.y(), theHRIController.userHeight));
+          Vector2f localLookTarget = theLibCheck.glob2Rel(theTaskController.userPosition.x(), theTaskController.userPosition.y()).translation;
+          theLookAtPointSkill(Vector3f(localLookTarget.x(), localLookTarget.y(), theTaskController.userHeight));
         }
     }
 
@@ -223,10 +223,10 @@ class PerformInitialSpeechCard : public PerformInitialSpeechCardBase
           theStandSkill();
           theActivitySkill(BehaviorStatus::givingInitialSpeech);
           
-          Vector2f localLookTarget = theLibCheck.glob2Rel(theHRIController.userPosition.x(), theHRIController.userPosition.y()).translation;
-          theLookAtPointSkill(Vector3f(localLookTarget.x(), localLookTarget.y(), theHRIController.userHeight));
+          Vector2f localLookTarget = theLibCheck.glob2Rel(theTaskController.userPosition.x(), theTaskController.userPosition.y()).translation;
+          theLookAtPointSkill(Vector3f(localLookTarget.x(), localLookTarget.y(), theTaskController.userHeight));
 
-          theHRIController.signalTaskCompleted(false);
+          theTaskController.signalTaskCompleted(false);
         }
     }
   }

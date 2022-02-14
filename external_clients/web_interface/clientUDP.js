@@ -358,3 +358,24 @@ app.listen(LOCAL_FRONTEND_GUI_PORT);
 console.log("[FRONTEND; SETUP] Frontend webGUI server listening:\n \
 \t Address: "+LOCAL_IP+":"+LOCAL_FRONTEND_GUI_PORT+"\n")
 
+
+// ----------------------------------
+// |   Handle termination signals   |
+// ----------------------------------
+//https://zaiste.net/programming/nodejs/howtos/howto-shutdown-nodejs-server/
+const onExitHandler = signal => {
+  console.log(`Received ${signal}. Exiting...`)
+  read_socket.close();
+  delete read_socket
+  write_socket.close();
+  delete write_socket
+  
+  //webSocket.terminate();
+  httpWebSocketServer.close();
+  process.exit(0);
+}
+process.on('SIGINT', onExitHandler);
+process.on('SIGABRT', onExitHandler);
+process.on('SIGTERM', onExitHandler);
+process.on('SIGQUIT', onExitHandler);
+process.on('SIGHUP', onExitHandler);

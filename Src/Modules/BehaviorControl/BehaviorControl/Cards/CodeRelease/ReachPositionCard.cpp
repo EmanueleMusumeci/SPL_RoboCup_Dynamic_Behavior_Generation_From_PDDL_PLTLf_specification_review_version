@@ -16,7 +16,7 @@
 #include "Tools/BehaviorControl/Framework/Card/CabslCard.h"
 #include "Representations/BehaviorControl/Libraries/LibCheck.h"
 
-#include "Representations/HRI/HRIController.h"
+#include "Representations/HRI/TaskController.h"
 
 #include "Tools/Math/BHMath.h"
 #include "Platform/SystemCall.h"
@@ -41,7 +41,7 @@ CARD(ReachPositionCard,
   REQUIRES(LibCheck),
   REQUIRES(RobotPose),
 
-  REQUIRES(HRIController),
+  REQUIRES(TaskController),
 
   USES(BehaviorStatus),
 
@@ -68,17 +68,17 @@ class ReachPositionCard : public ReachPositionCardBase
 
   bool preconditions() const override
   {
-    //std::cout<<"theHRIController.getCurrentActionType(): "<<TypeRegistry::getEnumName(theHRIController.getCurrentActionType())<<std::endl;
-    return (theHRIController.getCurrentActionType() == HRI::ActionType::ReachPosition || theHRIController.getCurrentActionType() == HRI::ActionType::ReachBall)
+    //std::cout<<"theTaskController.getCurrentActionType(): "<<TypeRegistry::getEnumName(theTaskController.getCurrentActionType())<<std::endl;
+    return (theTaskController.getCurrentActionType() == HRI::ActionType::ReachPosition || theTaskController.getCurrentActionType() == HRI::ActionType::ReachBall)
           &&
-          theLibCheck.distance(theRobotPose, theHRIController.currentRobotDestination) > theHRIController.reachPositionDistanceThreshold;
+          theLibCheck.distance(theRobotPose, theTaskController.currentRobotDestination) > theTaskController.reachPositionDistanceThreshold;
   }
 
   bool postconditions() const override
   {
-    return (theHRIController.getCurrentActionType() != HRI::ActionType::ReachPosition && theHRIController.getCurrentActionType() != HRI::ActionType::ReachBall)
+    return (theTaskController.getCurrentActionType() != HRI::ActionType::ReachPosition && theTaskController.getCurrentActionType() != HRI::ActionType::ReachBall)
           ||
-          theLibCheck.distance(theRobotPose, theHRIController.currentRobotDestination) <= theHRIController.reachPositionDistanceThreshold;
+          theLibCheck.distance(theRobotPose, theTaskController.currentRobotDestination) <= theTaskController.reachPositionDistanceThreshold;
   }
 
   option
@@ -127,18 +127,18 @@ class ReachPositionCard : public ReachPositionCardBase
 
       action
       {
-        if(theHRIController.getCurrentActionType() == HRI::ActionType::ReachPosition)
+        if(theTaskController.getCurrentActionType() == HRI::ActionType::ReachPosition)
         {
-          theTurnToTargetThenTurnToUserThenPointAndSaySomethingSkill(theHRIController.currentRobotDestination, 
-                                                                    Vector3f(theHRIController.userPosition.x(), theHRIController.userPosition.y(), theHRIController.userHeight),
-                                                                    Vector3f(theHRIController.currentRobotDestination.x(), theHRIController.currentRobotDestination.y(), 0.f),
+          theTurnToTargetThenTurnToUserThenPointAndSaySomethingSkill(theTaskController.currentRobotDestination, 
+                                                                    Vector3f(theTaskController.userPosition.x(), theTaskController.userPosition.y(), theTaskController.userHeight),
+                                                                    Vector3f(theTaskController.currentRobotDestination.x(), theTaskController.currentRobotDestination.y(), 0.f),
                                                                     std::string("ReachingPosition.wav"));
         }
-        else if(theHRIController.getCurrentActionType() == HRI::ActionType::ReachBall)
+        else if(theTaskController.getCurrentActionType() == HRI::ActionType::ReachBall)
         {
-          theTurnToTargetThenTurnToUserThenPointAndSaySomethingSkill(theHRIController.currentRobotDestination, 
-                                                                    Vector3f(theHRIController.userPosition.x(), theHRIController.userPosition.y(), theHRIController.userHeight),
-                                                                    Vector3f(theHRIController.currentRobotDestination.x(), theHRIController.currentRobotDestination.y(), 0.f),
+          theTurnToTargetThenTurnToUserThenPointAndSaySomethingSkill(theTaskController.currentRobotDestination, 
+                                                                    Vector3f(theTaskController.userPosition.x(), theTaskController.userPosition.y(), theTaskController.userHeight),
+                                                                    Vector3f(theTaskController.currentRobotDestination.x(), theTaskController.currentRobotDestination.y(), 0.f),
                                                                     std::string("ReachingBall.wav"));
         }
       }
@@ -148,17 +148,17 @@ class ReachPositionCard : public ReachPositionCardBase
     {
       transition
       {
-           if(theLibCheck.distance(theRobotPose, theHRIController.currentRobotDestination) <= theHRIController.reachPositionDistanceThreshold)
+           if(theLibCheck.distance(theRobotPose, theTaskController.currentRobotDestination) <= theTaskController.reachPositionDistanceThreshold)
             goto stand;
       }
 
       action
       {
         theActivitySkill(BehaviorStatus::reaching_position);
-        Vector2f localTarget = theLibCheck.glob2Rel(theHRIController.currentRobotDestination.x(), theHRIController.currentRobotDestination.y()).translation;
+        Vector2f localTarget = theLibCheck.glob2Rel(theTaskController.currentRobotDestination.x(), theTaskController.currentRobotDestination.y()).translation;
         //theLookAtPointSkill(Vector3f(localTarget.x(), localTarget.y(), 10.f));
         theLookLeftAndRightSkill();
-        theWalkToTargetPathPlannerSkill(Pose2f(1.f,1.f,1.f), theHRIController.currentRobotDestination);
+        theWalkToTargetPathPlannerSkill(Pose2f(1.f,1.f,1.f), theTaskController.currentRobotDestination);
       }
     }
 
@@ -171,7 +171,7 @@ class ReachPositionCard : public ReachPositionCardBase
       {
         theActivitySkill(BehaviorStatus::idle);
         theLookForwardSkill();
-        theWalkToTargetPathPlannerSkill(Pose2f(1.f,1.f,1.f), theHRIController.currentRobotDestination);
+        theWalkToTargetPathPlannerSkill(Pose2f(1.f,1.f,1.f), theTaskController.currentRobotDestination);
       }
     }
 

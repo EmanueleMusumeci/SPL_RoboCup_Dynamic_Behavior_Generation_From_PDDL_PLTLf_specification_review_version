@@ -1,6 +1,8 @@
+from dataclasses import field
 import socket
 import errno
 import sys, os
+import signal
 import time
 from time import sleep
 import json
@@ -17,6 +19,7 @@ def setup_read_socket(udpProtocol, reactor, local_interface_ip, read_port, read_
         print(debug_message)
     
     read_socket = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
+    read_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
     read_addr = socket.getaddrinfo(local_interface_ip, read_port, socket.AF_INET, socket.SOCK_DGRAM)[0]
 
@@ -26,7 +29,7 @@ def setup_read_socket(udpProtocol, reactor, local_interface_ip, read_port, read_
     
     reactor_read_socket = reactor.adoptDatagramPort(read_socket.fileno(), socket.AF_INET, udpProtocol)
     
-    return reactor_read_socket, read_addr
+    return read_socket, read_addr
 
 def setup_write_socket(local_interface_ip, write_port, remote_dest_ip, dest_port = None, debug_message = None):
     #Setup write socket
@@ -34,6 +37,7 @@ def setup_write_socket(local_interface_ip, write_port, remote_dest_ip, dest_port
         print(debug_message)
     
     write_socket = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
+    write_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
     write_addr = socket.getaddrinfo(local_interface_ip, write_port, socket.AF_INET, socket.SOCK_DGRAM)[0]
     
@@ -79,6 +83,11 @@ class NAOCommunicationController(twisted.internet.protocol.DatagramProtocol):
 
         self.lastReceivedTaskID = None
         self.lastCompletedTaskID = None
+
+
+    def close_sockets(self):
+        self.write_socket.close()
+        self.read_socket.close()
 
     def send_keepalive_request(self):
         self.send_string("uthere?")
@@ -316,6 +325,11 @@ class FieldGUI(twisted.internet.protocol.DatagramProtocol):
 
         self.check_alive_task = task.LoopingCall(self.check_client_alive)
 
+
+    def close_sockets(self):
+        self.write_socket.close()
+        self.read_socket.close()
+
     def register_new_client(self, address, port, client_id):
         self.dest_addr = socket.getaddrinfo(address, port, socket.AF_INET, socket.SOCK_DGRAM)[0]
         self.last_client_id = client_id
@@ -528,15 +542,14 @@ if __name__ == "__main__":
     
     LOCAL_WEBSOCKET_INTERFACE_IP = "127.0.0.1"
     FRONTEND_SOCKET_IP = "127.0.0.1"
-    #UDP_IP = "localhost"
 
     #Notice: 
     # - the DEST_PORTs here have to be the READ_PORTs on the robots
     # - the READ_PORTs here have to be the DEST_PORTs on the robots
     # - the WRITE_PORTs here have to be different from those of the robots
-    UDP_BASE_READ_PORT = 65100 #Listening port for incoming messages
-    UDP_BASE_WRITE_PORT = 65200  #Socket port of outgoing messages for each robot
-    UDP_BASE_DEST_PORT = 65000 #Destination port of outgoing messages (each message will be sent to 127.0.0.1:UDP_WRITE_PORT)
+    UDP_BASE_READ_PORT = 65100 #Listening port for incoming messages from robots
+    UDP_BASE_WRITE_PORT = 65200  #Socket port of outgoing messages for each robot (each message will be sent to 127.0.0.1:UDP_BASE_WRITE_PORT+<robot_number>)
+    UDP_BASE_DEST_PORT = 65000 #Destination port of outgoing messages (each message will be sent to 127.0.0.1:UDP_BASE_WRITE_PORT+<robot_number>)
 
     #ROBOT_LIST = [3]
     ROBOT_LIST = [1,2,3,4,5,6,7,8,9,10]
@@ -545,7 +558,9 @@ if __name__ == "__main__":
     ALIVE_CLIENT_TIMEOUT = 1
 
 #TODO maybe i'll have to use ms instead for these two as well
+    #TIME between two subsequent "lastTaskID?" requests, that periodically check the last executed task ID
     LAST_TASK_ID_TIMEOUT = 1
+    #TIME between two subsequent "taskQueue?" requests, that periodically ask the task
     UPDATE_TASKS_TIMEOUT = 0.2
     
     
@@ -568,12 +583,26 @@ if __name__ == "__main__":
                                                                                 ALIVE_CLIENT_TIMEOUT,
                                                                                 fieldGUI)
 
-    #Start LoopingCalls for each robot controller                                                                            
+    #Start LoopingCalls for each robot controller
+
+    #Does two things:
+    # 1) If the robot is currently alive but it has not sent any message since controller.alive_client_timeout seconds, will set it to "not alive"
+    # 2) If the robot has recently (less than controller.alive_client_timeout seconds ago) sent the any message, will
+    #       send the message "uthere?", as a KEEPALIVE request to the robot. The response to the KEEPALIVE is DISABLED on the robot as the
+    #       regular traffic is already more than enough.                                    
     for controller in robotCommunicationControllers.values():
         controller.check_alive_task.start(ALIVE_CLIENT_TIMEOUT)      
 
     for controller in robotCommunicationControllers.values():
+        #Sends a "lastTaskID?" message to the robot every LAST_TASK_ID_TIMEOUT seconds, to which the robot will answer with a message like:
+        #   "lastTaskID,<last task ID received by robot>,<last task ID completed by robot>"
+        #See the NAOCommunicationController documentation to see how the "lastTaskID" message is handled         
         controller.check_last_task_id_task.start(LAST_TASK_ID_TIMEOUT)
+        #Sends a "lastTaskQueue?" message to the robot every LAST_TASK_ID_TIMEOUT seconds, to which the robot will answer with a message like:
+        #   "lastTaskQueue;lastTaskID,<last task ID received by robot>,<last task ID completed by robot>;<task type>,<task fields separated by commas>;..."
+        #where "..." represents other task types and their fields (i.e. destination for robot or for ball)
+        #   NOTICE: this task is activated when the Python server first starts or whenever the robot is detected as "not alive". It is deactivated when the robot
+        #   is detected to be "alive"
         controller.check_task_queue_task.start(LAST_TASK_ID_TIMEOUT)
 
     for controller in robotCommunicationControllers.values():
@@ -582,7 +611,24 @@ if __name__ == "__main__":
     #Start LoopingCalls for the GUI client
     fieldGUI.check_alive_task.start(ALIVE_CLIENT_TIMEOUT)
     
-    reactor.run()
+    def exit_gracefully(signal=None, frame=None):
+        print("Exiting server gracefully...")
+        reactor.stop()
+        for controller in robotCommunicationControllers.values():
+            controller.close_sockets()
+        fieldGUI.close_sockets()
 
+
+    #Handle interrupt signals
+    signal.signal(signal.SIGINT, exit_gracefully)
+    signal.signal(signal.SIGABRT, exit_gracefully)
+    signal.signal(signal.SIGTERM, exit_gracefully)
+    signal.signal(signal.SIGQUIT, exit_gracefully)
+    signal.signal(signal.SIGHUP, exit_gracefully)
+
+    try:
+        reactor.run()
+    except:
+        exit_gracefully()
 
             

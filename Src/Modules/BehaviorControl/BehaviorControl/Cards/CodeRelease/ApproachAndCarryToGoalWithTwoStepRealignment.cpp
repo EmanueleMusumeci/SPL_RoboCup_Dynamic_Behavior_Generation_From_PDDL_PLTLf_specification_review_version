@@ -21,7 +21,7 @@
 
 #include "Representations/Communication/RobotInfo.h"
 
-#include "Representations/HRI/HRIController.h"
+#include "Representations/HRI/TaskController.h"
 
 #include "Tools/Math/BHMath.h"
 #include "Platform/SystemCall.h"
@@ -75,7 +75,7 @@ CARD(ApproachAndCarryToGoalWithTwoStepRealignmentCard,
 
   USES(BehaviorStatus),
 
-  REQUIRES(HRIController),
+  REQUIRES(TaskController),
 
 
   LOADS_PARAMETERS(
@@ -173,8 +173,8 @@ class ApproachAndCarryToGoalWithTwoStepRealignmentCard : public ApproachAndCarry
 
   bool preconditions() const override
   {
-    //std::cout<<"theHRIController.getCurrentActionType(): "<<TypeRegistry::getEnumName(theHRIController.getCurrentActionType())<<std::endl;
-    return theHRIController.getCurrentActionType() == HRI::ActionType::CarryAndKickToGoal
+    //std::cout<<"theTaskController.getCurrentActionType(): "<<TypeRegistry::getEnumName(theTaskController.getCurrentActionType())<<std::endl;
+    return theTaskController.getCurrentActionType() == HRI::ActionType::CarryAndKickToGoal
                 &&
                 (
                 !theBallCarrierModel.xRangeDistanceFromGoalToUseKicks.isInside(theFieldDimensions.xPosOpponentGroundline - theLibCheck.rel2Glob(theBallModel.estimate.position.x(), theBallModel.estimate.position.y()).translation.x())
@@ -192,7 +192,7 @@ class ApproachAndCarryToGoalWithTwoStepRealignmentCard : public ApproachAndCarry
 
   bool postconditions() const override
   {
-    return theHRIController.getCurrentActionType() != HRI::ActionType::CarryAndKickToGoal
+    return theTaskController.getCurrentActionType() != HRI::ActionType::CarryAndKickToGoal
            ||
            (theBallCarrierModel.xRangeDistanceFromGoalToUseKicks.isInside(theFieldDimensions.xPosOpponentGroundline - theLibCheck.rel2Glob(theBallModel.estimate.position.x(), theBallModel.estimate.position.y()).translation.x())
                 &&            
@@ -271,9 +271,9 @@ class ApproachAndCarryToGoalWithTwoStepRealignmentCard : public ApproachAndCarry
 
       action
       {
-        theTurnToTargetThenTurnToUserAndSaySomethingSkill(theHRIController.currentBallDestination, 
-                                                                  Vector3f(theHRIController.userPosition.x(), theHRIController.userPosition.y(), theHRIController.userHeight),
-                                                                  //Vector3f(theHRIController.currentBallDestination.x(), theHRIController.currentBallDestination.y(), 0.f),
+        theTurnToTargetThenTurnToUserAndSaySomethingSkill(theTaskController.currentBallDestination, 
+                                                                  Vector3f(theTaskController.userPosition.x(), theTaskController.userPosition.y(), theTaskController.userHeight),
+                                                                  //Vector3f(theTaskController.currentBallDestination.x(), theTaskController.currentBallDestination.y(), 0.f),
                                                                   std::string("TryScoreAGoal.wav"));
       }
     }
@@ -338,8 +338,8 @@ class ApproachAndCarryToGoalWithTwoStepRealignmentCard : public ApproachAndCarry
         walkSpeed = decideWalkSpeed(dangerObstacleRadius, safetyObstacleRadius, slowerWalkSpeed, normalWalkSpeed);
         theKeyFrameArmsSkill(decideArmsPosition(safetyObstacleRadius), false);
 
-        goalTarget = theHRIController.currentBallDestination;
-        chosenTarget = theHRIController.currentBallDestination;
+        goalTarget = theTaskController.currentBallDestination;
+        chosenTarget = theTaskController.currentBallDestination;
         previousBallPosition = theLibCheck.rel2Glob(theBallModel.estimate.position.x(), theBallModel.estimate.position.y()).translation;
         previousNearbyObstaclesCount = countNearbyObstacles(nearbyObstacleRadius);
         nearestObstacleGlobalPositionWhenPathWasComputed = getNearestObstacle(true);

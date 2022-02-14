@@ -24,7 +24,7 @@
 #define TOLERANCE static_cast<float>(simStepLength)
 #endif
 
-#define HRI_VISION
+#define LTL_PROJECT
 
 RoboCupCtrl* RoboCupCtrl::controller = nullptr;
 SimRobot::Application* RoboCupCtrl::application = nullptr;
@@ -220,7 +220,7 @@ void RoboCupCtrl::update()
       lastTime = t - TOLERANCE;
   }
 
-  #ifndef HRI_VISION
+  #ifndef LTL_PROJECT
   gameController.referee();
   #endif
 

@@ -88,7 +88,7 @@ SelfLocator::SelfLocator() : perceptRegistration(theCameraInfo, theCameraMatrix,
 
 //Set initial guess to our certain challenge1 starting position
 #ifdef HRI
-  if(HRIInitialGuess)
+  if(useCustomInitialGuess)
   {
     std::cout<<"HELLO"<<std::endl;
     //Assign all particles the same starting position with walkInPoseDeviation 

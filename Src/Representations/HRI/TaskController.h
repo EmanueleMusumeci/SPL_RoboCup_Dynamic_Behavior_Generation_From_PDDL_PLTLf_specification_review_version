@@ -1,7 +1,7 @@
 /**
- * @file HRIController.h
+ * @file TaskController.h
  *
- * Declaration of the STREAMABLE struct HRIController to hold informations about the current state of the HRI routine
+ * Declaration of the STREAMABLE struct TaskController to hold informations about the current state of the HRI routine
  *
  * @author <A href="mailto:musumeci.1653885@studenti.uniroma1.it">Emanuele Musumeci</A>
  */
@@ -42,7 +42,7 @@ class actionName##Action : public Action\
   public:\
     actionName##Action(int actionID) : Action(actionID, HRI::ActionType::actionName) {}\
 \
-    void execute(HRIController& controller)\
+    void execute(TaskController& controller)\
     {\
     executeBody\
     setExecuted();\
@@ -60,7 +60,7 @@ class actionName##Action : public Action\
   public:\
     actionName##Action(int actionID) : Action(actionID, HRI::ActionType::actionName) {}\
 \
-    void execute(HRIController& controller)\
+    void execute(TaskController& controller)\
     {\
     executeBody\
     setExecuted();\
@@ -80,6 +80,7 @@ namespace HRI
       ReachBall,
       CarryBall,
       Kick,
+      PassBall,
       CarryAndKickToGoal,
       PerformInitialSpeech,
       PerformInstructionsSpeech,
@@ -101,13 +102,14 @@ namespace HRI
 
 }
 
-/* An action provides an execute method that modifies the HRIController state to execute the right behavior
+/* An action provides an execute method that modifies the TaskController state to execute the right behavior
   to complete the action */
 STREAMABLE(Action,
 {
   Action() = default;
   Action(HRI::ActionType actionType);
   Action(HRI::ActionType actionType, Vector2f target);
+  Action(HRI::ActionType actionType, int teammateTarget);
   
   /*Action& operator=(const Action& other)
   {
@@ -121,25 +123,31 @@ STREAMABLE(Action,
   (bool) completed,
   (HRI::ActionType) actionType,
   (Vector2f) target,
+  (int) teammateTarget,
 });
-//CTOR for target-based actions 
-inline Action::Action(HRI::ActionType actionType) : actionType(actionType), target(Vector2f(0,0)) 
+
+//CTOR for actions not based on a target or a teammate
+inline Action::Action(HRI::ActionType actionType) : actionType(actionType), target(Vector2f(0,0)), teammateTarget(-1)
 {
   //std::cout<<"actionType: "<<TypeRegistry::getEnumName(actionType)<<std::endl;
   //Verify that the action is not target-based
   ASSERT(
+    //Target-based actions
     actionType!=HRI::ActionType::CarryBall 
     &&
     actionType!=HRI::ActionType::Kick 
     &&
     actionType!=HRI::ActionType::ReachPosition 
+    //Teammate-based actions
+    &&
+    actionType!=HRI::ActionType::PassBall
   );
 };
-//CTOR for actions not based on a target
-inline Action::Action(HRI::ActionType actionType, Vector2f target) : actionType(actionType), target(target) 
+//CTOR for target-based actions
+inline Action::Action(HRI::ActionType actionType, Vector2f target) : actionType(actionType), target(target), teammateTarget(-1)
 {
   //std::cout<<"actionType: "<<TypeRegistry::getEnumName(actionType)<<std::endl;
-  //Verify that the action is target-based
+  //Verify that the action is target-based and not teammate-based
   ASSERT(
     actionType!=HRI::ActionType::Idle 
     &&
@@ -148,8 +156,30 @@ inline Action::Action(HRI::ActionType actionType, Vector2f target) : actionType(
     actionType!=HRI::ActionType::PerformInitialSpeech
     &&
     actionType!=HRI::ActionType::PerformInstructionsSpeech
+    //Teammate-based actions
+    &&
+    actionType!=HRI::ActionType::PassBall
   );
 };
+//CTOR for teammate-based actions
+inline Action::Action(HRI::ActionType actionType, int teammateNumber) : actionType(actionType), target(Vector2f(0,0)), teammateTarget(teammateNumber)
+{
+  //std::cout<<"actionType: "<<TypeRegistry::getEnumName(actionType)<<std::endl;
+  //Verify that the action is teammate-based
+  ASSERT(
+    actionType!=HRI::ActionType::PassBall
+  );
+};
+
+/*
+
+ _____________________
+|                     |
+| Action declarations |
+|_____________________|
+
+
+*/
 
 STREAMABLE_WITH_BASE(IdleAction, Action,
 {
@@ -158,10 +188,48 @@ STREAMABLE_WITH_BASE(IdleAction, Action,
 });
 inline IdleAction::IdleAction() : Action(HRI::ActionType::Idle) {};
 
+/////////////////////////////
+//Ball target-based actions//
+/////////////////////////////
+/*STREAMABLE_WITH_BASE(CarryBallAction, Action,
+{
+  CarryBallAction(Vector2f ballDestination);
+  ,
+});
+inline CarryBallAction::CarryBallAction(Vector2f ballDestination) : Action(HRI::ActionType::CarryBall, ballDestination) {};
+
+STREAMABLE_WITH_BASE(KickBallAction, Action,
+{
+  KickBallAction(Vector2f ballDestination);
+  ,
+});
+inline KickBallAction::KickBallAction(Vector2f ballDestination) : Action(HRI::ActionType::Kick, ballDestination) {};
+
+//////////////////////////////
+//Robot target-based actions//
+//////////////////////////////
+STREAMABLE_WITH_BASE(ReachBallAction, Action,
+{
+  ReachBallAction(Vector2f ballDestination);
+  ,
+});
+inline ReachBallAction::ReachBallAction() : Action(HRI::ActionType::ReachBall, ballDestination) {};
+
+STREAMABLE_WITH_BASE(KickBallAction, Action,
+{
+  KickBallAction(Vector2f ballDestination);
+  ,
+});
+inline KickBallAction::KickBallAction(Vector2f ballDestination) : Action(HRI::ActionType::Kick, ballDestination) {};
+*/
+
+
+
 STREAMABLE(Task,
 {     
   Task() = default; 
   Task(HRI::TaskType taskType, int taskID, std::vector<Action>& actionQueue, Vector2f finalPosition);
+  Task(HRI::TaskType taskType, int taskID, std::vector<Action>& actionQueue, int teammateNumber);
   Task(HRI::TaskType taskType, int taskID);
   /*Task& operator=(const Task& other)
   {
@@ -175,25 +243,32 @@ STREAMABLE(Task,
   (int) taskID,
   (int) taskSize,
   (Vector2f) finalPosition,
+  (int) teammateNumber,
     
 });
 inline Task::Task(HRI::TaskType taskType, int taskID, std::vector<Action>& actionQueue, Vector2f finalPosition) : taskType(taskType), taskID(taskID), actionQueue(actionQueue), finalPosition(finalPosition), taskSize(actionQueue.size()) {};
+inline Task::Task(HRI::TaskType taskType, int taskID, std::vector<Action>& actionQueue, int teammateNumber) : taskType(taskType), taskID(taskID), actionQueue(actionQueue), teammateNumber(teammateNumber), taskSize(actionQueue.size()) {};
 inline Task::Task(HRI::TaskType taskType, int taskID) : taskType(taskType), taskID(taskID), taskSize(0) {};
 
 /**
- * @struct HRIController
+ * @struct TaskController
  * 
- * Struct containing state info about the HRI routine
+ * Struct containing state info about the Task execution
  * 
  */
-STREAMABLE(HRIController,
+STREAMABLE(TaskController,
 {
-  /** Draws model on the field */
+  /** Draws the current task on the field in SimRobot */
   void draw() const;
 
+  /* Update current desired destination of the robot based on the current task */
   FUNCTION(void(Vector2f destinationPose)) updateCurrentDestination;
+
+  /* Update current desired destination of the ball based on the current task */
   FUNCTION(void(Vector2f ballDestination)) updateCurrentBallDestination;
+
   FUNCTION(Task()) getCurrentTask;
+
   FUNCTION(void()) nextTask;
   FUNCTION(void()) resetTaskQueue;
   FUNCTION(HRI::ActionType()) getCurrentActionType;
@@ -213,7 +288,7 @@ STREAMABLE(HRIController,
 
   FUNCTION(void(bool playSound)) signalTaskCompleted;
 
-  HRIController();
+  TaskController();
   ,
 
   (bool) GRAPHICAL_DEBUG,
@@ -238,5 +313,5 @@ STREAMABLE(HRIController,
   (bool)(false) initialSpeechPerformed,
 
 });
-inline HRIController::HRIController() : taskQueue(), completedTasks() {}
+inline TaskController::TaskController() : taskQueue(), completedTasks() {}
 //TODO Expose function to update task queue

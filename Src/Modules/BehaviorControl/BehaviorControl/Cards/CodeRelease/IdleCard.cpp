@@ -16,7 +16,7 @@
 #include "Tools/BehaviorControl/Framework/Card/CabslCard.h"
 #include "Representations/BehaviorControl/Libraries/LibCheck.h"
 
-#include "Representations/HRI/HRIController.h"
+#include "Representations/HRI/TaskController.h"
 
 #include "Tools/Math/BHMath.h"
 #include "Platform/SystemCall.h"
@@ -36,7 +36,7 @@ CARD(IdleCard,
   CALLS(Kick),
   CALLS(WalkToTarget),
 
-  REQUIRES(HRIController),
+  REQUIRES(TaskController),
   REQUIRES(RobotPose),
   REQUIRES(LibCheck),
 
@@ -77,14 +77,14 @@ class IdleCard : public IdleCardBase
 
   bool preconditions() const override
   {
-    //std::cout<<"theHRIController.getCurrentActionType(): "<<TypeRegistry::getEnumName(theHRIController.getCurrentActionType())<<std::endl;
-    //return theHRIController.getCurrentActionType() == HRI::ActionType::Idle;
+    //std::cout<<"theTaskController.getCurrentActionType(): "<<TypeRegistry::getEnumName(theTaskController.getCurrentActionType())<<std::endl;
+    //return theTaskController.getCurrentActionType() == HRI::ActionType::Idle;
     return true;
   }
 
   bool postconditions() const override
   {
-    return theHRIController.getCurrentActionType() != HRI::ActionType::Idle;
+    return theTaskController.getCurrentActionType() != HRI::ActionType::Idle;
   }
 
   option
@@ -113,7 +113,7 @@ class IdleCard : public IdleCardBase
     {
       transition
       {
-        if(!smallAlignmentRange.isInside(calcAngleToTarget(theHRIController.userPosition).toDegrees()))
+        if(!smallAlignmentRange.isInside(calcAngleToTarget(theTaskController.userPosition).toDegrees()))
         {
           if(state_time > turnToUserTimeout)
           {
@@ -152,8 +152,8 @@ class IdleCard : public IdleCardBase
 
       action
       {
-        Vector2f localLookTarget = theLibCheck.glob2Rel(theHRIController.userPosition.x(), theHRIController.userPosition.y()).translation;
-        theLookAtPointSkill(Vector3f(localLookTarget.x(), localLookTarget.y(), theHRIController.userHeight));
+        Vector2f localLookTarget = theLibCheck.glob2Rel(theTaskController.userPosition.x(), theTaskController.userPosition.y()).translation;
+        theLookAtPointSkill(Vector3f(localLookTarget.x(), localLookTarget.y(), theTaskController.userHeight));
         theActivitySkill(BehaviorStatus::idle);
         theStandSkill();
         if(!soundPlaying)
@@ -182,8 +182,8 @@ class IdleCard : public IdleCardBase
 
         theStandSkill();
 
-        Vector2f localLookTarget = theLibCheck.glob2Rel(theHRIController.userPosition.x(), theHRIController.userPosition.y()).translation;
-        theLookAtPointSkill(Vector3f(localLookTarget.x(), localLookTarget.y(), theHRIController.userHeight));
+        Vector2f localLookTarget = theLibCheck.glob2Rel(theTaskController.userPosition.x(), theTaskController.userPosition.y()).translation;
+        theLookAtPointSkill(Vector3f(localLookTarget.x(), localLookTarget.y(), theTaskController.userHeight));
       }
     }
 
@@ -191,7 +191,7 @@ class IdleCard : public IdleCardBase
     {
       transition
       {
-        if(smallAlignmentRange.isInside(calcAngleToTarget(theHRIController.userPosition).toDegrees()))
+        if(smallAlignmentRange.isInside(calcAngleToTarget(theTaskController.userPosition).toDegrees()))
         {
           std::cout << "turnToUser -> idle_state: turned to user" << std::endl;
           goto idle_state;
@@ -202,10 +202,10 @@ class IdleCard : public IdleCardBase
       {
         theActivitySkill(BehaviorStatus::walking_to_initial_position);
        
-        theWalkToTargetSkill(Pose2f(1.0f, walkSpeed, walkSpeed), Pose2f(calcAngleToTarget(theHRIController.userPosition), 0.f, 0.f));      
+        theWalkToTargetSkill(Pose2f(1.0f, walkSpeed, walkSpeed), Pose2f(calcAngleToTarget(theTaskController.userPosition), 0.f, 0.f));      
 
-        Vector2f localLookTarget = theLibCheck.glob2Rel(theHRIController.userPosition.x(), theHRIController.userPosition.y()).translation;
-        theLookAtPointSkill(Vector3f(localLookTarget.x(), localLookTarget.y(), theHRIController.userHeight));
+        Vector2f localLookTarget = theLibCheck.glob2Rel(theTaskController.userPosition.x(), theTaskController.userPosition.y()).translation;
+        theLookAtPointSkill(Vector3f(localLookTarget.x(), localLookTarget.y(), theTaskController.userHeight));
       }
     }
   }

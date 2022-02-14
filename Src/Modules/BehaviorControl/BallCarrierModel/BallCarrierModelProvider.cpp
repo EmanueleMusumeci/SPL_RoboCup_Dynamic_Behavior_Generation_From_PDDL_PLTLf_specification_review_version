@@ -222,7 +222,7 @@ void BallCarrierModelProvider::update(BallCarrierModel& ballCarrierModel)
         //Right now we're just pointing to the goal target without a specific angle
         target = Pose2f(0.0, goalTarget.x(), goalTarget.y());
     }*/
-    target = theHRIController.currentBallDestination;
+    target = theTaskController.currentBallDestination;
     //ballCarrierModel.dynamicTarget = Pose2f();
     //Set the goalTarget as a fallback target (if no path is found, a fake path between the ball and the goalTarget will be used)
     ballCarrierModel.dynamicTarget = target;

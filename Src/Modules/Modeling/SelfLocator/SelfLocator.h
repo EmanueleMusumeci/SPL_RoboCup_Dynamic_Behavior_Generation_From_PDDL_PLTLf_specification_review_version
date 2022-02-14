@@ -136,7 +136,7 @@ MODULE(SelfLocator,
     (float) yDifferenceLongHorizontalLine,          /**< Maximum difference between lineStart.y and lineEnd.y in pixels */
 
     #ifdef HRI
-    (bool) HRIInitialGuess,                          /** Use a certain initial guess on the robot position for challenge1 */
+    (bool) useCustomInitialGuess,                          /** Use a certain initial guess on the robot position for challenge1 */
     #endif
   }),
 });

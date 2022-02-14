@@ -9,7 +9,7 @@
 #include "Representations/spqr_representations/OurDefinitions.h"
 #include "Representations/BehaviorControl/FieldBall.h"
 #include "Representations/Modeling/RobotPose.h"
-#include "Representations/HRI/HRIController.h"
+#include "Representations/HRI/TaskController.h"
 #include "Representations/Communication/RobotInfo.h"
 #include "Representations/Communication/TeamData.h"
 #include "Representations/Communication/TeamInfo.h"
@@ -42,7 +42,7 @@ MODULE(ExternalServerCommunicationController,
  REQUIRES(OpponentTeamInfo),
  REQUIRES(FieldDimensions),
 
- REQUIRES(HRIController),
+ REQUIRES(TaskController),
 
  USES(ActivationGraph),
  USES(BehaviorStatus),
@@ -85,8 +85,8 @@ public:
 
     int cycles_since_last_keepalive_check;
     
-    bool client_alive;
-    bool awaiting_keepalive_response;
+    bool client_alive;                      /* is the Python server alive */
+    bool awaiting_keepalive_response;       /* has the robot sent a keepalive request to the Python server and is awaiting a response */
 
     void update(ExternalServerCommunicationControl &ExternalServerCommunicationControl);
 
