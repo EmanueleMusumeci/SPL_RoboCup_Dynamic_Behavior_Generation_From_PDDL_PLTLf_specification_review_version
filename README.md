@@ -131,6 +131,31 @@ Using a python package manager install the `twisted` package and the `service_id
 * Install NodeJS
 * Using npm install the `websocket` package (e.g. `npm install websocket`)
 
+### Install MONA
+* Clone the following repo `https://github.com/cs-au-dk/MONA`
+* Follow the install instructions at [this page](https://github.com/cs-au-dk/MONA/blob/master/INSTALL)
+
+HINT:
+```
+cd <MONA_DIR>
+sudo make install-strips
+```
+
+NOTICE: you might need to install **flex**, **bison** and **byacc**: 
+```
+sudo apt-get install flex bison byacc
+```
+Then, go into the MONA directory and uninstall:
+```
+sudo make uninstall
+sudo make clean
+```
+then rebuild:
+```
+sudo make install-strip
+```
+
+
 ## Running
 
 The network infrastructure is set to run on localhost. Make sure you're connected to a network anyway, even if not connected to the internet (to have the loopback work anyway)

@@ -185,6 +185,14 @@ std::string ExternalServerCommunicationController::ball_position_to_sendable_str
     
 }
 
+//String for MESSAGE containing the ball <position_x, position_y>
+std::string ExternalServerCommunicationController::role_to_sendable_string(){
+    std::string ret_string;
+    ret_string.append("robot_role,");
+    ret_string.append(TypeRegistry::getEnumName(static_cast<Role::RoleType>(theRole.role)));
+    return ret_string;
+}
+
 //String for MESSAGE containing all the obstacles <position_x, position_y>
 std::string ExternalServerCommunicationController::obstacles_to_sendable_string(){
 
@@ -561,6 +569,13 @@ void ExternalServerCommunicationController::update(ExternalServerCommunicationCo
         this->cycles_since_ball_update = 0;
     }
     this->cycles_since_ball_update++;
+
+    //Send a MESSAGE with the ball position every ROLE_UPDATE_FREQUENCY millisecs
+    if(this->cycles_since_role_update % ROLE_UPDATE_FREQUENCY == 0){
+        send_data_string(role_to_sendable_string(), PREFIX_TIMESTAMP, PREFIX_ROBOT_NUMBER);
+        this->cycles_since_role_update = 0;
+    }
+    this->cycles_since_role_update++;
 
 
     //DEBUG_NUMB(PRINT_DEBUG,"D");

@@ -7,9 +7,7 @@ import time
 from time import sleep
 import json
 import math
-from typing import Dict, Type
-from abc import ABC, abstractmethod
-from numpy import isin
+from typing import Dict
 
 import twisted
 from twisted.internet import reactor, task
@@ -76,7 +74,7 @@ class NAOCommunicationController(twisted.internet.protocol.DatagramProtocol):
                 write_port, remote_dest_ip, dest_port, 
                 read_port, read_socket_timeout, 
                 active_client_timeout, 
-                frontend_controller):
+                guiController):
         
         self.robot_number = robot_number
 
@@ -92,7 +90,7 @@ class NAOCommunicationController(twisted.internet.protocol.DatagramProtocol):
         self.last_received_message_timestamp = time.time()
         self.read_socket_timeout = read_socket_timeout
 
-        self.frontend_controller = frontend_controller
+        self.guiController = guiController
 
         self.check_alive_task = task.LoopingCall(self.check_alive_states)
         self.check_last_task_id_task = task.LoopingCall(self.check_last_task_id)
@@ -124,7 +122,7 @@ class NAOCommunicationController(twisted.internet.protocol.DatagramProtocol):
         self.lastReceivedTaskID = int(content_fields[1])
         self.lastCompletedTaskID = int(content_fields[2])
 
-        self.frontend_controller.updateRobotLastTaskID(self.robot_number, message_info["timestamp"], self.lastReceivedTaskID, self.lastCompletedTaskID)
+        self.guiController.updateRobotLastTaskID(self.robot_number, message_info["timestamp"], self.lastReceivedTaskID, self.lastCompletedTaskID)
         self.update_assigned_tasks()
 
     def handleRobotPoseMessage(self, content, message_info):
@@ -134,7 +132,7 @@ class NAOCommunicationController(twisted.internet.protocol.DatagramProtocol):
 
         #print("[Robot %d] Angle: %f, Position: (%f, %f)" % (self.robot_number, robot_angle, robot_position[0], robot_position[1]))
 
-        self.frontend_controller.updateRobotPosition(self.robot_number, message_info["timestamp"], robot_angle, robot_position)
+        self.guiController.updateRobotPosition(self.robot_number, message_info["timestamp"], robot_angle, robot_position)
 
     def handleBallPositionMessage(self, content, message_info):
         content_fields = content.split(",")
@@ -142,7 +140,7 @@ class NAOCommunicationController(twisted.internet.protocol.DatagramProtocol):
 
         #print("[Robot %d] Ball position: (%f, %f)" % (self.robot_number, position[0], position[1]))
 
-        self.frontend_controller.updateBallPosition(self.robot_number, message_info["timestamp"], position)
+        self.guiController.updateBallPosition(self.robot_number, message_info["timestamp"], position)
     
     def handleRobotRoleMessage(self, content, message_info):
         content_fields = content.split(",")
@@ -150,7 +148,7 @@ class NAOCommunicationController(twisted.internet.protocol.DatagramProtocol):
 
         #print("[Robot %d] Robot role: %s" % (self.robot_number, role))
 
-        self.frontend_controller.updateRobotRole(self.robot_number, message_info["timestamp"], role)
+        self.guiController.updateRobotRole(self.robot_number, message_info["timestamp"], role)
     
     def handleObstaclesMessage(self, content, message_info):
         content_fields = content.split(";")[1:]
@@ -158,7 +156,7 @@ class NAOCommunicationController(twisted.internet.protocol.DatagramProtocol):
         
         #print("[Robot {}] Obstacles: ".format(self.robot_number), ", ".join(["({}, {})".format(obsX, obsY) for (obsX, obsY) in obstacle_list]))
 
-        self.frontend_controller.updateObstaclesPosition(self.robot_number, message_info["timestamp"], obstacle_list)
+        self.guiController.updateObstaclesPosition(self.robot_number, message_info["timestamp"], obstacle_list)
     
     def handleTaskQueueMessage(self, content, message_info):
         content_fields = list(filter(None, content.split(";")[1:]))
@@ -167,7 +165,7 @@ class NAOCommunicationController(twisted.internet.protocol.DatagramProtocol):
         lastReceivedTaskID = int(content_fields[0].split(",")[1])
         lastCompletedTaskID = int(content_fields[0].split(",")[2])
         
-        self.frontend_controller.resetRobotTaskQueue(self.robot_number, message_info["timestamp"], lastReceivedTaskID, lastCompletedTaskID)
+        self.guiController.resetRobotTaskQueue(self.robot_number, message_info["timestamp"], lastReceivedTaskID, lastCompletedTaskID)
         
         #If there isn't any task return
         if(len(content_fields) == 1): return
@@ -179,11 +177,11 @@ class NAOCommunicationController(twisted.internet.protocol.DatagramProtocol):
             taskID = int(task_fields[1])
 
             if len(task_fields)==2:
-                self.frontend_controller.addTask(self.robot_number, taskType, taskID)
+                self.guiController.addTask(self.robot_number, taskType, taskID)
             elif len(task_fields)==4:
                 xPos = int(math.floor(float(task_fields[2])))
                 yPos = int(math.floor(float(task_fields[3])))
-                self.frontend_controller.addTask(self.robot_number, taskType, taskID, parameters = [xPos, yPos])
+                self.guiController.addTask(self.robot_number, taskType, taskID, parameters = [xPos, yPos])
             else:
                 print("Wrong taskQueue format")
                 raise
@@ -262,7 +260,7 @@ class NAOCommunicationController(twisted.internet.protocol.DatagramProtocol):
         #Set as alive 
         self.alive = True
         
-        self.frontend_controller.enableClient(self.robot_number)
+        self.guiController.enableClient(self.robot_number)
 
     def set_to_not_alive(self):
         self.alive = False
@@ -270,11 +268,11 @@ class NAOCommunicationController(twisted.internet.protocol.DatagramProtocol):
         self.lastCompletedTaskID = None
         #If the robot is not alive (e.g. it crashed) we reset the task list. If the connection dropped, the robot will keep executing the tasks anyway
         #and also the last task ID will be correctly received upon reconnection
-        self.frontend_controller.resetRobotTasks()
+        self.guiController.resetRobotTasks()
         #We also reset the current robot role to 'unknown' and clean its DFA
-        self.frontend_controller.resetRobotRole()
+        self.guiController.resetRobotRole()
 
-        self.frontend_controller.sendRobotNotRespondingMessage(self.robot_number)
+        self.guiController.sendRobotNotRespondingMessage(self.robot_number)
         print("Starting task queue check")
         if not self.check_task_queue_task.running:
             self.check_task_queue_task.start(LAST_TASK_ID_TIMEOUT)
@@ -303,29 +301,29 @@ class NAOCommunicationController(twisted.internet.protocol.DatagramProtocol):
             #Check that:
             # 1) The robot role is known
             # 2) There is a DFA for that role
-            if self.robot_number in self.frontend_controller.robot_number_to_role.keys() \
+            if self.robot_number in self.guiController.robot_number_to_role.keys() \
                 and \
-                    self.frontend_controller.robot_number_to_role[self.robot_number]["role"] in self.frontend_controller.role_to_DFA.keys():
+                    self.guiController.robot_number_to_role[self.robot_number] in self.guiController.role_to_DFA.keys():
                     
-                    robot_role = self.frontend_controller.robot_number_to_role[self.robot_number]["role"]
+                    robot_role = self.guiController.robot_number_to_role[self.robot_number]
                     print("Robot %d role: %s" % (self.robot_number, robot_role))
-                    dfa_state = self.frontend_controller.role_to_DFA[robot_role].get_current_state()
-            if self.lastReceivedTaskID is not None and self.robot_number in self.frontend_controller.robot_tasks.keys():
+                    dfa_state = self.guiController.role_to_DFA[robot_role].get_current_state()
+            if self.lastReceivedTaskID is not None and self.robot_number in self.guiController.robot_tasks.keys():
                 task_list_string = "taskQueue|"
 
-                #if len(self.frontend_controller.robot_tasks[self.robot_number]["tasks"]) == 0:
+                #if len(self.guiController.robot_tasks[self.robot_number]["tasks"]) == 0:
                 #    return
 
-                if self.frontend_controller.robot_tasks[self.robot_number]["reset"]:
-                    self.frontend_controller.robot_tasks[self.robot_number]["reset"] = False
+                if self.guiController.robot_tasks[self.robot_number]["reset"]:
+                    self.guiController.robot_tasks[self.robot_number]["reset"] = False
                     self.send_string("resetTasks")
 
-                if len(self.frontend_controller.robot_tasks[self.robot_number]["tasksToDelete"]) > 0:
-                    for taskID in self.frontend_controller.robot_tasks[self.robot_number]["tasksToDelete"]:
+                if len(self.guiController.robot_tasks[self.robot_number]["tasksToDelete"]) > 0:
+                    for taskID in self.guiController.robot_tasks[self.robot_number]["tasksToDelete"]:
                         self.send_string("deleteTask,"+taskID)
-                    self.frontend_controller.robot_tasks[self.robot_number]["tasksToDelete"] = []
+                    self.guiController.robot_tasks[self.robot_number]["tasksToDelete"] = []
 
-                for i, task in enumerate(self.frontend_controller.robot_tasks[self.robot_number]["tasks"]):
+                for i, task in enumerate(self.guiController.robot_tasks[self.robot_number]["tasks"]):
                     if(i > 0): 
                         task_list_string+= ";"
                     task_list_string += task["taskType"]
@@ -342,34 +340,8 @@ class NAOCommunicationController(twisted.internet.protocol.DatagramProtocol):
             else:
                 return
 
-class FrontendController(ABC, twisted.internet.protocol.DatagramProtocol):
-    def __init__(self, reactor, manager : Type["BehaviorManager"] = None):
-        self.reactor = reactor
-
-        if manager is not None:
-            assert isinstance(manager, BehaviorManager)
-        self.manager = manager
-
-    def set_manager(self, manager : Type["BehaviorManager"]):
-        assert self.manager is None or isinstance(manager, BehaviorManager)
-        self.manager = manager
-
-    #HINT for twisted.internet.protocol.DatagramProtocol only abstract method
-    @abstractmethod
-    def datagramReceived(self, data, addr):
-        pass
-
-class GUIController(FrontendController):
-    def __init__(self, 
-        reactor, 
-        
-        local_websocket_interface_ip, read_port, 
-        remote_dest_ip, write_port, client_port,
-        
-        read_socket_timeout,
-        active_client_timeout
-    ):
-        super().__init__(reactor)
+class GUIController(twisted.internet.protocol.DatagramProtocol):
+    def __init__(self, reactor, local_websocket_interface_ip, read_port, read_socket_timeout, remote_dest_ip, write_port, client_port, active_client_timeout):
         self.ball_position = {"position_timestamp": None, "update_timestamp": time.time(), "last_seen_by_robot" : -1, "position" : (0, 0)}
 
 
@@ -379,6 +351,8 @@ class GUIController(FrontendController):
         self.robot_positions = {}
 
         self.robot_tasks = {}
+
+        self.role_to_DFA = {}
 
         self.obstacles = {"position_timestamp": None, "update_timestamp": time.time(), "obstacles" : []}
         
@@ -395,8 +369,6 @@ class GUIController(FrontendController):
         self.active_client_timeout = active_client_timeout
 
         self.check_alive_task = task.LoopingCall(self.check_client_alive)
-
-        self.role_to_DFA = {}
 
 
     def close_sockets(self):
@@ -446,7 +418,7 @@ class GUIController(FrontendController):
             self.write_socket.sendto(data, self.dest_addr[4])
             self.last_sent_message_timestamp = time.time()
 
-    def scheduleRobotTasksReset(self, robot_number):
+    def scheduleRobotTasksReset(self, robotNumber):
         self.robot_tasks[robot_number]["reset"] = True
 
     #Only called in case the server just restarted after the crash and the robot was still running and had already assigned tasks
@@ -607,130 +579,30 @@ class GUIController(FrontendController):
                 pass
                 #print("Client {} is alive".format(self.last_client_id))
 
-
-class BehaviorManager(metaclass=Singleton):
-    def __init__(self,
-            local_interface_ip : str,                           #Local LAN interface IP
-            robor_number_to_robot_IP_map : Dict[str, str],      #Maps robot number to data (including robot ip)
+class BehaviorController(metaclass=Singleton):
+    def __init__(self, 
+            robot_local_interface_ip : str, 
             robot_udp_base_read_port : int = 65100,             #Listening port for incoming messages from robots
             robot_udp_base_write_port : int = 65200,            #Socket port of outgoing messages for each robot (each message will be sent to 127.0.0.1:UDP_BASE_WRITE_PORT+<robot_number>)
             robot_udp_base_dest_port : int = 65000,             #Destination port of outgoing messages (each message will be sent to 127.0.0.1:UDP_BASE_WRITE_PORT+<robot_number>)
+            robor_number_to_IP_map : Dict[str, str] = None,
 
-            robot_read_socket_timeout : int = 0.05,             #Timeout after which the read operation on a socket is aborted
-            robot_alive_timeout : int = 0.05,                   #Timeout after which a non-responding robot is considered "not alive" (crashed or disconnected)
-
-            frontend_controller : FrontendController = None,
+            frontend_local_interface_ip : str = None,
+            frontend_socket_ip : str = None,
         ):
-
-        print("LOCAL INTERFACE IP: %s" % LOCAL_INTERFACE_IP)
-
-        ''' 
-        ______________________________
-        |                             |
-        |  SETUP FRONTEND CONTROLLER  |
-        |_____________________________|
-
-        '''
-        
-        self.frontend_controller = frontend_controller
-        self.frontend_controller.set_manager(self)
-
-    #-----------------------------------------------------------------
-
-        ''' 
-        __________________________________
-        |                                  |
-        |  SETUP ROBOT NETWORK INTERFACES  |
-        |__________________________________|
-
-        '''
-        self.local_interface_ip = local_interface_ip
-        self.robot_udp_base_read_port = robot_udp_base_read_port
-        self.robot_udp_base_write_port = robot_udp_base_write_port
-        self.robot_udp_base_dest_port = robot_udp_base_dest_port
-
-#TODO: Populate this with a broadcast discovery process (e.g. broadcast a message on the LAN until some robot responds) maybe asyncronous and continuous
-        self.robor_number_to_robot_IP_map = robor_number_to_robot_IP_map
-
-        self.robot_read_socket_timeout = robot_read_socket_timeout
-        self.robot_alive_timeout = robot_alive_timeout
-
-#TODO: Populate this by broadcast (as above)
-        self.robot_communication_controllers = {}
-        for robot_number in robot_number_to_robot_ip_map.keys():
-            write_port = self.robot_udp_base_write_port + robot_number
-            read_port = self.robot_udp_base_read_port + robot_number
-            dest_port = self.robot_udp_base_dest_port + robot_number
-            self.robot_communication_controllers[robot_number] = \
-                NAOCommunicationController(
-                    reactor, 
-                    robot_number, 
-                    self.local_interface_ip, 
-                    
-                    write_port, self.robor_number_to_robot_IP_map[robot_number]["robotIP"], dest_port, 
-                    read_port,  self.robot_read_socket_timeout,
-                    
-                    self.robot_alive_timeout,
-                    
-                    self.frontend_controller
-                )
-        #-----------------------------------------------------------------
-
-        ''' 
-        ________________________
-        |                        |
-        |  SETUP PERIODIC TASKS  |
-        |________________________|
-
-        '''
-
-        #Start LoopingCalls for each robot controller
-
-        #Does two things:
-        # 1) If the robot is currently alive but it has not sent any message since controller.alive_client_timeout seconds, will set it to "not alive"
-        # 2) If the robot has recently (less than controller.alive_client_timeout seconds ago) sent the any message, will
-        #       send the message "uthere?", as a KEEPALIVE request to the robot. The response to the KEEPALIVE is DISABLED on the robot as the
-        #       regular traffic is already more than enough.                                    
-        for controller in self.robot_communication_controllers.values():
-            controller.check_alive_task.start(ALIVE_CLIENT_TIMEOUT)      
-
-        for controller in self.robot_communication_controllers.values():
-            #Sends a "lastTaskID?" message to the robot every LAST_TASK_ID_TIMEOUT seconds, to which the robot will answer with a message like:
-            #   "lastTaskID,<last task ID received by robot>,<last task ID completed by robot>"
-            #See the NAOCommunicationController documentation to see how the "lastTaskID" message is handled         
-            controller.check_last_task_id_task.start(LAST_TASK_ID_TIMEOUT)
-            #Sends a "lastTaskQueue?" message to the robot every LAST_TASK_ID_TIMEOUT seconds, to which the robot will answer with a message like:
-            #   "lastTaskQueue;lastTaskID,<last task ID received by robot>,<last task ID completed by robot>;<task type>,<task fields separated by commas>;..."
-            #where "..." represents other task types and their fields (i.e. destination for robot or for ball)
-            #   NOTICE: this task is activated when the Python server first starts or whenever the robot is detected as "not alive". It is deactivated when the robot
-            #   is detected to be "alive"
-            controller.check_task_queue_task.start(LAST_TASK_ID_TIMEOUT)
-
-        for controller in self.robot_communication_controllers.values():
-            controller.update_assigned_tasks_task.start(UPDATE_TASKS_TIMEOUT)
-
-        #Start LoopingCalls for the GUI client
-        self.frontend_controller.check_alive_task.start(ALIVE_CLIENT_TIMEOUT)
-    #-----------------------------------------------------------------
-
-
-
-
-
-
-    def exit_gracefully(self, signal=None, frame=None):
-        print("Exiting server gracefully...")
-        reactor.stop()
-        for controller in self.robot_communication_controllers.values():
-            controller.close_sockets()
-        self.frontend_controller.close_sockets()
-
+        pass
 
 
 if __name__ == "__main__":
 
 
+    ROBOT_LIST = [1,2,3,4,5,6,7,8,9,10]
+
 #-----------------------------------------------------------------
+
+
+
+
 
     ''' 
      ____________________________
@@ -754,44 +626,6 @@ if __name__ == "__main__":
 
 
     ''' 
-    ______________________________
-    |                              |
-    |  FRONTEND NETWORK ADDRESSES  |
-    |______________________________|
-
-    '''
-
-    LOCAL_WEBSOCKET_INTERFACE_IP = "127.0.0.1"
-    FRONTEND_SOCKET_IP = "127.0.0.1"
-
-    
-    WEB_CLIENT_READ_PORT = 65300
-    WEB_CLIENT_WRITE_PORT = 65400
-    WEB_CLIENT_REMOTE_READ_PORT = 65301
-    WEB_CLIENT_REMOTE_WRITE_PORT = 65401
-#-----------------------------------------------------------------
-
-    ''' 
-    _____________________________________
-    |                                    |
-    |  SETUP FRONTEND NETWORK INTERFACE  |
-    |____________________________________|
-
-    '''
-    frontend_controller = GUIController(
-        reactor, 
-        LOCAL_WEBSOCKET_INTERFACE_IP, WEB_CLIENT_READ_PORT, 
-        FRONTEND_SOCKET_IP, WEB_CLIENT_WRITE_PORT, WEB_CLIENT_REMOTE_READ_PORT, 
-        
-        READ_SOCKET_TIMEOUT, 
-        ALIVE_CLIENT_TIMEOUT
-    )
-
-
-
-
-#TODO: replace this with an automatic robot discovery broadcast
-    ''' 
      ____________________________
     |                            |
     |  ROBOTS NETWORK ADDRESSES  |
@@ -802,13 +636,13 @@ if __name__ == "__main__":
     USE_LOCALHOST = True
 
 
-    robot_number_to_robot_ip_map = {}
+    robotNumberToIPMap = {}
     if(USE_LOCALHOST):
         LOCAL_INTERFACE_IP = "127.0.0.1"
-        robot_number_to_robot_ip_map[3] = {"robotName" : "Caligola", "robotIP" : "127.0.0.1"}
+        robotNumberToIPMap[3] = {"robotName" : "Caligola", "robotIP" : "127.0.0.1"}
     else:
         LOCAL_INTERFACE_IP = "10.0.255.226"
-        robot_number_to_robot_ip_map[3] = {"robotName" : "Caligola", "robotIP" : "10.0.19.17"}
+        robotNumberToIPMap[3] = {"robotName" : "Caligola", "robotIP" : "10.0.19.17"}
     
     #Notice: 
     # - the DEST_PORTs here have to be the READ_PORTs on the robots
@@ -822,48 +656,121 @@ if __name__ == "__main__":
 
 
 
+
     ''' 
-    ______________________________
-    |                             |
-    |  SETUP BEHAVIOR CONTROLLER  |
-    |_____________________________|
+     ______________________________
+    |                              |
+    |  FRONTEND NETWORK INTERFACE  |
+    |______________________________|
 
     '''
 
-    behavior_controller = BehaviorManager(
-        LOCAL_INTERFACE_IP,                                             #Local interface ip address
-        
-        #Robot communication info
-        robor_number_to_robot_IP_map = robot_number_to_robot_ip_map,    #Robot number to robot data (including IP) map (will be replaced by an automatic discovery mechanism)
-        robot_udp_base_read_port = UDP_BASE_READ_PORT,                  
-        robot_udp_base_write_port = UDP_BASE_WRITE_PORT,
-        robot_udp_base_dest_port = UDP_BASE_DEST_PORT,
-        
-        robot_read_socket_timeout = READ_SOCKET_TIMEOUT,
-        robot_alive_timeout = ALIVE_CLIENT_TIMEOUT,
+    LOCAL_WEBSOCKET_INTERFACE_IP = "127.0.0.1"
+    FRONTEND_SOCKET_IP = "127.0.0.1"
 
-        #Frontend controller
-        frontend_controller = frontend_controller
-    )
+    
+    WEB_CLIENT_READ_PORT = 65300
+    WEB_CLIENT_WRITE_PORT = 65400
+    WEB_CLIENT_REMOTE_READ_PORT = 65301
+    WEB_CLIENT_REMOTE_WRITE_PORT = 65401
+
+    print("LOCAL INTERFACE IP: %s" % LOCAL_INTERFACE_IP)
+    guiController = GUIController(reactor, LOCAL_WEBSOCKET_INTERFACE_IP, WEB_CLIENT_READ_PORT, READ_SOCKET_TIMEOUT, FRONTEND_SOCKET_IP, WEB_CLIENT_WRITE_PORT, WEB_CLIENT_REMOTE_READ_PORT, ALIVE_CLIENT_TIMEOUT)
+#-----------------------------------------------------------------
+
 
 
 
 
     ''' 
-    ________________________________________
+     __________________________________
+    |                                  |
+    |  SETUP ROBOT NETWORK INTERFACES  |
+    |__________________________________|
+
+    '''
+
+    robotCommunicationControllers = {}
+    for robot_number in robotNumberToIPMap.keys():
+        write_port = UDP_BASE_WRITE_PORT + robot_number
+        read_port = UDP_BASE_READ_PORT + robot_number
+        dest_port = UDP_BASE_DEST_PORT + robot_number
+        robotCommunicationControllers[robot_number] = NAOCommunicationController(reactor, robot_number, LOCAL_INTERFACE_IP, 
+                                                                                write_port, robotNumberToIPMap[robot_number]["robotIP"], dest_port, 
+                                                                                read_port,  READ_SOCKET_TIMEOUT,
+                                                                                ALIVE_CLIENT_TIMEOUT,
+                                                                                guiController)
+#-----------------------------------------------------------------
+
+
+
+
+
+    ''' 
+     ________________________
+    |                        |
+    |  SETUP PERIODIC TASKS  |
+    |________________________|
+
+    '''
+
+    #Start LoopingCalls for each robot controller
+
+    #Does two things:
+    # 1) If the robot is currently alive but it has not sent any message since controller.alive_client_timeout seconds, will set it to "not alive"
+    # 2) If the robot has recently (less than controller.alive_client_timeout seconds ago) sent the any message, will
+    #       send the message "uthere?", as a KEEPALIVE request to the robot. The response to the KEEPALIVE is DISABLED on the robot as the
+    #       regular traffic is already more than enough.                                    
+    for controller in robotCommunicationControllers.values():
+        controller.check_alive_task.start(ALIVE_CLIENT_TIMEOUT)      
+
+    for controller in robotCommunicationControllers.values():
+        #Sends a "lastTaskID?" message to the robot every LAST_TASK_ID_TIMEOUT seconds, to which the robot will answer with a message like:
+        #   "lastTaskID,<last task ID received by robot>,<last task ID completed by robot>"
+        #See the NAOCommunicationController documentation to see how the "lastTaskID" message is handled         
+        controller.check_last_task_id_task.start(LAST_TASK_ID_TIMEOUT)
+        #Sends a "lastTaskQueue?" message to the robot every LAST_TASK_ID_TIMEOUT seconds, to which the robot will answer with a message like:
+        #   "lastTaskQueue;lastTaskID,<last task ID received by robot>,<last task ID completed by robot>;<task type>,<task fields separated by commas>;..."
+        #where "..." represents other task types and their fields (i.e. destination for robot or for ball)
+        #   NOTICE: this task is activated when the Python server first starts or whenever the robot is detected as "not alive". It is deactivated when the robot
+        #   is detected to be "alive"
+        controller.check_task_queue_task.start(LAST_TASK_ID_TIMEOUT)
+
+    for controller in robotCommunicationControllers.values():
+        controller.update_assigned_tasks_task.start(UPDATE_TASKS_TIMEOUT)
+
+    #Start LoopingCalls for the GUI client
+    guiController.check_alive_task.start(ALIVE_CLIENT_TIMEOUT)
+#-----------------------------------------------------------------
+
+
+
+
+
+    ''' 
+     ________________________________________
     |                                        |
     |  CORRECTLY HANDLE TERMINATION SIGNALS  |
     |________________________________________|
 
     '''
 
+    def exit_gracefully(signal=None, frame=None):
+        print("Exiting server gracefully...")
+        reactor.stop()
+        for controller in robotCommunicationControllers.values():
+            controller.close_sockets()
+        guiController.close_sockets()
+
+
     #Handle interrupt signals
-    signal.signal(signal.SIGINT, behavior_controller.exit_gracefully)
-    signal.signal(signal.SIGABRT, behavior_controller.exit_gracefully)
-    signal.signal(signal.SIGTERM, behavior_controller.exit_gracefully)
-    signal.signal(signal.SIGQUIT, behavior_controller.exit_gracefully)
-    signal.signal(signal.SIGHUP, behavior_controller.exit_gracefully)
-    #-----------------------------------------------------------------
+    signal.signal(signal.SIGINT, exit_gracefully)
+    signal.signal(signal.SIGABRT, exit_gracefully)
+    signal.signal(signal.SIGTERM, exit_gracefully)
+    signal.signal(signal.SIGQUIT, exit_gracefully)
+    signal.signal(signal.SIGHUP, exit_gracefully)
+#-----------------------------------------------------------------
+
 
 
 
@@ -879,6 +786,6 @@ if __name__ == "__main__":
     try:
         reactor.run()
     except:
-        behavior_controller.exit_gracefully()
+        exit_gracefully()
 
             

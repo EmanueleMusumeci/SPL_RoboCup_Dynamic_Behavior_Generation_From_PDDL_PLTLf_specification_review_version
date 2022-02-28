@@ -19,6 +19,7 @@
 #include "Representations/Modeling/ObstacleModel.h"
 #include "Representations/Communication/GameInfo.h"
 #include "Representations/Modeling/BallModel.h"
+#include "Representations/BehaviorControl/Role.h"
 #include "Tools/Math/Pose2f.h"
 
 #include "Representations/Modeling/ExternalServerCommunicationController/ExternalServerCommunicationControl.h"
@@ -41,6 +42,7 @@ MODULE(ExternalServerCommunicationController,
  REQUIRES(OwnTeamInfo),
  REQUIRES(OpponentTeamInfo),
  REQUIRES(FieldDimensions),
+ REQUIRES(Role),
 
  REQUIRES(TaskController),
 
@@ -57,6 +59,7 @@ MODULE(ExternalServerCommunicationController,
 
       (int) ROBOT_POSE_UPDATE_FREQUENCY,            /** Number of cycles between two different robot pose updates to client device */
       (int) BALL_POSITION_UPDATE_FREQUENCY,         /** Number of cycles between two different ball info updates to client device */
+      (int) ROLE_UPDATE_FREQUENCY,         /** Number of cycles between two different role updates to client device */
       (int) OBSTACLES_UPDATE_FREQUENCY,             /** Number of cycles between two different obstacles info updates to client device */
       (int) LAST_TASK_QUEUE_UPDATE_FREQUENCY,             /** Number of cycles between two different task queue updates to client device */
 
@@ -80,6 +83,7 @@ public:
     
     int cycles_since_robot_pose_update;
     int cycles_since_ball_update;
+    int cycles_since_role_update;
     int cycles_since_obstacles_update;
     int cycles_since_task_queue_update;
 
@@ -99,6 +103,7 @@ public:
 
     std::string robot_pose_to_sendable_string();
     std::string ball_position_to_sendable_string();
+    std::string role_to_sendable_string();
     std::string obstacles_to_sendable_string();
 
     void send_data_string(std::string str, bool prefix_timestamp, bool prefix_robot_number);

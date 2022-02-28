@@ -138,6 +138,7 @@ var canvasBackgroundColor = "#00BB00";
 
 
 var robotNumbersToPositions = new Map();
+var robotNumbersToRoles = new Map();
 var ballPosition = [0.0, 0.0];
 var obstaclesPositions = [];
 
@@ -430,7 +431,7 @@ file:///home/asc/Downloads/Emanuele%20Musumeci%20(1653885)%20-%20Report.pdf
     drawTargetOnField(canvas, unscaledTarget[0], unscaledTarget[1], targetColor)
 }
 
-function drawRobot(ctx, robotNumber, angle, xPos, yPos, isActiveRobot = false)
+function drawRobot(ctx, robotNumber, angle, xPos, yPos, isActiveRobot = false, tag = undefined)
 {
     var fillColor = "#AAAAAA";
     var lineColor = "#000000";
@@ -448,10 +449,19 @@ function drawRobot(ctx, robotNumber, angle, xPos, yPos, isActiveRobot = false)
                 mapValueToCurrentCanvas(mapValueToCurrentField(50)), //arrow head length
                 [CANVAS_FIELD_WIDTH/2, CANVAS_FIELD_HEIGHT/2]);
     
+    label = "Robot "+robotNumber
     drawTextLabel(ctx, 
                     xPos + FieldDimensions.ROBOT_RADIUS * 2, 
-                    yPos - FieldDimensions.ROBOT_RADIUS * 1.5, "Robot "+ACTIVE_ROBOT_NUMBER, "#0000FF", 95,
+                    yPos - FieldDimensions.ROBOT_RADIUS * 2.5, label, "#0000FF", 95,
                     [CANVAS_FIELD_WIDTH/2, CANVAS_FIELD_HEIGHT/2])
+    if(tag != undefined)
+    {
+        roleLabel = tag
+        drawTextLabel(ctx, 
+                        xPos + FieldDimensions.ROBOT_RADIUS * 2, 
+                        yPos - FieldDimensions.ROBOT_RADIUS * 1.5, roleLabel, "#FF0000", 75,
+                        [CANVAS_FIELD_WIDTH/2, CANVAS_FIELD_HEIGHT/2])
+    }
 }
 
 function drawBall(ctx)
@@ -495,13 +505,22 @@ function drawObjects(canvas)
     //Draw the ball
     drawBall(ctx)
     //Draw the active robots
-    for( const [robotNumber, robotPosition] of Object.entries(robotNumbersToPositions)) 
+        for( const [robotNumber, robotPosition] of robotNumbersToPositions) 
     {
+        robotTag = undefined
+        if(robotNumbersToRoles.has(robotNumber))
+        {
+            robotTag = robotNumbersToRoles.get(robotNumber)
+        }
+
         drawRobot(ctx, robotNumber, 
                     robotPosition[0], 
                     Utils.mapValue(robotPosition[1], -CANVAS_FIELD_WIDTH/2, CANVAS_FIELD_WIDTH/2, -CURRENT_CANVAS_FIELD_WIDTH/2, CURRENT_CANVAS_FIELD_WIDTH/2),
                     Utils.mapValue(robotPosition[2], -CANVAS_FIELD_HEIGHT/2, CANVAS_FIELD_HEIGHT/2, -CURRENT_CANVAS_FIELD_HEIGHT/2, CURRENT_CANVAS_FIELD_HEIGHT/2), 
-                    robotNumber == ACTIVE_ROBOT_NUMBER)
+                    robotNumber == ACTIVE_ROBOT_NUMBER,
+                    tag = robotTag)
+        
+
     };
 
     //Draw the obstacles
@@ -510,8 +529,8 @@ function drawObjects(canvas)
 
 function drawCurrentTasks(canvas)
 {
-    if(robotNumbersToPositions[ACTIVE_ROBOT_NUMBER] == undefined) return;
-    var prevWaypoint = scaleFieldPositionToCanvas(canvas, robotNumbersToPositions[ACTIVE_ROBOT_NUMBER][1], robotNumbersToPositions[ACTIVE_ROBOT_NUMBER][2]);
+    if(robotNumbersToPositions.get(""+ACTIVE_ROBOT_NUMBER) == undefined) return;
+    var prevWaypoint = scaleFieldPositionToCanvas(canvas, robotNumbersToPositions.get(""+ACTIVE_ROBOT_NUMBER)[1], robotNumbersToPositions.get(""+ACTIVE_ROBOT_NUMBER)[2]);
     for(var task of currentTaskList)
     {
         switch(task.taskType)
@@ -1175,7 +1194,7 @@ function setupSocket(webSocket)
         //Avoid reading your own messages
         if(message.data.startsWith("TOSERVER")) return;
         
-        var message_content = message.data.toString().split("!")[1]
+        var message_content = message.data.toString().replace("\x00","").split("!")[1]
         //console.log(message_content)
 
         if(message_content == 'yeah')
@@ -1204,11 +1223,23 @@ function setupSocket(webSocket)
                 var robotNumber = message_fields[0]
 
                 //NOTICE: the y coordinate is inverted
-                robotNumbersToPositions[robotNumber] = [
+                robotNumbersToPositions.set(robotNumber, 
+                [
                     parseFloat(message_fields[1]), 
                     Math.floor(parseFloat(message_fields[2])), 
                     -Math.floor(parseFloat(message_fields[3]))
-                ];
+                ]);
+            }
+            if(message_content.startsWith("robotRole"))
+            {
+                message_content = message_content.split(":")[1]
+                var message_fields = message_content.split(",")
+                var robotNumber = message_fields[0]
+
+                robotNumbersToRoles.set(robotNumber,
+                    message_fields[1]
+                )
+                //console.log("Received robot role: "+robotNumbersToRoles[robotNumber])
             }
             else if(message_content.startsWith("ballPosition"))
             {
