@@ -123,7 +123,7 @@ class IdleCard : public IdleCardBase
         }
         else
         {
-          if(state_time > saySomethingTimeout)
+          if(state_time > saySomethingTimeout && theTaskController.interactWithUser)
           {
             std::cout << "idle_state -> saySomething: say something TIMEOUT" << std::endl;
             goto saySomething;

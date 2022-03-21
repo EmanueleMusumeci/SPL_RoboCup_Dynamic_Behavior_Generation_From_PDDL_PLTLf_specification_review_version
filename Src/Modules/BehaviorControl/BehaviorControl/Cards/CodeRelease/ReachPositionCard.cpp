@@ -54,9 +54,6 @@ CARD(ReachPositionCard,
     (int) waitForSoundToStartPlaying,
     (int) waitBeforePlayingSound,
 
-
-    (Rangef) smallAlignmentRange,
-
     (bool) DEBUG_MODE,
   }),
 });
@@ -90,7 +87,17 @@ class ReachPositionCard : public ReachPositionCardBase
       transition
       {
         if(state_time > initialWaitTime)
-          goto interactWithHuman;
+        {
+          if(theTaskController.interactWithUser)
+          {
+            std::cout<<"start -> interactWithHuman: TIMEOUT"<<std::endl;
+            goto interactWithHuman;
+          }
+          else
+          {
+            goto walkToPosition;
+          }
+        }
       }
 
       action

@@ -10,6 +10,7 @@
 #include "Representations/BehaviorControl/FieldBall.h"
 #include "Representations/Modeling/RobotPose.h"
 #include "Representations/HRI/TaskController.h"
+#include "Representations/HRI/BooleanRegistry.h"
 #include "Representations/Communication/RobotInfo.h"
 #include "Representations/Communication/TeamData.h"
 #include "Representations/Communication/TeamInfo.h"
@@ -44,6 +45,7 @@ MODULE(ExternalServerCommunicationController,
  REQUIRES(FieldDimensions),
  REQUIRES(Role),
 
+ REQUIRES(BooleanRegistry),
  REQUIRES(TaskController),
 
  USES(ActivationGraph),
@@ -59,9 +61,10 @@ MODULE(ExternalServerCommunicationController,
 
       (int) ROBOT_POSE_UPDATE_FREQUENCY,            /** Number of cycles between two different robot pose updates to client device */
       (int) BALL_POSITION_UPDATE_FREQUENCY,         /** Number of cycles between two different ball info updates to client device */
-      (int) ROLE_UPDATE_FREQUENCY,         /** Number of cycles between two different role updates to client device */
+      (int) ROLE_UPDATE_FREQUENCY,                  /** Number of cycles between two different role updates to client device */
       (int) OBSTACLES_UPDATE_FREQUENCY,             /** Number of cycles between two different obstacles info updates to client device */
-      (int) LAST_TASK_QUEUE_UPDATE_FREQUENCY,             /** Number of cycles between two different task queue updates to client device */
+      (int) LAST_TASK_QUEUE_UPDATE_FREQUENCY,       /** Number of cycles between two different task queue updates to client device */
+      (int) BOOLEANS_UPDATE_FREQUENCY,              /** Number of cycles between two different boolean flags updates to client device */
 
       (bool) PREFIX_TIMESTAMP,                      /** Add the timestamp at the beginning of the message */
       (bool) PREFIX_ROBOT_NUMBER,                   /** Add the robot number to the message */
@@ -86,6 +89,7 @@ public:
     int cycles_since_role_update;
     int cycles_since_obstacles_update;
     int cycles_since_task_queue_update;
+    int cycles_since_boolean_flags_update;
 
     int cycles_since_last_keepalive_check;
     

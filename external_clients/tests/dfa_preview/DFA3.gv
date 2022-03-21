@@ -1,7 +1,7 @@
             digraph MONA_DFA {
              rankdir = LR;
              center = true;
-             size = "7.5,10.5";
+             size = "14.5,20.5";
              edge [fontname = Courier];
              node [height = .5, width = .5];
              node [shape = doublecircle]; 1;
@@ -9,8 +9,9 @@
              init [shape = plaintext, label = ""];
 init -> 0;
 0 -> 1 [label="True"];
-1 -> 1 [label="[~literal_is_robot_near_ball] "];
-1 -> 2 [label="[literal_is_robot_near_ball] ~action_reach_ball"];
-1 -> 1 [label="[literal_is_robot_near_ball] action_reach_ball"];
+1 -> 2 [label="[~literal_is_robot_near_ball] ~action_reach_ball"];
+1 -> 1 [label="[~literal_is_robot_near_ball] action_reach_ball"];
+1 -> 2 [label="[literal_is_robot_near_ball] ~action_kick_ball"];
+1 -> 1 [label="[literal_is_robot_near_ball] action_kick_ball"];
 2 -> 2 [label="True"];
 }

@@ -175,8 +175,15 @@ class ApproachAndKickCard : public ApproachAndKickCardBase
       {
         if(state_time > initialWaitTime)
         {
-          std::cout<<"start -> interactWithHuman: TIMEOUT"<<std::endl;
-          goto interactWithHuman;
+          if(theTaskController.interactWithUser)
+          {
+            std::cout<<"start -> interactWithHuman: TIMEOUT"<<std::endl;
+            goto interactWithHuman;
+          }
+          else
+          {
+            goto choose_target;
+          }
         }
       }
 

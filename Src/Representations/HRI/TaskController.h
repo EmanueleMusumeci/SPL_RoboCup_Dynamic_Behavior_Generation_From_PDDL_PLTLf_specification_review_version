@@ -89,6 +89,7 @@ namespace HRI
     ENUM(TaskType,
     {,
       None, //Only used when the task list is empty
+      DFAControlledTask, //Special type of task that wraps the action ordered by the DFA
       GoToPosition,
       //TurnToPosition,
       KickBallToPosition,
@@ -230,6 +231,7 @@ STREAMABLE(Task,
   Task() = default; 
   Task(HRI::TaskType taskType, int taskID, std::vector<Action>& actionQueue, Vector2f finalPosition);
   Task(HRI::TaskType taskType, int taskID, std::vector<Action>& actionQueue, int teammateNumber);
+  Task(HRI::TaskType taskType, int taskID, std::vector<Action>& actionQueue);
   Task(HRI::TaskType taskType, int taskID);
   /*Task& operator=(const Task& other)
   {
@@ -248,6 +250,7 @@ STREAMABLE(Task,
 });
 inline Task::Task(HRI::TaskType taskType, int taskID, std::vector<Action>& actionQueue, Vector2f finalPosition) : taskType(taskType), taskID(taskID), actionQueue(actionQueue), finalPosition(finalPosition), taskSize(actionQueue.size()) {};
 inline Task::Task(HRI::TaskType taskType, int taskID, std::vector<Action>& actionQueue, int teammateNumber) : taskType(taskType), taskID(taskID), actionQueue(actionQueue), teammateNumber(teammateNumber), taskSize(actionQueue.size()) {};
+inline Task::Task(HRI::TaskType taskType, int taskID, std::vector<Action>& actionQueue) : taskType(taskType), taskID(taskID), actionQueue(actionQueue), taskSize(actionQueue.size()) {};
 inline Task::Task(HRI::TaskType taskType, int taskID) : taskType(taskType), taskID(taskID), taskSize(0) {};
 
 /**
@@ -268,6 +271,9 @@ STREAMABLE(TaskController,
   FUNCTION(void(Vector2f ballDestination)) updateCurrentBallDestination;
 
   FUNCTION(Task()) getCurrentTask;
+
+  FUNCTION(void()) setDFAMode;
+  FUNCTION(void()) setTaskMode;
 
   FUNCTION(void()) nextTask;
   FUNCTION(void()) resetTaskQueue;
@@ -310,7 +316,11 @@ STREAMABLE(TaskController,
   (Vector2f) userPosition,
   (float) userHeight,
 
+  (bool) interactWithUser,
+
   (bool)(false) initialSpeechPerformed,
+
+  (bool)(false) DFAControlledMode, //When set to true, the task controller will not use the task queue but the dfaTask field, and will not update work based on the taskID
 
 });
 inline TaskController::TaskController() : taskQueue(), completedTasks() {}

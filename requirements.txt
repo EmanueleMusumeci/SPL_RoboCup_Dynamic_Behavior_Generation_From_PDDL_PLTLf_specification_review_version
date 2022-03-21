@@ -1,2 +1,4 @@
+numpy
+twisted
 ltlf2dfa
 graphviz

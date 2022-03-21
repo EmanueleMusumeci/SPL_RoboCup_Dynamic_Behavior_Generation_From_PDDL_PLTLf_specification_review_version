@@ -245,7 +245,16 @@ class ApproachAndCarryToGoalWithTwoStepRealignmentCard : public ApproachAndCarry
       transition
       {
         if(state_time > initialWaitTime)
-          goto interactWithHuman;
+        {
+          if(theTaskController.interactWithUser)
+          {
+            goto interactWithHuman;
+          }
+          else
+          {
+            goto choose_target;
+          }
+        } 
       }
 
       action

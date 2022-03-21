@@ -52,6 +52,8 @@ MODULE(TaskControllerProvider,
       (float) KICK_DISTANCE_THRESHOLD,                              /** Minimum distance of the ball from its destination to declare the Kick action completed */ 
       (float) REACH_POSITION_DISTANCE_THRESHOLD,                    /** Minimum distance of the robot from its destination to declare the ReachPosition action completed */ 
 
+      (bool) INTERACT_WITH_USER,                                    /** Perform interactions with human **/
+
       (Vector2f) userPosition,                                      /** Position of the human user */
       (float) userHeight,                                           /** Height of the human user */
 
@@ -80,6 +82,9 @@ public:
   /* These tasks take no additional argument (except the taskID) */
   static Task ScoreGoalTask(int taskID);
   static Task InitialSpeechTask(int taskID);
+
+  /* This special task wraps the action ordered by the DFA */
+  static Task DFAControlledTask(Action DFAAction, int taskID);
 
 private:
   void update(TaskController& controller) override;
@@ -131,4 +136,11 @@ inline Task TaskControllerProvider::InitialSpeechTask(int taskID)
   std::vector<Action> actionQueue;
   actionQueue.push_back(Action(HRI::ActionType::PerformInitialSpeech));
   return Task(HRI::TaskType::InitialSpeech, taskID, actionQueue, Vector2f(0,0));
+}
+
+inline Task TaskControllerProvider::DFAControlledTask(Action DFAAction, int taskID)
+{
+  std::vector<Action> actionQueue;
+  actionQueue.push_back(DFAAction);
+  return Task(HRI::TaskType::DFAControlledTask, taskID, actionQueue);
 }

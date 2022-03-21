@@ -18,7 +18,10 @@
 #define DEBUG_CODE(code) \
   std::cout<<"[Robot #"<<std::to_string(theRobotInfo.number)<<"] "<<__STRINGIFY(code)<<": "<<std::to_string(code)<<std::endl;
 
-TaskControllerProvider::TaskControllerProvider(){}
+TaskControllerProvider::TaskControllerProvider()
+{
+    
+}
 
 void TaskControllerProvider::update(TaskController& controller)
 {
@@ -30,9 +33,21 @@ void TaskControllerProvider::update(TaskController& controller)
     controller.kickDistanceThreshold = KICK_DISTANCE_THRESHOLD;
     controller.reachPositionDistanceThreshold = REACH_POSITION_DISTANCE_THRESHOLD;
 
+    controller.interactWithUser = INTERACT_WITH_USER;
+    
     controller.userPosition = userPosition;
     controller.userHeight = userHeight;
 
+
+    controller.setDFAMode = [&] () -> void
+    {
+        controller.DFAControlledMode = true;
+    };
+
+    controller.setTaskMode = [&] () -> void
+    {
+        controller.DFAControlledMode = false;
+    };
 
     //DEBUG_NUMB(PRINT_DEBUG, std::to_string(controller.taskQueue.empty()));
     
@@ -112,7 +127,7 @@ void TaskControllerProvider::update(TaskController& controller)
         DEBUG_NUMB(PRINT_DEBUG, "Current tasks: "<<controller.tasksToString());
         DEBUG_NUMB(PRINT_DEBUG, "taskCompleted");
         controller.completedTasks.push_back(controller.taskQueue.at(0));
-        if(playSound) SoundPlayer::play("TaskCompleted.wav");
+        if(playSound && !controller.DFAControlledMode) SoundPlayer::play("TaskCompleted.wav");
         controller.nextTask();
     };
 
@@ -268,7 +283,7 @@ void TaskControllerProvider::update(TaskController& controller)
             DEBUG_NUMB(PRINT_DEBUG, "taskCompleted");
             controller.completedTasks.push_back(controller.taskQueue.at(0));
 
-            if(playSound) SoundPlayer::play("TaskCompleted.wav");
+            if(playSound && !controller.DFAControlledMode) SoundPlayer::play("TaskCompleted.wav");
 
             controller.nextTask();
             return true;
@@ -281,12 +296,31 @@ void TaskControllerProvider::update(TaskController& controller)
     {
         DEBUG_NUMB(PRINT_DEBUG, "\n\ncontroller.addTask");
         DEBUG_NUMB(PRINT_DEBUG, "Adding task: task.taskID: "<<std::to_string(task.taskID)<<", controller.lastReceivedTaskID: "<<std::to_string(controller.lastReceivedTaskID));
-        //Only add newer tasks, that have a higher taskID
-        if(task.taskID <= controller.lastReceivedTaskID) return;
+        
+        //IF in DFA mode, a task with the same taskID as the current one will OVERWRITE it
+        //ELSE, if in Task mode, only newer tasks (tasks with a taskID higher than the lastReceivedTaskID) will be added to the task queue
+        if(controller.DFAControlledMode)
+        {
+            //Only add newer tasks, that have a higher taskID
+            if(task.taskID < controller.lastReceivedTaskID) return;
+            else if(task.taskID == controller.lastReceivedTaskID)
+            {
+                if(!controller.taskQueue.empty())
+                {
+                    controller.taskQueue.pop_back();
+                }
+            }
+        }
+        else
+        {
+            //Only add newer tasks, that have a higher taskID
+            if(task.taskID <= controller.lastReceivedTaskID) return;
+            DEBUG_NUMB(PRINT_DEBUG, "Task controlled mode: adding task (ID: "<<task.taskID<<")");
+        }
 
         controller.taskQueue.push_back(task);
         controller.lastReceivedTaskID = task.taskID;
-        DEBUG_NUMB(PRINT_DEBUG, "Task added");
+
     };
     
     /* Adds all tasks from a std::vector of tasks */

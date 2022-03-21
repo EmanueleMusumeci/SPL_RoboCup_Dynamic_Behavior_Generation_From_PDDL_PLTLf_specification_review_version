@@ -18,6 +18,7 @@
 #define BUFFER_SIZE 1024
 
 #define ACTION_QUEUE_TAG_STRING std::string("taskQueue")
+#define DFA_ACTION_TAG_STRING std::string("DFAAction")
 #define LAST_TASK_ID_REQUEST_STRING std::string("lastTaskID?")
 #define LAST_TASK_QUEUE_REQUEST_STRING std::string("lastTaskQueue?")
 #define RESET_TASKS_STRING std::string("resetTasks")
@@ -26,6 +27,12 @@
 //Macro used to determine if a string starts with another string
 #define string_startswith(string, cmp_string) \
     string.rfind(cmp_string, 0) == 0
+
+//Strings used by the protocol to represent parameter types
+#define INT_TYPE_STRING "int"
+#define FLOAT_TYPE_STRING "float"
+#define STR_TYPE_STRING "str"
+#define BOOL_TYPE_STRING "bool"
 
 /*
 #define __STRINGIFY__(taskType) taskType
@@ -265,6 +272,13 @@ std::vector<std::string> ExternalServerCommunicationController::getTokens(std::s
             1.3.2) Parse the task type (and check that it is known)
             1.3.3) Based on task type, create the task instance and add it to the local task queue
 
+    2) if it starts with the DFA_ACTION_TAG_STRING "DFAAction", it handles it as an action:
+        1.1) Divide the message into header and payload
+        1.2) Extract the desired action from the message
+            1.2.1) Extract the action type
+            1.2.1) Extract the action parameters
+            1.3.3) Based on action type, run the selected action with the required parameters
+        
     2) if it starts with the LAST_TASK_ID_REQUEST_STRING "lastTaskId?", it sends the last_task_queue_string() in response
 
     3) if it starts with the RESET_TASKS_STRING "resetTasks", it resets the taskQueue in the TaskController
@@ -278,6 +292,7 @@ void ExternalServerCommunicationController::handleMessage(std::string message, s
     
     if(string_startswith(message, ACTION_QUEUE_TAG_STRING))
     {
+        theTaskController.setTaskMode();
         if(PRINT_DEBUG) std::cout<<message<<std::endl;
         
         //1.1) Divide the message into header and payload
@@ -379,6 +394,190 @@ void ExternalServerCommunicationController::handleMessage(std::string message, s
             }
         }
     }
+    if(string_startswith(message, DFA_ACTION_TAG_STRING))
+    {
+        theTaskController.setDFAMode();
+        if(theTaskController.checkTaskCompleted(false))
+        {
+//TODO: Answer with the DFAActionCompleted(taskID) message
+        }
+        else
+        {
+            if(PRINT_DEBUG) std::cout<<message<<std::endl;
+            
+            //1.1) Divide the message into header and payload
+            std::vector<std::string> actionTokens = getTokens(message, std::string("|"));
+            ASSERT(actionTokens.size() == 2);
+
+            //1.2) Extract the action and its parameters from the message
+            std::vector<std::string> actionFields = getTokens(actionTokens[1], std::string(";"));
+            ASSERT(actionFields.size() == 2);
+
+            //1.3) Parse the action information
+            std::vector<std::string> actionInfo = getTokens(actionFields[0], std::string(","));
+            ASSERT(actionInfo.size() == 2);
+            std::string actionName = actionInfo[0];
+            
+            //1.3.1) Parse the action type (and check that it is known)
+            HRI::ActionType actionType = static_cast<HRI::ActionType>(TypeRegistry::getEnumValue(typeid(HRI::ActionType).name(), actionName));
+            if(actionType == -1)
+            {
+                std::cout<<"Unknown ActionType: "<<std::string(actionName)<<std::endl;
+                return;
+            }
+            
+            //1.3.2) Parse taskID
+            int taskID = std::stoi(actionInfo[1]);
+
+            std::vector<std::string> actionParameters;
+
+            //1.4) Extract the action parameters
+            if(actionFields[1].size() > 0)
+            {
+                actionParameters = getTokens(actionFields[1], std::string("/"));
+            }
+
+            DEBUG_NUMB(PRINT_DEBUG, actionParameters.size());
+
+            //1.5) Create an Action instance based on the number of parameters
+            Action DFAAction;
+            //1.3.3) Based on task type, create the task instance and add it to the local task queue
+            if(actionParameters.size()==2)
+            {
+                std::cout<<actionParameters[0]<<std::endl;
+                std::vector<std::string> firstParamInfo = getTokens(actionParameters[0], std::string(":"));
+                std::string firstParamName = firstParamInfo[0];
+
+                std::vector<std::string> firstParamValueInfo = getTokens(firstParamInfo[1], std::string(","));
+                std::string firstParamTypeString = firstParamValueInfo[1];
+                std::string firstParamValueString = firstParamValueInfo[0];
+
+
+                std::cout<<actionParameters[1]<<std::endl;
+                std::vector<std::string> secondParamInfo = getTokens(actionParameters[1], std::string(":"));
+                std::string secondParamName = secondParamInfo[0];
+
+                std::vector<std::string> secondParamValueInfo = getTokens(secondParamInfo[1], std::string(","));
+                std::string secondParamTypeString = secondParamValueInfo[1];
+                std::string secondParamValueString = secondParamValueInfo[0];
+
+
+                std::cout<<firstParamTypeString<<std::endl;
+                std::cout<<secondParamTypeString<<std::endl;
+                switch(actionType)
+                {
+                    case HRI::ActionType::ReachPosition:
+                    {
+                        ASSERT(string_startswith(firstParamTypeString, INT_TYPE_STRING) || string_startswith(firstParamTypeString, FLOAT_TYPE_STRING));
+                        ASSERT(string_startswith(secondParamTypeString, INT_TYPE_STRING) || string_startswith(secondParamTypeString, FLOAT_TYPE_STRING));
+
+                        //Coordinates
+                        float coordX = std::stof(firstParamValueString);
+                        float coordY = std::stof(secondParamValueString);
+                        Vector2f position = Vector2f(coordX, coordY);
+
+                        DFAAction = Action(HRI::ActionType::ReachPosition, position);
+                        break;
+                    }
+                    case HRI::ActionType::CarryBall:
+                    {
+                        ASSERT(string_startswith(firstParamTypeString, INT_TYPE_STRING) || string_startswith(firstParamTypeString, FLOAT_TYPE_STRING));
+                        ASSERT(string_startswith(secondParamTypeString, INT_TYPE_STRING) || string_startswith(secondParamTypeString, FLOAT_TYPE_STRING));
+
+                        //Coordinates
+                        float coordX = std::stof(firstParamValueString);
+                        float coordY = std::stof(secondParamValueString);
+                        Vector2f position = Vector2f(coordX, coordY);
+
+                        DFAAction = Action(HRI::ActionType::CarryBall, position);
+                        break;
+                    }
+                    case HRI::ActionType::Kick:
+                    {
+                        ASSERT(string_startswith(firstParamTypeString, INT_TYPE_STRING) || string_startswith(firstParamTypeString, FLOAT_TYPE_STRING));
+                        ASSERT(string_startswith(secondParamTypeString, INT_TYPE_STRING) || string_startswith(secondParamTypeString, FLOAT_TYPE_STRING));
+                        
+                        //Coordinates
+                        float coordX = std::stof(firstParamValueString);
+                        float coordY = std::stof(secondParamValueString);
+                        Vector2f position = Vector2f(coordX, coordY);
+
+                        DFAAction = Action(HRI::ActionType::Kick, position);
+                        break;
+                    }
+//TODO Pass action
+                    default:
+                    {
+                        std::cout << "ERROR: action "<<actionName<<" was not recognized"<<std::endl;
+                        return;
+                    }
+                }
+            }
+            else if(actionParameters.size()==1)
+            {
+                std::cout<<actionParameters[0]<<std::endl;
+                std::vector<std::string> firstParamInfo = getTokens(actionParameters[0], std::string(":"));
+                std::string firstParamName = firstParamInfo[0];
+
+                std::vector<std::string> firstParamValueInfo = getTokens(firstParamInfo[1], std::string(","));
+                std::string firstParamTypeString = firstParamValueInfo[1];
+                std::string firstParamValueString = firstParamValueInfo[0];
+
+
+
+                switch(actionType)
+                {
+                    case HRI::ActionType::PassBall:
+                    {
+                        ASSERT(string_startswith(firstParamTypeString, INT_TYPE_STRING));
+                        int other_robot_number = std::stoi(firstParamValueString);
+                        DFAAction = Action(HRI::ActionType::PassBall, other_robot_number);
+                        break;
+                    }
+                    default:
+                    {
+                        std::cout << "ERROR: task "<<actionName<<" was not recognized"<<std::endl;
+                        return;
+                    }
+                }
+            }
+            else if(actionParameters.size()==0)
+            {
+
+                switch(actionType)
+                {
+                    case HRI::ActionType::ReachBall:
+                    {
+                        DFAAction = Action(HRI::ActionType::ReachBall);
+                        break;
+                    }
+                    case HRI::ActionType::CarryAndKickToGoal:
+                    {
+                        DFAAction = Action(HRI::ActionType::CarryAndKickToGoal);
+                        break;
+                    }
+                    case HRI::ActionType::Idle:
+                    {
+                        DFAAction = Action(HRI::ActionType::Idle);
+                        break;
+                    }
+                    default:
+                    {
+                        std::cout << "ERROR: task "<<actionName<<" was not recognized"<<std::endl;
+                        return;
+                    }
+                }
+                
+            }
+            else
+            {
+                if(PRINT_DEBUG) std::cout<<"WRONG MESSAGE STRUCTURE: "<<message<<std::endl;
+            }
+
+            //1.6) Add current action as DFAControlledTask to task queue
+            currentTaskQueue.push_back(TaskControllerProvider::DFAControlledTask(DFAAction, taskID));
+        }
+    }
     if(string_startswith(message, LAST_TASK_ID_REQUEST_STRING))
     {
         send_data_string(last_task_id_string(), PREFIX_TIMESTAMP, PREFIX_ROBOT_NUMBER);
@@ -410,9 +609,9 @@ void ExternalServerCommunicationController::update(ExternalServerCommunicationCo
 
     /*
     
-    |------------------|
+     ------------------
     | LAMBDA FUNCTIONS |
-    |------------------|
+     ------------------
 
     Lambda functions allow modifying the representation from other modules
     
@@ -570,7 +769,7 @@ void ExternalServerCommunicationController::update(ExternalServerCommunicationCo
     }
     this->cycles_since_ball_update++;
 
-    //Send a MESSAGE with the ball position every ROLE_UPDATE_FREQUENCY millisecs
+    //Send a MESSAGE with the role every ROLE_UPDATE_FREQUENCY millisecs
     if(this->cycles_since_role_update % ROLE_UPDATE_FREQUENCY == 0){
         send_data_string(role_to_sendable_string(), PREFIX_TIMESTAMP, PREFIX_ROBOT_NUMBER);
         this->cycles_since_role_update = 0;
@@ -593,6 +792,14 @@ void ExternalServerCommunicationController::update(ExternalServerCommunicationCo
     if(this->cycles_since_task_queue_update % LAST_TASK_QUEUE_UPDATE_FREQUENCY == 0){
         send_data_string(last_task_queue_string(), PREFIX_TIMESTAMP, PREFIX_ROBOT_NUMBER);
         this->cycles_since_task_queue_update = 0;
+    }
+    this->cycles_since_task_queue_update++;
+
+    
+    //Send a MESSAGE with the boolean flags every BOOLEANS_UPDATE_FREQUENCY millisecs, to update the literals in the DFA
+    if(this->cycles_since_boolean_flags_update % BOOLEANS_UPDATE_FREQUENCY == 0 && theBooleanRegistry.ALWAYS_SEND){
+        send_data_string(theBooleanRegistry.getString(), PREFIX_TIMESTAMP, PREFIX_ROBOT_NUMBER);
+        this->cycles_since_boolean_flags_update = 0;
     }
     this->cycles_since_task_queue_update++;
 

@@ -34,9 +34,12 @@ alias srrr="cd $RSIM; ./SimRobot $RSCENES/RemoteRobot.ros2"
 alias copd="cd $RMAKE; ./copyfiles Develop -b -v 60 "
 alias copdnorestart="cd $RMAKE; ./copyfiles Develop -v 60 "
 
-alias ltlpc="/home/asc/anaconda3/envs/VisioPe/bin/python3 $LTLCLIENTS/async_socket_NAO.py"
+alias ltlpc="/home/asc/anaconda3/envs/robocup/bin/python3 $LTLCLIENTS/run.py"
+alias ltldfa0="/home/asc/anaconda3/envs/robocup/bin/python3 $LTLCLIENTS/run_with_dfa_experiment_test.py"
+alias ltldfa1="/home/asc/anaconda3/envs/robocup/bin/python3 $LTLCLIENTS/run_with_dfa_experiment_patrolling_with_static_params.py"
+alias ltldfa2="/home/asc/anaconda3/envs/robocup/bin/python3 $LTLCLIENTS/run_with_dfa_experiment_patrolling_with_dynamic_params.py"
+alias ltldfa3="/home/asc/anaconda3/envs/robocup/bin/python3 $LTLCLIENTS/run_with_dfa_experiment_basic_striker.py"
+alias ltldfa4="/home/asc/anaconda3/envs/robocup/bin/python3 $LTLCLIENTS/run_with_dfa_experiment_repeated_passes.py"
 alias ltlnc="node $LTLCLIENTS/web_interface/clientUDP.js"
 
 alias ltlrtm="bash $LTLROOT/run_tmux.sh"
-
-#copyfiles Release -r NUMERO_RUOLO_ROBOT IP=(10.0.19.NUMERO_ROBOT) ... (ripeti per ogni robot) ... -d -b -v50
