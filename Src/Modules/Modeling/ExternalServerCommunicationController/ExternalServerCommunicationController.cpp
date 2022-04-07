@@ -18,7 +18,7 @@
 #define BUFFER_SIZE 1024
 
 #define ACTION_QUEUE_TAG_STRING std::string("taskQueue")
-#define DFA_ACTION_TAG_STRING std::string("DFAAction")
+#define PLAN_ACTION_TAG_STRING std::string("PlanAction")
 #define LAST_TASK_ID_REQUEST_STRING std::string("lastTaskID?")
 #define LAST_TASK_QUEUE_REQUEST_STRING std::string("lastTaskQueue?")
 #define RESET_TASKS_STRING std::string("resetTasks")
@@ -224,6 +224,15 @@ std::string ExternalServerCommunicationController::obstacles_to_sendable_string(
     return ret_string;
 }
 
+//String for MESSAGE requesting a KEEPALIVE 
+std::string ExternalServerCommunicationController::plan_action_completed_string(){
+    std::string ret_string;
+    ret_string.append("planActionCompleted;");
+    ret_string.append("lastTaskID,");
+    ret_string.append(std::to_string(theTaskController.lastCompletedTaskID));
+    return ret_string;
+}
+
 //Given a string to be sent as a MESSAGE, prefixes a HEADER to it containing the timestamp (if required) and the robot number (if required)
 void ExternalServerCommunicationController::send_data_string(std::string str, bool prefix_timestamp, bool prefix_robot_number)
 {
@@ -272,7 +281,7 @@ std::vector<std::string> ExternalServerCommunicationController::getTokens(std::s
             1.3.2) Parse the task type (and check that it is known)
             1.3.3) Based on task type, create the task instance and add it to the local task queue
 
-    2) if it starts with the DFA_ACTION_TAG_STRING "DFAAction", it handles it as an action:
+    2) if it starts with the PLAN_ACTION_TAG_STRING "PlanAction", it handles it as an action:
         1.1) Divide the message into header and payload
         1.2) Extract the desired action from the message
             1.2.1) Extract the action type
@@ -394,15 +403,16 @@ void ExternalServerCommunicationController::handleMessage(std::string message, s
             }
         }
     }
-    if(string_startswith(message, DFA_ACTION_TAG_STRING))
+    if(string_startswith(message, PLAN_ACTION_TAG_STRING))
     {
-        theTaskController.setDFAMode();
-        if(theTaskController.checkTaskCompleted(false))
-        {
-//TODO: Answer with the DFAActionCompleted(taskID) message
-        }
-        else
-        {
+        theTaskController.setPlanMode();
+        DEBUG_NUMB(PRINT_DEBUG, "theTaskController.isTaskComplete(): "<<std::to_string(theTaskController.isTaskComplete()));
+        //if(theTaskController.isTaskComplete() || theTaskController.isIdle())
+        //{
+        //    send_data_string(plan_action_completed_string(), PREFIX_TIMESTAMP, PREFIX_ROBOT_NUMBER);
+        //}
+        //else
+        //{
             if(PRINT_DEBUG) std::cout<<message<<std::endl;
             
             //1.1) Divide the message into header and payload
@@ -437,10 +447,10 @@ void ExternalServerCommunicationController::handleMessage(std::string message, s
                 actionParameters = getTokens(actionFields[1], std::string("/"));
             }
 
-            DEBUG_NUMB(PRINT_DEBUG, actionParameters.size());
+            DEBUG_NUMB(PRINT_DEBUG, "actionParameters.size(): "<<std::to_string(actionParameters.size()));
 
             //1.5) Create an Action instance based on the number of parameters
-            Action DFAAction;
+            Action PlanAction;
             //1.3.3) Based on task type, create the task instance and add it to the local task queue
             if(actionParameters.size()==2)
             {
@@ -476,7 +486,7 @@ void ExternalServerCommunicationController::handleMessage(std::string message, s
                         float coordY = std::stof(secondParamValueString);
                         Vector2f position = Vector2f(coordX, coordY);
 
-                        DFAAction = Action(HRI::ActionType::ReachPosition, position);
+                        PlanAction = Action(HRI::ActionType::ReachPosition, position);
                         break;
                     }
                     case HRI::ActionType::CarryBall:
@@ -489,7 +499,7 @@ void ExternalServerCommunicationController::handleMessage(std::string message, s
                         float coordY = std::stof(secondParamValueString);
                         Vector2f position = Vector2f(coordX, coordY);
 
-                        DFAAction = Action(HRI::ActionType::CarryBall, position);
+                        PlanAction = Action(HRI::ActionType::CarryBall, position);
                         break;
                     }
                     case HRI::ActionType::Kick:
@@ -502,7 +512,7 @@ void ExternalServerCommunicationController::handleMessage(std::string message, s
                         float coordY = std::stof(secondParamValueString);
                         Vector2f position = Vector2f(coordX, coordY);
 
-                        DFAAction = Action(HRI::ActionType::Kick, position);
+                        PlanAction = Action(HRI::ActionType::Kick, position);
                         break;
                     }
 //TODO Pass action
@@ -531,7 +541,7 @@ void ExternalServerCommunicationController::handleMessage(std::string message, s
                     {
                         ASSERT(string_startswith(firstParamTypeString, INT_TYPE_STRING));
                         int other_robot_number = std::stoi(firstParamValueString);
-                        DFAAction = Action(HRI::ActionType::PassBall, other_robot_number);
+                        PlanAction = Action(HRI::ActionType::PassBall, other_robot_number);
                         break;
                     }
                     default:
@@ -548,17 +558,17 @@ void ExternalServerCommunicationController::handleMessage(std::string message, s
                 {
                     case HRI::ActionType::ReachBall:
                     {
-                        DFAAction = Action(HRI::ActionType::ReachBall);
+                        PlanAction = Action(HRI::ActionType::ReachBall);
                         break;
                     }
                     case HRI::ActionType::CarryAndKickToGoal:
                     {
-                        DFAAction = Action(HRI::ActionType::CarryAndKickToGoal);
+                        PlanAction = Action(HRI::ActionType::CarryAndKickToGoal);
                         break;
                     }
                     case HRI::ActionType::Idle:
                     {
-                        DFAAction = Action(HRI::ActionType::Idle);
+                        PlanAction = Action(HRI::ActionType::Idle);
                         break;
                     }
                     default:
@@ -574,9 +584,9 @@ void ExternalServerCommunicationController::handleMessage(std::string message, s
                 if(PRINT_DEBUG) std::cout<<"WRONG MESSAGE STRUCTURE: "<<message<<std::endl;
             }
 
-            //1.6) Add current action as DFAControlledTask to task queue
-            currentTaskQueue.push_back(TaskControllerProvider::DFAControlledTask(DFAAction, taskID));
-        }
+            //1.6) Add current action as PlanControlledTask to task queue
+            currentTaskQueue.push_back(TaskControllerProvider::PlanControlledTask(PlanAction, taskID));
+        //}
     }
     if(string_startswith(message, LAST_TASK_ID_REQUEST_STRING))
     {
@@ -796,7 +806,7 @@ void ExternalServerCommunicationController::update(ExternalServerCommunicationCo
     this->cycles_since_task_queue_update++;
 
     
-    //Send a MESSAGE with the boolean flags every BOOLEANS_UPDATE_FREQUENCY millisecs, to update the literals in the DFA
+    //Send a MESSAGE with the boolean flags every BOOLEANS_UPDATE_FREQUENCY millisecs, to stream boolean flags to the Behavior Controller
     if(this->cycles_since_boolean_flags_update % BOOLEANS_UPDATE_FREQUENCY == 0 && theBooleanRegistry.ALWAYS_SEND){
         send_data_string(theBooleanRegistry.getString(), PREFIX_TIMESTAMP, PREFIX_ROBOT_NUMBER);
         this->cycles_since_boolean_flags_update = 0;

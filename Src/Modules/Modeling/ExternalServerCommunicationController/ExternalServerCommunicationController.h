@@ -109,6 +109,7 @@ public:
     std::string ball_position_to_sendable_string();
     std::string role_to_sendable_string();
     std::string obstacles_to_sendable_string();
+    std::string plan_action_completed_string();
 
     void send_data_string(std::string str, bool prefix_timestamp, bool prefix_robot_number);
     bool read_data_string_from_socket(UdpComm sock, std::string& recv_str);

@@ -13,13 +13,13 @@ class ValueRegistry(ParameterRegistry):
     def set(self, value_name : str, value, robot_number : int = None, robot_role : str = None):
         assert isinstance(value_name, str)
         assert isinstance(value, SimpleValue) or \
-                isinstance(value, FunctionalValue) or \
-                    isinstance(value, Callable) or \
-                        isinstance(value, float) or \
-                            isinstance(value, int) or \
-                                isinstance(value, str) or \
-                                    isinstance(value, bool) or \
-                        (isinstance(value, tuple) and len(value) == 2 and ((isinstance(value[0], int) and isinstance(value[1], int)) or (isinstance(value[0], float) and isinstance(value[1], float))))
+               isinstance(value, FunctionalValue) or \
+               isinstance(value, Callable) or \
+               isinstance(value, float) or \
+               isinstance(value, int) or \
+               isinstance(value, str) or \
+               isinstance(value, bool) or \
+               (isinstance(value, tuple) and len(value) == 2 and ((isinstance(value[0], int) and isinstance(value[1], int)) or (isinstance(value[0], float) and isinstance(value[1], float))))
         
         value_name = self.get_complete_name(value_name, robot_number=robot_number, robot_role=robot_role)
 

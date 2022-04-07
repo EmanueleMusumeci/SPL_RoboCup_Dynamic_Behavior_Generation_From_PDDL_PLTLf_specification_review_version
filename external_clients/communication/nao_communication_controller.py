@@ -6,6 +6,8 @@ import twisted
 from twisted.internet import task
 
 from communication.socket_utils import setup_read_socket, setup_write_socket
+from lib.registries.action import ActionRegistry
+from lib.registries.registry import RegistryItem
 
 
 class NAOCommunicationController(twisted.internet.protocol.DatagramProtocol):
@@ -65,11 +67,20 @@ class NAOCommunicationController(twisted.internet.protocol.DatagramProtocol):
     def handleLastTaskIDMessage(self, content, message_info):
         print(content)
         content_fields = content.split(",")
-        self.lastReceivedTaskID = int(content_fields[1])
-        self.lastCompletedTaskID = int(content_fields[2])
+        lastReceivedTaskID = int(content_fields[1])
+        lastCompletedTaskID = int(content_fields[2])
 
-        self.communication_manager.updateRobotLastTaskID(self.robot_number, message_info["timestamp"], self.lastReceivedTaskID, self.lastCompletedTaskID)
+        self.communication_manager.updateRobotLastTaskID(self.robot_number, message_info["timestamp"], lastReceivedTaskID, lastCompletedTaskID)
 
+        if self.lastCompletedTaskID is not None and not self.communication_manager.is_task_mode(robot_number = self.robot_number):
+            if lastCompletedTaskID > self.lastCompletedTaskID:
+                robot_role = self.communication_manager.getRobotRoleFromNumber(self.robot_number)
+                plan_action : RegistryItem = self.communication_manager.get_current_plan_action(robot_role)
+                ActionRegistry().signal_action_completed(plan_action.name_in_registry)
+
+        self.lastReceivedTaskID = lastReceivedTaskID
+        self.lastCompletedTaskID = lastCompletedTaskID
+    
     def handleRobotPoseMessage(self, content, message_info):
         content_fields = content.split(",")
         robot_angle = float(content_fields[1])
@@ -140,6 +151,17 @@ class NAOCommunicationController(twisted.internet.protocol.DatagramProtocol):
                 raise
         
 
+    def handlePlanActionCompletedMessage(self, content, message_info):
+        content_fields = content.split(";")[1:]
+
+        robot_role = self.communication_manager.getRobotRoleFromNumber(self.robot_number)
+        completed_task_id = int(content_fields.split(",")[1])
+
+        if completed_task_id == self.lastCompletedTaskID +1:
+            plan_action : RegistryItem = self.communication_manager.get_current_plan_action(robot_role)
+            ActionRegistry().signal_action_completed(plan_action.name_in_registry)
+    
+
 
     def handleMessage(self, data):
         #Decode data into a string (might be improved later)
@@ -197,11 +219,14 @@ class NAOCommunicationController(twisted.internet.protocol.DatagramProtocol):
                     print("Stopping task queue check")
                     if self.check_task_queue_task.running:
                         self.check_task_queue_task.stop()
-            #DFA_MODE specific messages
+            #PLAN_MODE specific messages
             else:
                 if content.startswith("booleanFlags"):
                     #print(content)
                     self.handleBooleanFlagsMessage(content, message_info)
+                #elif content.startswith("planActionCompleted"):
+                #    print(content)
+                #    self.handlePlanActionCompletedMessage(content, message_info)
 
     def send_string(self, string, terminator="\x00"):
         #print("Sending data to robot "+str(self.robot_number)+": "+string)
@@ -229,7 +254,7 @@ class NAOCommunicationController(twisted.internet.protocol.DatagramProtocol):
         #If the robot is not alive (e.g. it crashed) we reset the task list. If the connection dropped, the robot will keep executing the tasks anyway
         #and also the last task ID will be correctly received upon reconnection
         self.communication_manager.removeRobotTaskQueue(self.robot_number)
-        #We also reset the current robot role to 'unknown' and clean its DFA
+        #We also reset the current robot role to 'unknown' and clean its Plan
         self.communication_manager.resetRobotRole(self.robot_number)
 
 #TODO: architectural weakness
@@ -261,7 +286,7 @@ class NAOCommunicationController(twisted.internet.protocol.DatagramProtocol):
         if self.alive:
             #Check that:
             # 1) The robot role is known
-            # 2) There is a DFA for that role
+            # 2) There is a Plan for that role
 
 
             if self.robot_number in self.communication_manager.robot_tasks:
@@ -278,23 +303,28 @@ class NAOCommunicationController(twisted.internet.protocol.DatagramProtocol):
 
                 if not self.communication_manager.is_task_mode(robot_number = self.robot_number):
 
-                    assert self.communication_manager.getRobotRoleFromNumber(self.robot_number) in self.communication_manager.role_to_DFA.keys(), "Role assigned to role "+self.communication_manager.getRobotRoleFromNumber(self.robot_number)+" (number: "+str(self.robot_number)+") is in DFA control mode but no DFA is present"
+                    assert self.communication_manager.getRobotRoleFromNumber(self.robot_number) in self.communication_manager.role_to_plan.keys(), \
+                        "Role assigned to role "+self.communication_manager.getRobotRoleFromNumber(self.robot_number)+" (number: "+str(self.robot_number)+") is in Plan control mode but no Plan is present"
                     
                     robot_role = self.communication_manager.getRobotRoleFromNumber(self.robot_number)
                     print("Robot %d role: %s" % (self.robot_number, robot_role))
-                    dfa_action = self.communication_manager.get_current_DFA_action(robot_role)
+                    plan_action = self.communication_manager.get_current_plan_action(robot_role)
 
                     #Create message string
-                    dfa_state_string = "DFAAction|"
+                    plan_string = "PlanAction|"
 
+                    #If lastCompletedTaskID is None, return (wait for the robot to communicate last taskID)
+                    if self.lastCompletedTaskID is None:
+                        return
+                    
                     #If this is the first task at all, lastReceivedTaskID will be -1
                     lastCompletedTaskID = self.lastCompletedTaskID +1               
                     
-                    dfa_state_string += dfa_action.get()+","+str(lastCompletedTaskID)+";"
-                    dfa_state_string += dfa_action.get_parameter_string()
+                    plan_string += plan_action.get()+","+str(lastCompletedTaskID)+";"
+                    plan_string += plan_action.get_parameter_string()
                     
-                    print(dfa_state_string)
-                    self.send_string(dfa_state_string)
+                    print(plan_string)
+                    self.send_string(plan_string)
 
                 else:
                         

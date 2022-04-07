@@ -131,6 +131,9 @@ Using a python package manager install the `twisted` package and the `service_id
 * Install NodeJS
 * Using npm install the `websocket` package (e.g. `npm install websocket`)
 
+
+
+
 ### Install MONA
 * Clone the following repo `https://github.com/cs-au-dk/MONA`
 * Follow the install instructions at [this page](https://github.com/cs-au-dk/MONA/blob/master/INSTALL)
@@ -156,11 +159,45 @@ sudo make install-strip
 ```
 
 
+### Download and install the `planning-for-past-temporal-goals` repo from the [Whitemech research group](https://github.com/whitemech)
+* Clone the repo (anywhere):
+```
+git clone https://github.com/whitemech/planning-for-past-temporal-goals
+```
+* Install the dependencies required for pygraphviz: 
+```
+sudo apt-get install python3-dev graphviz libgraphviz-dev pkg-config
+```
+* Install the pip package:
+```
+cd planning-for-past-temporal-goals
+pip install .
+```
+* Go to `third_party` directory and manually clone the required repositories:
+```
+cd third_party
+git clone https://github.com/aibasel/downward; git clone https://github.com/robertmattmueller/myND; git clone https://github.com/whitemech/pddl; git clone https://github.com/QuMuLab/planner-for-relevant-policies
+```
+* Install the dependencies required for these repos:
+```
+sudo apt-get install gcc-multilib g++-multilib
+```
+* Move to the main repo directory and run the `build.sh` script
+```
+cd ..
+./scripts/build.sh
+```
+
+
+
+
 ## Running
 
 The network infrastructure is set to run on localhost. Make sure you're connected to a network anyway, even if not connected to the internet (to have the loopback work anyway)
 
-### Run SimRobot
+<!--
+### Task-based controller
+#### Run SimRobot
 Move to `Develop/` folder
 ```
 cd RoboCup/master_thesis/spqrnao2021/Build/Linux/SimRobot/<Develop/Debug/Release>/
@@ -173,7 +210,7 @@ Run SimRobot
 
 Click on File->Open and then move to the `RoboCup/master_thesis/spqrnao2021/Config/Scenes` folder and open the `1vs3Dummies.ros2` scene. This scene features one playing robot and 3 draggable inactive robots acting as obstacles.
 
-### Run the python server
+#### Run the python server
 Move to `external_clients/` folder
 ```
 cd RoboCup/master_thesis/spqrnao2021/external_clients/
@@ -184,7 +221,7 @@ Run the python server
 python async_socket_NAO.py
 ```
 
-### Run the NodeJS server
+#### Run the NodeJS server
 Move to `external_clients/web_interface` folder
 ```
 cd RoboCup/master_thesis/spqrnao2021/external_clients/web_interface
@@ -195,7 +232,53 @@ Run the python server
 node clientUDP.js
 ```
 
-### Open the GUI in the browser
+#### Open the GUI in the browser
 Open any browser and connect to 127.0.0.1:3000
+-->
 
+### Planning mode
+Any experiment can be run using the SimRobot utility from the B-Human framework, which will emulate the robot in a simulator.
 
+#### Run SimRobot
+Move to `Develop/` folder
+```
+cd RoboCup/master_thesis/spqrnao2021/Build/Linux/SimRobot/<Develop/Debug/Release>/
+```
+
+Run SimRobot
+```
+./SimRobot
+```
+
+Click on File->Open and then move to the `RoboCup/master_thesis/spqrnao2021/Config/Scenes` folder and open the `1vs3Dummies.ros2` scene. This scene features one playing robot and 3 draggable inactive robots acting as obstacles (NOTICE: you can specify the full path to the `.ros2` file to avoid navigating to it in SimRobot)
+
+#### Run the Python server with a specific experiment
+To run an experiment:
+  1) *[Skip this step if you want to run an existing experiment file]* 
+  Create an experiment file in a subfolder of the "experiments" folder:
+      The file has to contain a `setup_experiment()` function. This function
+      will have to setup the registries appropriately and build a plan/policy/DFA
+      for each required role, then return them in a dictionary like:
+
+          <robot_role> -> <plan/policy/DFA handler instance>
+  
+  2) The `__init__.py` file in the "experiments" folder, when imported, will dinamically
+      load all experiment files in the subfolders of the "experiments" folder and then
+      collect them as modules into an "experiments" list, from which they can be accessed
+      to run the setup_experiment() function
+  
+  3) Then the `setup()` method of the `setup_env` module will be called so that the network modules will be run.
+  
+  4) Finally plan/policy/DFA handlers will be passed to the CommunicationManager manager
+      through the update_plan() method
+
+  To run an experiment execute the following command on a terminal:
+
+  ```
+  python run_experiment.py <EXPERIMENT_SUBFOLDER.EXPERIMENT_NAME>
+  ```
+
+  where:
+  * The module run_experiment.py is located in the spqrnao2021/external_clients folder
+  * `EXPERIMENT_SUBFOLDER` is a subfolder of the "experiments" folder
+  * `EXPERIMENT_NAME` is the name of a file providing the `setup_experiment()` function

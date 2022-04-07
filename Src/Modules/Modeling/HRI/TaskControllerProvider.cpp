@@ -39,14 +39,14 @@ void TaskControllerProvider::update(TaskController& controller)
     controller.userHeight = userHeight;
 
 
-    controller.setDFAMode = [&] () -> void
+    controller.setPlanMode = [&] () -> void
     {
-        controller.DFAControlledMode = true;
+        controller.planControlledMode = true;
     };
 
     controller.setTaskMode = [&] () -> void
     {
-        controller.DFAControlledMode = false;
+        controller.planControlledMode = false;
     };
 
     //DEBUG_NUMB(PRINT_DEBUG, std::to_string(controller.taskQueue.empty()));
@@ -127,7 +127,7 @@ void TaskControllerProvider::update(TaskController& controller)
         DEBUG_NUMB(PRINT_DEBUG, "Current tasks: "<<controller.tasksToString());
         DEBUG_NUMB(PRINT_DEBUG, "taskCompleted");
         controller.completedTasks.push_back(controller.taskQueue.at(0));
-        if(playSound && !controller.DFAControlledMode) SoundPlayer::play("TaskCompleted.wav");
+        if(playSound && !controller.planControlledMode) SoundPlayer::play("TaskCompleted.wav");
         controller.nextTask();
     };
 
@@ -273,6 +273,11 @@ void TaskControllerProvider::update(TaskController& controller)
         return controller.currentAction >= controller.taskQueue.at(0).taskSize;
     };
 
+    controller.isIdle = [&] () -> bool
+    {
+        return controller.taskQueue.empty(); //Idle task is never complete
+    };
+
     /* Checks if the current Task has been completed and in that case transitions to the next task. Returns a boolean value */
     controller.checkTaskCompleted = [&] (bool playSound) -> bool
     {
@@ -283,7 +288,7 @@ void TaskControllerProvider::update(TaskController& controller)
             DEBUG_NUMB(PRINT_DEBUG, "taskCompleted");
             controller.completedTasks.push_back(controller.taskQueue.at(0));
 
-            if(playSound && !controller.DFAControlledMode) SoundPlayer::play("TaskCompleted.wav");
+            if(playSound && !controller.planControlledMode) SoundPlayer::play("TaskCompleted.wav");
 
             controller.nextTask();
             return true;
@@ -297,9 +302,9 @@ void TaskControllerProvider::update(TaskController& controller)
         DEBUG_NUMB(PRINT_DEBUG, "\n\ncontroller.addTask");
         DEBUG_NUMB(PRINT_DEBUG, "Adding task: task.taskID: "<<std::to_string(task.taskID)<<", controller.lastReceivedTaskID: "<<std::to_string(controller.lastReceivedTaskID));
         
-        //IF in DFA mode, a task with the same taskID as the current one will OVERWRITE it
+        //IF in Plan mode, a task with the same taskID as the current one will OVERWRITE it
         //ELSE, if in Task mode, only newer tasks (tasks with a taskID higher than the lastReceivedTaskID) will be added to the task queue
-        if(controller.DFAControlledMode)
+        if(controller.planControlledMode)
         {
             //Only add newer tasks, that have a higher taskID
             if(task.taskID < controller.lastReceivedTaskID) return;

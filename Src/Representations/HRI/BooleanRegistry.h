@@ -37,7 +37,7 @@ STREAMABLE(BooleanRegistry,
   BooleanRegistry();
   ,
 
-  /* When false, booleans are sent only when the TaskController is in DFA mode (overriding the sending frequency of the ExternalCommunicationController) */
+  /* When false, booleans are sent only when the TaskController is in Plan mode (overriding the sending frequency of the ExternalCommunicationController) */
   (bool)(false) ALWAYS_SEND,
 });
 inline BooleanRegistry::BooleanRegistry() {}

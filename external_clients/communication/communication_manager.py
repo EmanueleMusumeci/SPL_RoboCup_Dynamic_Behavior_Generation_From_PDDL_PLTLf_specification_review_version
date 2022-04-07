@@ -1,6 +1,6 @@
 import time
 import math
-from typing import Dict, Type
+from typing import Dict, Type, Union
 from enum import Enum
 
 import twisted
@@ -9,13 +9,14 @@ from twisted.internet import reactor, task
 from lib.misc.singleton import Singleton
 from communication.socket_utils import setup_read_socket, setup_write_socket
 from communication.nao_communication_controller import NAOCommunicationController
-from lib.dfa.dfa import DFAHandler
+from lib.dfa.dfa_handler import DFAHandler
+from lib.plan.policy_handler import PolicyHandler
 from lib.registries.literals import LiteralRegistry
 from lib.registries.values import ValueRegistry
 
 class BehaviorControlMode(Enum):
     TASK_MODE = 0
-    DFA_MODE = 1
+    PLAN_MODE = 1
 
 class CommunicationManager(metaclass=Singleton):
     def __init__(self,
@@ -67,7 +68,7 @@ class CommunicationManager(metaclass=Singleton):
         self.robot_role_to_behavior_control_mode = {}
         self.default_behavior_control_mode = default_behavior_control_mode
 
-        self.role_to_DFA = {}
+        self.role_to_plan = {}
         #Value used when the current role of the robot is unknown
         self.UNKNOWN_ROLE = "unknown"
         #Value used by the framework when the current role of the robot can not be established yet (depends on the coordination algorithm of the robot)
@@ -148,7 +149,7 @@ class CommunicationManager(metaclass=Singleton):
             #Sends a "lastTaskID?" message to the robot every LAST_TASK_ID_TIMEOUT seconds, to which the robot will answer with a message like:
             #   "lastTaskID,<last task ID received by robot>,<last task ID completed by robot>"
             #See the NAOCommunicationController documentation to see how the "lastTaskID" message is handled         
-            #NOTICE: This is done even when in DFA_MODE because it populates the robot_tasks dictionary as soon as a new robot is found
+            #NOTICE: This is done even when in PLAN_MODE because it populates the robot_tasks dictionary as soon as a new robot is found
             controller.check_last_task_id_task.start(last_task_id_timeout)
             
             if self.default_behavior_control_mode == BehaviorControlMode.TASK_MODE:
@@ -213,7 +214,7 @@ class CommunicationManager(metaclass=Singleton):
         if self.default_behavior_control_mode == BehaviorControlMode.TASK_MODE:
             self.set_task_mode(robot_role=robot_role, robot_number=robot_number)
         else:
-            self.set_dfa_mode(robot_role=robot_role, robot_number=robot_number)
+            self.set_plan_mode(robot_role=robot_role, robot_number=robot_number)
 
     def set_task_mode(self, robot_role : str = None, robot_number : int = None):
         assert robot_role is not None or robot_number is not None
@@ -230,7 +231,7 @@ class CommunicationManager(metaclass=Singleton):
             self.scheduleRobotTasksReset(robot_number=robot_number)
             
 
-    def set_dfa_mode(self, robot_role : str = None, robot_number : int = None):
+    def set_plan_mode(self, robot_role : str = None, robot_number : int = None):
         assert robot_role is not None or robot_number is not None
 
         if robot_role is not None:
@@ -240,7 +241,7 @@ class CommunicationManager(metaclass=Singleton):
             robot_role = self.getRobotRoleFromNumber(robot_number)
 
         if robot_role != self.UNKNOWN_ROLE:
-            self.robot_role_to_behavior_control_mode[robot_role] = BehaviorControlMode.DFA_MODE
+            self.robot_role_to_behavior_control_mode[robot_role] = BehaviorControlMode.PLAN_MODE
                 
         if robot_number is not None:
             self.scheduleRobotTasksReset(robot_number=robot_number)
@@ -299,15 +300,15 @@ class CommunicationManager(metaclass=Singleton):
     def resetTasksToDelete(self, robot_number : int):
         self.robot_tasks[robot_number]["tasksToDelete"] = []
     
-    #--- DFA CONTROL ---
+    #--- Plan-based CONTROL ---
 
-    def updateDFA(self, dfa_wrapper : DFAHandler, robot_role = None, robot_number = None):
+    def update_plan(self, plan_wrapper : Union[PolicyHandler, DFAHandler], robot_role = None, robot_number = None):
         assert robot_number is not None or robot_role is not None
-        self.set_dfa_mode(robot_role = robot_role, robot_number=robot_number)
-        self.role_to_DFA[robot_role] = dfa_wrapper
+        self.set_plan_mode(robot_role = robot_role, robot_number=robot_number)
+        self.role_to_plan[robot_role] = plan_wrapper
     
-    def get_current_DFA_action(self, robot_role):
-        return self.role_to_DFA[robot_role].get_current_action()
+    def get_current_plan_action(self, robot_role):
+        return self.role_to_plan[robot_role].get_current_action()
 
     #--------------------
     # 

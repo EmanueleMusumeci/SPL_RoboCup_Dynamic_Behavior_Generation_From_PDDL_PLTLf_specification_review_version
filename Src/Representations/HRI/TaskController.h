@@ -89,7 +89,7 @@ namespace HRI
     ENUM(TaskType,
     {,
       None, //Only used when the task list is empty
-      DFAControlledTask, //Special type of task that wraps the action ordered by the DFA
+      PlanControlledTask, //Special type of task that wraps the action ordered by the Plan
       GoToPosition,
       //TurnToPosition,
       KickBallToPosition,
@@ -272,7 +272,7 @@ STREAMABLE(TaskController,
 
   FUNCTION(Task()) getCurrentTask;
 
-  FUNCTION(void()) setDFAMode;
+  FUNCTION(void()) setPlanMode;
   FUNCTION(void()) setTaskMode;
 
   FUNCTION(void()) nextTask;
@@ -287,6 +287,7 @@ STREAMABLE(TaskController,
   FUNCTION(Action()) getCurrentAction;
   FUNCTION(Action()) nextAction;
   FUNCTION(bool()) isTaskComplete;
+  FUNCTION(bool()) isIdle;
   FUNCTION(void(int taskID)) deleteSingleTask;
 
   FUNCTION(void(bool initialSpeech, int taskID)) scheduleInstructionsSpeech;
@@ -320,7 +321,7 @@ STREAMABLE(TaskController,
 
   (bool)(false) initialSpeechPerformed,
 
-  (bool)(false) DFAControlledMode, //When set to true, the task controller will not use the task queue but the dfaTask field, and will not update work based on the taskID
+  (bool)(false) planControlledMode, //When set to true, the task controller will not use the task queue but the dfaTask field, and will not update work based on the taskID
 
 });
 inline TaskController::TaskController() : taskQueue(), completedTasks() {}

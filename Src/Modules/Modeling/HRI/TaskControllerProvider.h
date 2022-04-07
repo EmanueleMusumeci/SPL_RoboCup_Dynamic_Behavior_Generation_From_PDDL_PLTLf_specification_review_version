@@ -83,8 +83,8 @@ public:
   static Task ScoreGoalTask(int taskID);
   static Task InitialSpeechTask(int taskID);
 
-  /* This special task wraps the action ordered by the DFA */
-  static Task DFAControlledTask(Action DFAAction, int taskID);
+  /* This special task wraps the action ordered by the Plan */
+  static Task PlanControlledTask(Action PlanAction, int taskID);
 
 private:
   void update(TaskController& controller) override;
@@ -138,9 +138,9 @@ inline Task TaskControllerProvider::InitialSpeechTask(int taskID)
   return Task(HRI::TaskType::InitialSpeech, taskID, actionQueue, Vector2f(0,0));
 }
 
-inline Task TaskControllerProvider::DFAControlledTask(Action DFAAction, int taskID)
+inline Task TaskControllerProvider::PlanControlledTask(Action PlanAction, int taskID)
 {
   std::vector<Action> actionQueue;
-  actionQueue.push_back(DFAAction);
-  return Task(HRI::TaskType::DFAControlledTask, taskID, actionQueue);
+  actionQueue.push_back(PlanAction);
+  return Task(HRI::TaskType::PlanControlledTask, taskID, actionQueue);
 }

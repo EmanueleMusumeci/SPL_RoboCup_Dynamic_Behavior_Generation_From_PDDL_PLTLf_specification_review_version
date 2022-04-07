@@ -6,7 +6,8 @@ sys.path.append( os.path.dirname( os.path.dirname( os.path.abspath(__file__) ) )
 from lib.registries.action import ActionRegistry
 from lib.registries.literals import LiteralRegistry
 from lib.registries.values import ValueRegistry
-from lib.dfa.dfa import DFA, DFAHandler, remove_initial_dummy_state
+from lib.dfa.dfa import DFA
+from lib.dfa.dfa_handler import DFAHandler, remove_initial_dummy_state
 from lib.dfa.LTL import LTLRule
 
 

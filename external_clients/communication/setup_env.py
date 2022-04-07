@@ -82,9 +82,11 @@ def setup():
     if(USE_LOCALHOST):
         LOCAL_INTERFACE_IP = "127.0.0.1"
         robot_number_to_robot_ip_map[3] = {"robotName" : "Caligola", "robotIP" : "127.0.0.1"}
+        robot_number_to_robot_ip_map[2] = {"robotName" : "Claudio", "robotIP" : "127.0.0.1"}
     else:
         LOCAL_INTERFACE_IP = "10.0.255.226"
         robot_number_to_robot_ip_map[3] = {"robotName" : "Caligola", "robotIP" : "10.0.19.17"}
+        robot_number_to_robot_ip_map[2] = {"robotName" : "Claudio", "robotIP" : "10.0.19.19"}
 
     #Notice: 
     # - the DEST_PORTs here have to be the READ_PORTs on the robots
@@ -122,7 +124,7 @@ def setup():
 
         frontend_controller = frontend_controller,
         frontend_alive_timeout = ALIVE_CLIENT_TIMEOUT,
-        default_behavior_control_mode = BehaviorControlMode.DFA_MODE
+        default_behavior_control_mode = BehaviorControlMode.PLAN_MODE
     )
 
 

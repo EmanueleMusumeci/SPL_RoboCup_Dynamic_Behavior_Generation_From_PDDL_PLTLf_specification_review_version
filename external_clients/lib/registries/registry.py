@@ -1,3 +1,4 @@
+from ast import alias
 from typing import Callable, List, Type
 from abc import abstractmethod, abstractproperty
 import inspect
@@ -28,6 +29,8 @@ class Registry(metaclass=Singleton):
         self._update_timestamps = {}
         Registry.__REGISTRIES.append(self)
 
+        self.__item_aliases = {}
+
     @classmethod
     def get_registries(cls):
         return Registry.__REGISTRIES
@@ -45,7 +48,30 @@ class Registry(metaclass=Singleton):
         if found_in_registry is None:
             raise KeyError
         return found_in_registry
+
+    def register_alias(self, item_name : str, alias_name : str):
+        assert isinstance(item_name, str)
+        assert isinstance(alias_name, str)
+        complete_alias_name = self.get_complete_name(alias_name)
+        complete_item_name = self.get_complete_name(item_name)
+        assert complete_alias_name not in self.__item_aliases.keys()
+        self.__item_aliases[complete_alias_name] = complete_item_name
+
+    def is_alias_name(self, item_name : str):
+        assert isinstance(item_name, str)
+        complete_item_name = self.get_complete_name(item_name)
+        return complete_item_name in self.__item_aliases.keys()
     
+    def get_aliased_name(self, item_name : str):
+        assert isinstance(item_name, str)
+        complete_item_name = self.get_complete_name(item_name)
+        if complete_item_name in self.__item_aliases.keys():
+            return self.__item_aliases[complete_item_name]
+        else:
+            raise KeyError("Unknown alias "+item_name)
+    
+    def get_aliases(self):
+        return self.__item_aliases
 
     def get_complete_name(self, item_name : str, robot_number : int = None, robot_role : str = None):
         item_name = item_name.lower()
@@ -96,6 +122,11 @@ class Registry(metaclass=Singleton):
 
         if item_name in self._items.keys():
             return self._items[item_name].get()
+        elif item_name in self.__item_aliases.keys():
+            aliased_item_name = self.__item_aliases[item_name]
+            if aliased_item_name not in self._items.keys():
+                raise KeyError("Unknown item (alias '%s'): %s" % (item_name, aliased_item_name))
+            return self._items[aliased_item_name].get()    
         else:
             raise KeyError("Unknown item: %s" % (item_name))
     
@@ -106,6 +137,11 @@ class Registry(metaclass=Singleton):
 
         if item_name in self._items.keys():
             return self._items[item_name]
+        elif item_name in self.__item_aliases.keys():
+            aliased_item_name = self.__item_aliases[item_name]
+            if aliased_item_name not in self._items.keys():
+                raise KeyError("Unknown item (alias '%s'): %s" % (item_name, aliased_item_name))
+            return self._items[aliased_item_name]
         else:
             raise KeyError("Unknown item: %s" % (item_name))
 
@@ -174,7 +210,13 @@ class Registry(metaclass=Singleton):
     def __contains__(self, item_name : str):
         assert isinstance(item_name, str)
         item_name = self.get_complete_name(item_name)
-        return item_name in self._items.keys()
+        if item_name in self.__item_aliases.keys():
+            aliased_item_name = self.__item_aliases[item_name]
+            if aliased_item_name not in self._items.keys():
+                raise KeyError("Unknown item (alias '%s'): %s" % (item_name, aliased_item_name))
+            return aliased_item_name in self._items.keys()
+        else:
+            return item_name in self._items.keys()
     
     def __str__(self):
         result = "\n"+('*'*100)+"\n"+self.__class__.__name__+"\n"+('*'*100)+"\n"
@@ -236,7 +278,6 @@ class ParameterRegistry(Registry):
 
 
 
-
     #Check if the item is a Callable
     def is_function(self, item_name : str):
         
@@ -259,25 +300,30 @@ class ParameterRegistry(Registry):
             self.perform_scheduled_parameter_checks()
 
 
-
+    def is_scheduled_for_delayed_parameter_check(self, parameter_name : str):
+        for parameter_tuple in self.__parameters_scheduled_for_check:
+            if parameter_tuple[0] == parameter_name:
+                return True
+        return False
 
     def schedule_parameter_for_delayed_parameter_check(self, parameter_name_to_be_checked, formula : Callable):
         assert self.allow_delayed_parameter_check
-        parameter_check_not_yet_scheduled = True
+        parameter_check_already_scheduled = False
         
         for scheduled_check in self.__parameters_scheduled_for_check:
-            parameter_check_not_yet_scheduled = parameter_check_not_yet_scheduled or (scheduled_check[0] == parameter_name_to_be_checked)
-            if parameter_check_not_yet_scheduled: break
+            parameter_check_already_scheduled = parameter_check_already_scheduled or (scheduled_check[0] == parameter_name_to_be_checked)
+            if parameter_check_already_scheduled: return
 
-        if not parameter_check_not_yet_scheduled:
+        if not parameter_check_already_scheduled:
             self.__parameters_scheduled_for_check.append((parameter_name_to_be_checked, formula))
 
     def perform_scheduled_parameter_checks(self):
         assert self.allow_delayed_parameter_check
-        remaining_checks = []
         
-        if not remaining_checks:
+        if not self.__parameters_scheduled_for_check:
             return
+        
+        remaining_checks = []
         
         for parameter_name, formula in self.__parameters_scheduled_for_check:
             try:

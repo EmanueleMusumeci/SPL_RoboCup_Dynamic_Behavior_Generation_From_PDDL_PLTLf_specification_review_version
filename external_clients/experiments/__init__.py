@@ -2,8 +2,22 @@
 import os
 
 dir = os.path.dirname(os.path.abspath(__file__))
-modules = [os.path.splitext(_file)[0] for _file in os.listdir(dir) if not _file.startswith('__')]
+modules = {}
+for _experiments_dir in os.listdir(dir):
+    if not _experiments_dir.startswith('__'):
+        #print(_experiments_dir)
+        modules[_experiments_dir] = []
+        for _file  in os.listdir(os.path.join(dir, _experiments_dir)):
+            if not _file.startswith('__') and _file.endswith(".py"):
+                modules[_experiments_dir].append(os.path.splitext(_file)[0])
+    
+#print(modules)
 
 experiments = []
-for mod in modules:
-    exec('from experiments import {}; experiments.append({})'.format(mod, mod))
+import_string = ""
+for dir, modules in modules.items():
+    import_string += 'from experiments import {}; '.format(dir)
+    for module_name in modules:
+        import_string += 'from experiments.{} import {}; '.format(dir, module_name)
+        import_string += 'experiments.append({}); '.format(module_name)
+exec(import_string)

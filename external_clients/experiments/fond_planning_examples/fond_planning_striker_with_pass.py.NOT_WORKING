@@ -1,0 +1,26 @@
+import sys,os,inspect
+from pathlib import Path
+
+def setup_experiment():
+    currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+    parentdir = os.path.dirname(currentdir)
+    parentparentdir = os.path.dirname(parentdir)
+    sys.path.insert(0, parentparentdir) 
+    #print(sys.path)
+
+    from planning_for_past_temporal_goals.planning_with_past.planners.mynd.base import MyNDPlanner
+
+    import networkx as nx
+    import matplotlib.pyplot as plt
+
+    planner = MyNDPlanner()
+    plan = planner.plan(Path(os.path.join(currentdir, "PDDL", "domain.pddl")), Path(os.path.join(currentdir, "PDDL", "p-0.pddl")))
+
+
+    # print the graph
+    pos = nx.spring_layout(plan.graph)
+    nx.draw_networkx(plan.graph, pos)
+    edge_labels = dict([((n1, n2), action)
+                        for n1, n2, action in plan.graph.edges(data="action")])
+    nx.draw_networkx_edge_labels(plan.graph, pos, edge_labels=edge_labels)
+    plt.show()

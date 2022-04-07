@@ -24,6 +24,7 @@ if __name__ == "__main__":
     print(value_registry)
 #-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_
     print("-_"*50+"\n")
+    print("Tests: FunctionalValue")
 
     def offset_y_from_striker(relative_y_from_striker, supporter_stay_to_the_left_of_striker):
         y_offset = relative_y_from_striker
