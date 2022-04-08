@@ -4,203 +4,117 @@ end_version
 begin_metric
 0
 end_metric
-5
+6
 begin_variable
 var0
 -1
 2
-Atom not-flattire()
-NegatedAtom not-flattire()
+Atom ball-passed()
+NegatedAtom ball-passed()
 end_variable
 begin_variable
 var1
 -1
 2
-Atom spare-in(l21)
-NegatedAtom spare-in(l21)
+Atom goal-scored()
+NegatedAtom goal-scored()
 end_variable
 begin_variable
 var2
 -1
 2
-Atom spare-in(l22)
-NegatedAtom spare-in(l22)
+Atom is-opponent-blocking-goal()
+NegatedAtom is-opponent-blocking-goal()
 end_variable
 begin_variable
 var3
--1
+0
 2
-Atom spare-in(l31)
-NegatedAtom spare-in(l31)
+Atom new-axiom@0()
+NegatedAtom new-axiom@0()
 end_variable
 begin_variable
 var4
 -1
-6
-Atom vehicleat(l11)
-Atom vehicleat(l12)
-Atom vehicleat(l13)
-Atom vehicleat(l21)
-Atom vehicleat(l22)
-Atom vehicleat(l31)
+2
+Atom striker-can-kick()
+NegatedAtom striker-can-kick()
 end_variable
-1
-begin_mutex_group
-6
-4 0
-4 1
-4 2
-4 3
-4 4
-4 5
-end_mutex_group
+begin_variable
+var5
+-1
+2
+Atom striker-has-ball()
+NegatedAtom striker-has-ball()
+end_variable
+0
 begin_state
-0
-0
-0
-0
-0
+1
+1
+1
+1
+1
+1
 end_state
 begin_goal
 1
-4 4
+3 0
 end_goal
-11
+4
 begin_operator
-changetire l21
+kick-to-goal 
 2
-1 0
-4 3
+2 1
+4 0
 1
-2
-0 0 -1 0
-0 1 0 1
+1
+0 1 -1 0
 0
 end_operator
 begin_operator
-changetire l22
+move-to-ball 
+1
+5 1
+2
+2
+0 2 -1 0
+0 5 1 0
+2
+0 2 -1 1
+0 5 1 0
+0
+end_operator
+begin_operator
+move-to-kicking-position 
+3
+2 1
+4 1
+5 0
+2
+0
+2
+0 2 1 0
+0 4 1 0
+0
+end_operator
+begin_operator
+pass-ball-to-supporter 
 2
 2 0
-4 4
-1
-2
-0 0 -1 0
-0 2 0 1
-0
-end_operator
-begin_operator
-changetire l31
-2
-3 0
-4 5
-1
-2
-0 0 -1 0
-0 3 0 1
-0
-end_operator
-begin_operator
-move-car l11 l12
-2
-0 0
-4 0
-2
-2
-0 0 0 1
-0 4 0 1
-1
-0 4 0 1
-0
-end_operator
-begin_operator
-move-car l11 l21
-2
-0 0
-4 0
-2
-2
-0 0 0 1
-0 4 0 3
-1
-0 4 0 3
-0
-end_operator
-begin_operator
-move-car l12 l13
-2
-0 0
 4 1
-2
-2
-0 0 0 1
-0 4 1 2
 1
-0 4 1 2
+1
+0 0 -1 0
 0
 end_operator
-begin_operator
-move-car l13 l22
 2
+begin_rule
+1
 0 0
-4 2
-2
-2
-0 0 0 1
-0 4 2 4
+3 1 0
+end_rule
+begin_rule
 1
-0 4 2 4
-0
-end_operator
-begin_operator
-move-car l21 l12
-2
-0 0
-4 3
-2
-2
-0 0 0 1
-0 4 3 1
-1
-0 4 3 1
-0
-end_operator
-begin_operator
-move-car l21 l22
-2
-0 0
-4 3
-2
-2
-0 0 0 1
-0 4 3 4
-1
-0 4 3 4
-0
-end_operator
-begin_operator
-move-car l21 l31
-2
-0 0
-4 3
-2
-2
-0 0 0 1
-0 4 3 5
-1
-0 4 3 5
-0
-end_operator
-begin_operator
-move-car l31 l22
-2
-0 0
-4 5
-2
-2
-0 0 0 1
-0 4 5 4
-1
-0 4 5 4
-0
-end_operator
-0
+1 0
+3 1 0
+end_rule

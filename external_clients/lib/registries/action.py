@@ -57,7 +57,9 @@ class Action:
         found_parameters = {}
         print(self.parameters)
         for parameter in self.parameters:
-            if isinstance(parameter, tuple):
+            if isinstance(parameter, list):
+                raise NotImplementedError
+            elif isinstance(parameter, tuple):
                 param_name = parameter[0]
 
                 if isinstance(parameter[1], RegistryItem):
@@ -88,7 +90,9 @@ class Action:
         param_substrings = []
         expected_number_of_parameters = len(self.parameters)
         for i, (param_name, parameter_data) in enumerate(found_parameters.items()):
-            if isinstance(parameter_data, tuple):
+            if isinstance(parameter_data, list):
+                raise NotImplementedError
+            elif isinstance(parameter_data, tuple):
                 if len(parameter_data) > 1:
                     expected_number_of_parameters += len(parameter_data) - 1
                 for j, value in enumerate(parameter_data):
@@ -232,7 +236,9 @@ class ActionRegistry(Registry):
         # b) they're themselves scheduled for a delayed check
         
         for parameter in parameters:
-            if isinstance(parameter, tuple):
+            if isinstance(parameter, list):
+                raise NotImplementedError
+            elif isinstance(parameter, tuple):
                 assert isinstance(parameter[0], str)
                 if isinstance(parameter[1], RegistryItem):
                     assert isinstance(parameter[1], Value)

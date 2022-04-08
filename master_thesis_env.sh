@@ -30,10 +30,10 @@ alias ltlsr2v3d="cd $LTLSIM; ./SimRobot $LTLSCENES/2vs3Dummies.ros2"
 alias ltlsrotf="cd $LTLSIM; ./SimRobot $LTLSCENES/OneTeamFast.ros2"
 alias ltlsrgfd="cd $LTLSIM; ./SimRobot $LTLSCENES/GameFast-devel.ros2"
 
-alias srrr="cd $RSIM; ./SimRobot $RSCENES/RemoteRobot.ros2"
+alias srrr="cd $LTLSIM; ./SimRobot $LTLSCENES/RemoteRobot.ros2"
 
-alias copd="cd $RMAKE; ./copyfiles Develop -b -v 60 "
-alias copdnorestart="cd $RMAKE; ./copyfiles Develop -v 60 "
+alias ltlcopd="cd $LTLMAKE; ./copyfiles Develop -b -v 60 "
+alias ltlcopdnorestart="cd $LTLMAKE; ./copyfiles Develop -v 60 "
 
 #alias ltlpc="/home/asc/anaconda3/envs/robocup/bin/python3 $LTLCLIENTS/run.py"
 

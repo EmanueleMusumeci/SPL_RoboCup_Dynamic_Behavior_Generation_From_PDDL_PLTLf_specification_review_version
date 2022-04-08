@@ -1,0 +1,106 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; RoboCup Domain with Non-Deterministic Actions ;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define (domain robocup-fond)
+  (:requirements :strips :typing :existential-preconditions)
+  (:types movable location)
+  (:predicates 
+           (is-robot ?mov - movable)
+           (is-ball ?mov - movable)
+           (is-at ?mov - movable ?loc - location)
+		   (is-opponent-blocking-goal)
+		   (is-supporter-in-position)
+           (goal-scored)
+	       )
+
+  (:action move-robot
+	     :parameters (?rob - movable ?from - location ?to - location)
+	     :precondition (and 
+		 	(is-robot ?rob) 
+			(is-at ?rob ?from)
+			(not (is-at ?rob ?to))
+			(not (exists (?rob2 - movable)
+					(and (is-robot ?rob2) (is-at ?rob2 ?to))
+				 )
+			)
+			 )
+	     :effect
+	     (oneof 
+		 	(and (is-opponent-blocking-goal) (not (is-at ?rob ?from)) (is-at ?rob ball-current-position) (?to != striker-current-position))
+		 	(and (not (is-opponent-blocking-goal)) (not (is-at ?rob ?from)) (is-at ?rob ?to) (?to != striker-current-position))
+		 )
+  )
+
+  (:action kick-ball
+	     :parameters (?rob - movable ?b - movable ?from - location ?to - location)
+	     :precondition 
+		 (and 
+		 	(not (is-opponent-blocking-goal))
+		 	(is-ball ?b)
+			(is-robot ?rob)
+			(is-at ?rob ?from)
+			(not (is-at ?rob ?to))
+			(is-at ?b ?from)
+			(not (is-at ?b ?to))
+		)
+	     :effect
+	     (and (is-at ?rob ?from) (not (is-at ?b ?from)) (is-at ?b ?to))
+  )
+
+  (:action carry-ball
+	     :parameters (?rob - movable ?b - movable ?from - location ?to - location)
+	     :precondition 
+		 (and 
+		 	(not (is-opponent-blocking-goal))
+		 	(is-ball ?b) 
+			(is-robot ?rob)
+			(is-at ?rob ?from)
+			(not (is-at ?rob ?to))
+			(is-at ?b ?from)
+			(not (is-at ?b ?to))
+		 )
+	     :effect
+	     (and (not (is-at ?rob ?from)) (is-at ?rob ?to) (not (is-at ?b ?from)) (is-at ?b ?to))
+  )
+
+  (:action kick-to-goal
+	     :parameters (?rob - movable ?b - movable)
+	     :precondition 
+		 	(and 
+			 	(not (is-opponent-blocking-goal)) 
+				(is-ball ?b) 
+				(is-robot ?rob) 
+				(and
+					(is-at ?rob kicking-position) 
+					(is-at ?b kicking-position)
+				)
+			)
+	     
+		 :effect
+	     	(and 
+			 (is-at ?b goal-target) 
+			 (not (is-at ?b kicking-position)) 
+			 (goal-scored)
+			)
+  )
+
+  (:action pass-ball-to-supporter
+	     :parameters (?rob - movable ?b - movable ?from - location)
+	     :precondition 
+		 	(and 
+		 		(is-opponent-blocking-goal) 
+				(is-ball ?b) 
+				(is-robot ?rob) 
+				(is-at ?b ?from) 
+				(is-at ?rob ?from)
+			)
+	     :effect
+	     (and 
+		 	(is-at ?b supporter-current-position) 
+			(not (is-at ?b from))
+			(ball-passed)
+		 )
+  )
+  
+)

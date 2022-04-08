@@ -367,10 +367,10 @@ class Policy:
                 if predicate_name.startswith(FluentRegistry().ITEM_PREFIX) or predicate_name in FluentRegistry():
                     assert predicate_name in FluentRegistry(),"Fluent '"+predicate_name+"' not available in FluentRegistry"
                     fluent_tuples.append((FluentRegistry().get_instance(predicate_name), is_predicate_equality))
-                elif predicate_values is not None:
-                    for value in predicate_values:
-                        assert value in ValueRegistry(), "Value '"+value+"' for predicate '"+predicate_name+"' not available in ValueRegistry"
-                        predicates[predicate_name] = (predicate_values, is_predicate_equality)
+#                elif predicate_values is not None:
+#                    for value in predicate_values:
+#                        assert value in ValueRegistry(), "Value '"+value+"' for predicate '"+predicate_name+"' not available in ValueRegistry"
+#                        predicates[predicate_name] = (predicate_values, is_predicate_equality)
 
             node_id = int(node_data[0])
             nodes[node_id] = PolicyNode(node_id = node_id, fluents = fluent_tuples)

@@ -16,7 +16,7 @@
 
 using namespace std;
 
-#define HRI
+#define PAPER
 
 SelfLocator::SelfLocator() : perceptRegistration(theCameraInfo, theCameraMatrix, theCirclePercept,
   theFieldDimensions, theFrameInfo, theGameInfo,
@@ -87,7 +87,7 @@ SelfLocator::SelfLocator() : perceptRegistration(theCameraInfo, theCameraMatrix,
     samples->at(i).init(getNewPoseAtWalkInPosition(), walkInPoseDeviation, nextSampleNumber++, 0.5f);*/
 
 //Set initial guess to our certain challenge1 starting position
-#ifdef HRI
+#ifdef PAPER
   if(useCustomInitialGuess)
   {
     std::cout<<"HELLO"<<std::endl;

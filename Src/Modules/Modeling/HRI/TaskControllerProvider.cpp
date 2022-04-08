@@ -96,7 +96,7 @@ void TaskControllerProvider::update(TaskController& controller)
      */
     controller.getCurrentTask = [&] () -> Task
     {
-        DEBUG_NUMB(PRINT_DEBUG, "\n\ncontroller.getCurrentTask");
+        //DEBUG_NUMB(PRINT_DEBUG, "\n\ncontroller.getCurrentTask");
         
         //If no task is requested
         if(controller.taskQueue.empty()) 
@@ -124,8 +124,8 @@ void TaskControllerProvider::update(TaskController& controller)
         and then calls the nextTask method */
     controller.signalTaskCompleted = [&] (bool playSound) -> void
     {
-        DEBUG_NUMB(PRINT_DEBUG, "Current tasks: "<<controller.tasksToString());
-        DEBUG_NUMB(PRINT_DEBUG, "taskCompleted");
+        //DEBUG_NUMB(PRINT_DEBUG, "Current tasks: "<<controller.tasksToString());
+        //DEBUG_NUMB(PRINT_DEBUG, "taskCompleted");
         controller.completedTasks.push_back(controller.taskQueue.at(0));
         if(playSound && !controller.planControlledMode) SoundPlayer::play("TaskCompleted.wav");
         controller.nextTask();
@@ -138,10 +138,10 @@ void TaskControllerProvider::update(TaskController& controller)
     */
     controller.nextTask = [&] () -> void
     {
-        DEBUG_NUMB(PRINT_DEBUG, "\n\ncontroller.nextTask");
+        //DEBUG_NUMB(PRINT_DEBUG, "\n\ncontroller.nextTask");
         if(!controller.taskQueue.empty())
         {
-            DEBUG_NUMB(PRINT_DEBUG, "Task queue not empty");
+            //DEBUG_NUMB(PRINT_DEBUG, "Task queue not empty");
             DEBUG_NUMB(PRINT_DEBUG, std::to_string(controller.taskQueue.at(0).taskID));
             controller.lastCompletedTaskID = controller.taskQueue.at(0).taskID;
             controller.taskQueue.erase(controller.taskQueue.begin());
@@ -171,7 +171,7 @@ void TaskControllerProvider::update(TaskController& controller)
     */
     controller.nextAction = [&] () -> Action
     {
-        DEBUG_NUMB(PRINT_DEBUG, "\n\ncontroller.nextAction");
+        //DEBUG_NUMB(PRINT_DEBUG, "\n\ncontroller.nextAction");
         if(!controller.isTaskComplete())
         {
             //DEBUG_NUMB(PRINT_DEBUG, "task not complete: current action before "<<controller.currentAction);
@@ -185,9 +185,9 @@ void TaskControllerProvider::update(TaskController& controller)
     /* Performs all necessary operations to transition to next task */
     controller.deleteSingleTask = [&] (int taskID) -> void
     {
-        DEBUG_NUMB(PRINT_DEBUG, "\n\ncontroller.deleteSingleTask");
+        //DEBUG_NUMB(PRINT_DEBUG, "\n\ncontroller.deleteSingleTask");
         
-        DEBUG_NUMB(PRINT_DEBUG, "Current tasks: "<<controller.tasksToString());
+        //DEBUG_NUMB(PRINT_DEBUG, "Current tasks: "<<controller.tasksToString());
 
         
         //If the task to delete is the current one, simply go to the next task
@@ -251,8 +251,8 @@ void TaskControllerProvider::update(TaskController& controller)
     */
     controller.checkActionCompleted = [&] (bool condition) -> bool
     {
-        DEBUG_NUMB(PRINT_DEBUG, "\n\ncontroller.checkActionCompleted");
-        std::cout<<"taskID: "<<controller.getCurrentTask().taskID<<std::endl;
+        //DEBUG_NUMB(PRINT_DEBUG, "\n\ncontroller.checkActionCompleted");
+        //std::cout<<"taskID: "<<controller.getCurrentTask().taskID<<std::endl;
         if(condition)
         {
             controller.nextAction();
@@ -264,12 +264,12 @@ void TaskControllerProvider::update(TaskController& controller)
     /* Tells if the the currentAction index is equal to the size of the actionQueue of the current task (NOTICE: tjhe IdleTask is NEVER completed)*/
     controller.isTaskComplete = [&] () -> bool
     {
-        DEBUG_NUMB(PRINT_DEBUG, "\n\ncontroller.isTaskComplete");
+        //DEBUG_NUMB(PRINT_DEBUG, "\n\ncontroller.isTaskComplete");
         if(controller.taskQueue.empty()) return false; //Idle task is never complete
-        DEBUG_NUMB(PRINT_DEBUG, "Current tasks: "<<controller.tasksToString());
-        DEBUG_NUMB(PRINT_DEBUG, "taskQueue not empty");
-        DEBUG_NUMB(PRINT_DEBUG, "controller.taskQueue.at(0).taskSize: "<<controller.taskQueue.at(0).taskSize);
-        DEBUG_NUMB(PRINT_DEBUG, "controller.currentAction: "<<controller.currentAction);
+        //DEBUG_NUMB(PRINT_DEBUG, "Current tasks: "<<controller.tasksToString());
+        //DEBUG_NUMB(PRINT_DEBUG, "taskQueue not empty");
+        //DEBUG_NUMB(PRINT_DEBUG, "controller.taskQueue.at(0).taskSize: "<<controller.taskQueue.at(0).taskSize);
+        //DEBUG_NUMB(PRINT_DEBUG, "controller.currentAction: "<<controller.currentAction);
         return controller.currentAction >= controller.taskQueue.at(0).taskSize;
     };
 
@@ -281,11 +281,11 @@ void TaskControllerProvider::update(TaskController& controller)
     /* Checks if the current Task has been completed and in that case transitions to the next task. Returns a boolean value */
     controller.checkTaskCompleted = [&] (bool playSound) -> bool
     {
-        DEBUG_NUMB(PRINT_DEBUG, "\n\ncontroller.checkTaskCompleted");
+        //DEBUG_NUMB(PRINT_DEBUG, "\n\ncontroller.checkTaskCompleted");
         if(controller.isTaskComplete())
         {
             DEBUG_NUMB(PRINT_DEBUG, "Current tasks: "<<controller.tasksToString());
-            DEBUG_NUMB(PRINT_DEBUG, "taskCompleted");
+            //DEBUG_NUMB(PRINT_DEBUG, "taskCompleted");
             controller.completedTasks.push_back(controller.taskQueue.at(0));
 
             if(playSound && !controller.planControlledMode) SoundPlayer::play("TaskCompleted.wav");
@@ -299,8 +299,8 @@ void TaskControllerProvider::update(TaskController& controller)
     /* Add a new task to the current task queue ONLY if its taskID lower than the lastReceivedTaskID (else this task is obsolete and has to be ignored) */  
     controller.addTask = [&] (Task task) -> void
     {
-        DEBUG_NUMB(PRINT_DEBUG, "\n\ncontroller.addTask");
-        DEBUG_NUMB(PRINT_DEBUG, "Adding task: task.taskID: "<<std::to_string(task.taskID)<<", controller.lastReceivedTaskID: "<<std::to_string(controller.lastReceivedTaskID));
+        //DEBUG_NUMB(PRINT_DEBUG, "\n\ncontroller.addTask");
+        //DEBUG_NUMB(PRINT_DEBUG, "Adding task: task.taskID: "<<std::to_string(task.taskID)<<", controller.lastReceivedTaskID: "<<std::to_string(controller.lastReceivedTaskID));
         
         //IF in Plan mode, a task with the same taskID as the current one will OVERWRITE it
         //ELSE, if in Task mode, only newer tasks (tasks with a taskID higher than the lastReceivedTaskID) will be added to the task queue
@@ -331,16 +331,16 @@ void TaskControllerProvider::update(TaskController& controller)
     /* Adds all tasks from a std::vector of tasks */
     controller.updateTasks = [&] (std::vector<Task> newTasks) -> void
     {
-        DEBUG_NUMB(PRINT_DEBUG, "\n\ncontroller.updateTasks");
-        DEBUG_NUMB(PRINT_DEBUG, "Updating tasks");
+        //DEBUG_NUMB(PRINT_DEBUG, "\n\ncontroller.updateTasks");
+        //DEBUG_NUMB(PRINT_DEBUG, "Updating tasks");
         for(auto task : newTasks) controller.addTask(task);
-        DEBUG_NUMB(PRINT_DEBUG, "Tasks updated");
+        //DEBUG_NUMB(PRINT_DEBUG, "Tasks updated");
     };
 
     /* [DEBUG] Prints an action-specific debug string */
     controller.actionToString = [&] (Action action) -> std::string
     {
-        DEBUG_NUMB(PRINT_DEBUG, "\n\ncontroller.actionToString");
+        //DEBUG_NUMB(PRINT_DEBUG, "\n\ncontroller.actionToString");
         std::stringstream result;
         result<<"----Action: "<<TypeRegistry::getEnumName(action.actionType);
         switch(action.actionType)
@@ -384,9 +384,9 @@ void TaskControllerProvider::update(TaskController& controller)
     /* [DEBUG] Prints a task-specific debug string and the action-specific string of the current action and all the following ones */
     controller.tasksToString = [&] () -> std::string
     {
-        DEBUG_NUMB(PRINT_DEBUG, "\n\ncontroller.tasksToString");
+        //DEBUG_NUMB(PRINT_DEBUG, "\n\ncontroller.tasksToString");
         std::stringstream result;
-        DEBUG_NUMB(PRINT_DEBUG, "controller.taskQueue.size(): "<<controller.taskQueue.size());
+        //DEBUG_NUMB(PRINT_DEBUG, "controller.taskQueue.size(): "<<controller.taskQueue.size());
         int taskIndex = 0;
         for(auto task : controller.taskQueue)
         {

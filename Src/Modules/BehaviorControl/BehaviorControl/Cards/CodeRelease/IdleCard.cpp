@@ -51,6 +51,8 @@ CARD(IdleCard,
     (float) turnToUserTimeout,
     (float) waitForSoundToStartPlaying,
 
+    (bool) turnToUserInIdleState,
+
     (Rangef) smallAlignmentRange,
   }),
   
@@ -115,7 +117,7 @@ class IdleCard : public IdleCardBase
       {
         if(!smallAlignmentRange.isInside(calcAngleToTarget(theTaskController.userPosition).toDegrees()))
         {
-          if(state_time > turnToUserTimeout)
+          if(state_time > turnToUserTimeout && turnToUserInIdleState)
           {
             std::cout << "idle_state -> turnToUser: turn to user TIMEOUT" << std::endl;
             goto turnToUser;

@@ -23,7 +23,7 @@ BooleanRegistryProvider::BooleanRegistryProvider(){}
 void BooleanRegistryProvider::update(BooleanRegistry& booleanRegistry)
 {
     
-    DEBUG_NUMB(PRINT_DEBUG, "BooleanRegistry update function\n\n\n");
+    //DEBUG_NUMB(PRINT_DEBUG, "BooleanRegistry update function\n\n\n");
 
     //CFG parameters
     booleanRegistry.ALWAYS_SEND = ALWAYS_SEND;

@@ -229,10 +229,10 @@ bool UdpComm::bind(const char* addr_str, int port)
   }
 #endif
 
-#ifdef SO_REUSEADDR
+//#ifdef SO_REUSEADDR
   if(-1 == setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, reinterpret_cast<const char*>(&yes), sizeof(yes)))
     std::cerr << "UdpComm: could not set SO_REUSEADDR" << std::endl;
-#endif
+//#endif
 #ifdef SO_REUSEPORT
   if(-1 == setsockopt(sock, SOL_SOCKET, SO_REUSEPORT, reinterpret_cast<const char*>(&yes), sizeof(yes)))
     std::cerr << "UdpComm: could not set SO_REUSEPORT" << std::endl;

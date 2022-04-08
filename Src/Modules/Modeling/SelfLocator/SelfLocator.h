@@ -46,7 +46,7 @@
 #include "Tools/Modeling/SampleSet.h"
 #include "Tools/Module/Module.h"
 
-#define HRI
+#define PAPER
 
 MODULE(SelfLocator,
 {,
@@ -135,7 +135,7 @@ MODULE(SelfLocator,
     (float) minLengthLongHorizontalLine,            /**< Minimum length (in millimeters) of a line to be considered as "long" */
     (float) yDifferenceLongHorizontalLine,          /**< Maximum difference between lineStart.y and lineEnd.y in pixels */
 
-    #ifdef HRI
+    #ifdef PAPER
     (bool) useCustomInitialGuess,                          /** Use a certain initial guess on the robot position for challenge1 */
     #endif
   }),

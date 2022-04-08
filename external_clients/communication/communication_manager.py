@@ -308,7 +308,14 @@ class CommunicationManager(metaclass=Singleton):
         self.role_to_plan[robot_role] = plan_wrapper
     
     def get_current_plan_action(self, robot_role):
+        assert robot_role is not None
+        assert robot_role in self.role_to_plan.keys()
         return self.role_to_plan[robot_role].get_current_action()
+
+    def reset_plan(self, robot_role):
+        assert robot_role is not None
+        assert robot_role in self.role_to_plan.keys()
+        self.role_to_plan[robot_role].reset()
 
     #--------------------
     # 
@@ -425,6 +432,10 @@ class CommunicationManager(metaclass=Singleton):
         #if timestamp is None or timestamp > self.obstacles["position_timestamp"]:
         self.obstacles = {"position_timestamp": timestamp, "update_timestamp": time.time(), "last_seen_by_robot" : robot_number, "obstacles" : obstacles}
         
+        robot_role = self.getRobotRoleFromNumber(robot_number)
+        if robot_role != self.UNKNOWN_ROLE and robot_role != self.UNDEFINED_ROLE:
+            ValueRegistry().set(value_name = "obstacles", value = obstacles, robot_role = robot_role)
+
         self.update_frontend(robot_number, message = "obstacles:"+";".join([str(obstacle[0]) + "," + str(obstacle[1]) for obstacle in self.obstacles["obstacles"]]))
 
 

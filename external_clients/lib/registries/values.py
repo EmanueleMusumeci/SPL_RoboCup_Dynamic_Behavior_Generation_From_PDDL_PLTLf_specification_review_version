@@ -19,7 +19,14 @@ class ValueRegistry(ParameterRegistry):
                isinstance(value, int) or \
                isinstance(value, str) or \
                isinstance(value, bool) or \
-               (isinstance(value, tuple) and len(value) == 2 and ((isinstance(value[0], int) and isinstance(value[1], int)) or (isinstance(value[0], float) and isinstance(value[1], float))))
+               (isinstance(value, tuple) and len(value) == 2 and ((isinstance(value[0], int) and isinstance(value[1], int)) or (isinstance(value[0], float) and isinstance(value[1], float)))) or \
+               (isinstance(value, list) and len(value) > 0)
+        
+        if isinstance(value, list):
+            item_type = type(value[0])
+            assert item_type != Callable
+            for item in value:
+                assert isinstance(item, item_type)
         
         value_name = self.get_complete_name(value_name, robot_number=robot_number, robot_role=robot_role)
 
@@ -37,7 +44,7 @@ class ValueRegistry(ParameterRegistry):
                 self._items[value_name].set(value)
             else:
                 self._items[value_name] = FunctionalValue(value_name, formula=value, registry_instance=self)
-        elif isinstance(value, tuple):
+        elif isinstance(value, tuple) or isinstance(value, list):
             self._items[value_name] = SimpleValue(value_name, value=value, registry_instance = self)
         else:
             raise Exception("Should not be getting here")

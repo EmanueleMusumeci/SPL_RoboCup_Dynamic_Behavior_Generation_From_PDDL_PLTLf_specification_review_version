@@ -6,7 +6,7 @@
  * @author Arne Hasselbring
  */
 
-#define HRI
+#define PAPER
 
 #include "Representations/Communication/GameInfo.h"
 #include "Representations/Communication/TeamInfo.h"
@@ -22,7 +22,7 @@ CARD(GameplayCard,
   LOADS_PARAMETERS(
   {,
 
-#ifndef HRI
+#ifndef PAPER
     (DeckOfCards<CardRegistry>) ownKickoff,
     (DeckOfCards<CardRegistry>) opponentKickoff,
     (DeckOfCards<CardRegistry>) ownFreeKick,
@@ -36,6 +36,7 @@ CARD(GameplayCard,
     (DeckOfCards<CardRegistry>) searcher,
 #else 
     (DeckOfCards<CardRegistry>) TaskBasedStriker,
+    (DeckOfCards<CardRegistry>) TaskBasedSupporter,
     (DeckOfCards<CardRegistry>) goalie,
     (DeckOfCards<CardRegistry>) searcher,
 #endif
@@ -58,9 +59,19 @@ class GameplayCard : public GameplayCardBase
   void execute() override
   {
 
-    #ifdef HRI
+    #ifdef PAPER
+    if(theRole.role == Role::goalie){
+      dealer.deal(goalie)->call();
+      setState("goalie");
+    }
+    else if(theRole.role == Role::supporter){
+      dealer.deal(TaskBasedSupporter)->call();
+      setState("TaskBasedSupporter");
+    }
+    else if(theRole.role == Role::striker){
       dealer.deal(TaskBasedStriker)->call();
       setState("TaskBasedStriker");
+    }
     #else
         // ASSERT(theGameInfo.state == STATE_PLAYING);
     // if(theGameInfo.setPlay != SET_PLAY_NONE)

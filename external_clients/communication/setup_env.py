@@ -75,18 +75,20 @@ def setup():
 
     '''
 
-    USE_LOCALHOST = True
+    USE_LOCALHOST = False
 
 
     robot_number_to_robot_ip_map = {}
     if(USE_LOCALHOST):
         LOCAL_INTERFACE_IP = "127.0.0.1"
-        robot_number_to_robot_ip_map[3] = {"robotName" : "Caligola", "robotIP" : "127.0.0.1"}
-        robot_number_to_robot_ip_map[2] = {"robotName" : "Claudio", "robotIP" : "127.0.0.1"}
+        robot_number_to_robot_ip_map[3] = {"robotName" : "Tiberio", "robotIP" : "192.168.19.21"}
+        #robot_number_to_robot_ip_map[3] = {"robotName" : "Caligola", "robotIP" : "127.0.0.1"}
+        #robot_number_to_robot_ip_map[2] = {"robotName" : "Claudio", "robotIP" : "127.0.0.1"}
     else:
         LOCAL_INTERFACE_IP = "10.0.255.226"
-        robot_number_to_robot_ip_map[3] = {"robotName" : "Caligola", "robotIP" : "10.0.19.17"}
-        robot_number_to_robot_ip_map[2] = {"robotName" : "Claudio", "robotIP" : "10.0.19.19"}
+        robot_number_to_robot_ip_map[3] = {"robotName" : "Tiberio", "robotIP" : "10.0.19.21"}
+        #robot_number_to_robot_ip_map[3] = {"robotName" : "Caligola", "robotIP" : "10.0.19.17"}
+        #robot_number_to_robot_ip_map[2] = {"robotName" : "Claudio", "robotIP" : "10.0.19.19"}
 
     #Notice: 
     # - the DEST_PORTs here have to be the READ_PORTs on the robots

@@ -100,11 +100,16 @@ class NAOCommunicationController(twisted.internet.protocol.DatagramProtocol):
     
     def handleRobotRoleMessage(self, content, message_info):
         content_fields = content.split(",")
-        role = content_fields[1]
+        new_role = content_fields[1]
 
         #print("[Robot %d] Robot role: %s" % (self.robot_number, role))
 
-        self.communication_manager.updateRobotRole(self.robot_number, message_info["timestamp"], role)
+        old_role = self.communication_manager.getRobotRoleFromNumber(self.robot_number)
+        self.communication_manager.updateRobotRole(self.robot_number, message_info["timestamp"], new_role)
+
+        #If role changed, reset the corresponding plan
+        if new_role != old_role and not self.communication_manager.is_task_mode(robot_number = self.robot_number):
+            plan_action : RegistryItem = self.communication_manager.reset_plan(new_role)
     
     def handleObstaclesMessage(self, content, message_info):
         content_fields = content.split(";")[1:]
@@ -167,7 +172,7 @@ class NAOCommunicationController(twisted.internet.protocol.DatagramProtocol):
         #Decode data into a string (might be improved later)
         data = data.decode('utf-8')
 
-        #print("Received message from robot %d: %s" % (self.robot_number, data))
+        print("Received message from robot %d: %s" % (self.robot_number, data))
 
         message_fields = data.split("|")
 
@@ -229,7 +234,7 @@ class NAOCommunicationController(twisted.internet.protocol.DatagramProtocol):
                 #    self.handlePlanActionCompletedMessage(content, message_info)
 
     def send_string(self, string, terminator="\x00"):
-        #print("Sending data to robot "+str(self.robot_number)+": "+string)
+        print("Sending data to robot "+str(self.robot_number)+": "+string)
         self.send_data(str.encode(string+terminator))
     
     def send_data(self, data):

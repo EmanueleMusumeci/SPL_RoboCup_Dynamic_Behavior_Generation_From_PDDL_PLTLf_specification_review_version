@@ -18,6 +18,15 @@ class DFAHandler:
         self.__previous_edge = None
         self.__trace = [{"edge" : None, "performed_action" : ActionRegistry().get_instance("action_idle"), "destination_state" : self.__current_state.node_id, "timestamp" : time.time()}]
     
+    def reset(self):
+        self.__current_state : DFANode = self.dfa.initial_state
+        self.__current_edge = None
+
+        self.__previous_state = None
+        self.__previous_edge = None
+        self.__trace = [{"edge" : None, "performed_action" : ActionRegistry().get_instance("action_idle"), "destination_state" : self.__current_state.node_id, "timestamp" : time.time()}]
+        
+
     def get_current_action(self):
         self.update()
         #print(self.__trace)

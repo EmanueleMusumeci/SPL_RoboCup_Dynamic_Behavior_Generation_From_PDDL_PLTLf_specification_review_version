@@ -1,41 +1,20 @@
 digraph G {
-0 [label="{ (not-flattire), (spare-in l21), (spare-in l22), (spare-in l31), (vehicleat l11) }"];
-1 [label="{ (not-flattire), (spare-in l21), (spare-in l22), (spare-in l31), (vehicleat l21) }"];
-2 [label="{ (not (not-flattire)), (spare-in l21), (spare-in l22), (spare-in l31), (vehicleat l21) }"];
-3 [label="{ (not-flattire), (spare-in l21), (spare-in l22), (spare-in l31), (vehicleat l22) }"];
-4 [label="{ (not (not-flattire)), (spare-in l21), (spare-in l22), (spare-in l31), (vehicleat l22) }"];
-5 [label="{ (not-flattire), (not (spare-in l21)), (spare-in l22), (spare-in l31), (vehicleat l21) }"];
-6 [label="{ (not-flattire), (not (spare-in l21)), (spare-in l22), (spare-in l31), (vehicleat l22) }"];
-7 [label="{ (not (not-flattire)), (not (spare-in l21)), (spare-in l22), (spare-in l31), (vehicleat l22) }"];
-0 -> 1 [label="move-car l11 l21", color="#CC88A5", fontcolor="#CC88A5"];
-0 -> 2 [label="move-car l11 l21", color="#CC88A5", fontcolor="#CC88A5"];
-1 -> 3 [label="move-car l21 l22", color="#BF4A48", fontcolor="#BF4A48"];
-1 -> 4 [label="move-car l21 l22", color="#BF4A48", fontcolor="#BF4A48"];
-2 -> 5 [label="changetire l21", color="#A2486C", fontcolor="#A2486C"];
-5 -> 6 [label="move-car l21 l22", color="#ABEBFB", fontcolor="#ABEBFB"];
-5 -> 7 [label="move-car l21 l22", color="#ABEBFB", fontcolor="#ABEBFB"];
+0 [label="{ (not (?to != striker-current-position)), (not (ball-passed)), (not (goal-scored)), (is-at ball ball-current-position), (not (is-at ball goal-target)), (not (is-at ball kicking-position)), (not (is-at ball striker-current-position)), (not (is-at ball supporter-current-position)), (not (is-at striker-robot ball-current-position)), (not (is-at striker-robot goal-target)), (not (is-at striker-robot kicking-position)), (is-at striker-robot striker-current-position), (not (is-opponent-blocking-goal)), (not (new-axiom@0 ball-current-position)), (not (new-axiom@0 goal-target)), (not (new-axiom@0 kicking-position)), (new-axiom@0 striker-current-position), (not (new-axiom@1)) }"];
+1 [label="{ (?to != striker-current-position), (not (ball-passed)), (not (goal-scored)), (is-at ball ball-current-position), (not (is-at ball goal-target)), (not (is-at ball kicking-position)), (not (is-at ball striker-current-position)), (not (is-at ball supporter-current-position)), (is-at striker-robot ball-current-position), (not (is-at striker-robot goal-target)), (not (is-at striker-robot kicking-position)), (not (is-at striker-robot striker-current-position)), (is-opponent-blocking-goal), (new-axiom@0 ball-current-position), (not (new-axiom@0 goal-target)), (not (new-axiom@0 kicking-position)), (not (new-axiom@0 striker-current-position)), (not (new-axiom@1)) }"];
+2 [label="{ (?to != striker-current-position), (not (ball-passed)), (not (goal-scored)), (is-at ball ball-current-position), (not (is-at ball goal-target)), (not (is-at ball kicking-position)), (not (is-at ball striker-current-position)), (not (is-at ball supporter-current-position)), (is-at striker-robot ball-current-position), (not (is-at striker-robot goal-target)), (not (is-at striker-robot kicking-position)), (not (is-at striker-robot striker-current-position)), (not (is-opponent-blocking-goal)), (new-axiom@0 ball-current-position), (not (new-axiom@0 goal-target)), (not (new-axiom@0 kicking-position)), (not (new-axiom@0 striker-current-position)), (not (new-axiom@1)) }"];
+3 [label="{ (?to != striker-current-position), (ball-passed), (not (goal-scored)), (is-at ball ball-current-position), (not (is-at ball goal-target)), (not (is-at ball kicking-position)), (not (is-at ball striker-current-position)), (is-at ball supporter-current-position), (is-at striker-robot ball-current-position), (not (is-at striker-robot goal-target)), (not (is-at striker-robot kicking-position)), (not (is-at striker-robot striker-current-position)), (is-opponent-blocking-goal), (new-axiom@0 ball-current-position), (not (new-axiom@0 goal-target)), (not (new-axiom@0 kicking-position)), (not (new-axiom@0 striker-current-position)), (new-axiom@1) }"];
+4 [label="{ (?to != striker-current-position), (not (ball-passed)), (not (goal-scored)), (is-at ball ball-current-position), (not (is-at ball goal-target)), (not (is-at ball kicking-position)), (not (is-at ball striker-current-position)), (not (is-at ball supporter-current-position)), (not (is-at striker-robot ball-current-position)), (is-at striker-robot goal-target), (not (is-at striker-robot kicking-position)), (not (is-at striker-robot striker-current-position)), (not (is-opponent-blocking-goal)), (not (new-axiom@0 ball-current-position)), (new-axiom@0 goal-target), (not (new-axiom@0 kicking-position)), (not (new-axiom@0 striker-current-position)), (not (new-axiom@1)) }"];
+0 -> 1 [label="move-robot striker-robot striker-current-position ball-current-position", color="#569187", fontcolor="#569187"];
+0 -> 2 [label="move-robot striker-robot striker-current-position ball-current-position", color="#569187", fontcolor="#569187"];
+1 -> 3 [label="pass-ball-to-supporter striker-robot ball ball-current-position", color="#6BB687", fontcolor="#6BB687"];
+2 -> 4 [label="move-robot striker-robot ball-current-position goal-target", color="#3BB6C6", fontcolor="#3BB6C6"];
+2 -> 1 [label="move-robot striker-robot ball-current-position goal-target", color="#3BB6C6", fontcolor="#3BB6C6"];
+4 -> 2 [label="move-robot striker-robot goal-target ball-current-position", color="#EE1A8E", fontcolor="#EE1A8E"];
+4 -> 1 [label="move-robot striker-robot goal-target ball-current-position", color="#EE1A8E", fontcolor="#EE1A8E"];
 subgraph cluster_goal_3 {
 style=filled;
 color=palegreen;
 3;
-label="GOAL";
-}
-subgraph cluster_goal_4 {
-style=filled;
-color=palegreen;
-4;
-label="GOAL";
-}
-subgraph cluster_goal_6 {
-style=filled;
-color=palegreen;
-6;
-label="GOAL";
-}
-subgraph cluster_goal_7 {
-style=filled;
-color=palegreen;
-7;
 label="GOAL";
 }
 subgraph cluster_init {
