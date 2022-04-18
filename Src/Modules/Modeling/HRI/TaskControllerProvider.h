@@ -51,6 +51,7 @@ MODULE(TaskControllerProvider,
       (float) BALL_CARRIER_DISTANCE_THRESHOLD,                      /** Minimum distance of the ball from its destination to declare the CarryBall action completed */ 
       (float) KICK_DISTANCE_THRESHOLD,                              /** Minimum distance of the ball from its destination to declare the Kick action completed */ 
       (float) REACH_POSITION_DISTANCE_THRESHOLD,                    /** Minimum distance of the robot from its destination to declare the ReachPosition action completed */ 
+      (float) REACH_POSITION_ANGLE_THRESHOLD,                       /** Minimum angular distance of the robot from its target angle to declare the ReachPosition action completed */ 
 
       (bool) INTERACT_WITH_USER,                                    /** Perform interactions with human **/
 

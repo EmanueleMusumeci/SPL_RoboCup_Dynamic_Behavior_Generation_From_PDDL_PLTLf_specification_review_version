@@ -6,7 +6,7 @@ sys.path.append( os.path.dirname( os.path.dirname( os.path.abspath(__file__) ) )
 
 from lib.registries.values import ValueRegistry
 from lib.registries.literals import LiteralRegistry
-from lib.utils import distance
+from lib.utils import linear_distance, angular_distance
 
 if __name__ == "__main__":
 

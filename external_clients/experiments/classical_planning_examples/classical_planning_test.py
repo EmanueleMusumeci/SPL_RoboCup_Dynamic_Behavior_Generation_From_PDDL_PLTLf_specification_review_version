@@ -15,7 +15,7 @@ def setup_experiment():
     #from lib.plan.policy_handler import PolicyHandler
     from lib.registries.action import ActionRegistry
     from lib.registries.values import ValueRegistry
-    from lib.utils import distance
+    from lib.utils import linear_distance, angular_distance
 
     #from planning_for_past_temporal_goals.planning_with_past.planners.downward import DownwardPlanner
 

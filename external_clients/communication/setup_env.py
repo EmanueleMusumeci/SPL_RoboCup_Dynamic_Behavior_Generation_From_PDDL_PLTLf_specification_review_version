@@ -1,3 +1,4 @@
+from typing import Dict
 import signal
 
 from twisted.internet import reactor
@@ -5,7 +6,14 @@ from twisted.internet import reactor
 from communication.communication_manager import BehaviorControlMode, CommunicationManager
 from communication.frontend_controller import GUIController
 
-def setup():
+def setup(
+    robot_formation : Dict, 
+    USE_LOCALHOST : bool = False, 
+
+    WEBSOCKET_INTERFACE_IP = "127.0.0.1",
+    FRONTEND_SOCKET_IP = "127.0.0.1",
+
+    ):
     #-----------------------------------------------------------------
 
     ''' 
@@ -37,10 +45,6 @@ def setup():
 
     '''
 
-    LOCAL_WEBSOCKET_INTERFACE_IP = "127.0.0.1"
-    FRONTEND_SOCKET_IP = "127.0.0.1"
-
-
     WEB_CLIENT_READ_PORT = 65300
     WEB_CLIENT_WRITE_PORT = 65400
     WEB_CLIENT_REMOTE_READ_PORT = 65301
@@ -56,7 +60,7 @@ def setup():
     '''
     frontend_controller = GUIController(
         reactor, 
-        LOCAL_WEBSOCKET_INTERFACE_IP, WEB_CLIENT_READ_PORT, 
+        WEBSOCKET_INTERFACE_IP, WEB_CLIENT_READ_PORT, 
         FRONTEND_SOCKET_IP, WEB_CLIENT_WRITE_PORT, WEB_CLIENT_REMOTE_READ_PORT, 
         
         READ_SOCKET_TIMEOUT, 
@@ -74,21 +78,16 @@ def setup():
     |____________________________|
 
     '''
-
-    USE_LOCALHOST = False
-
-
-    robot_number_to_robot_ip_map = {}
+    
+    robot_number_to_robot_ip_map = get_robot_number_to_IP_map(robot_formation)
     if(USE_LOCALHOST):
         LOCAL_INTERFACE_IP = "127.0.0.1"
-        robot_number_to_robot_ip_map[3] = {"robotName" : "Tiberio", "robotIP" : "192.168.19.21"}
-        #robot_number_to_robot_ip_map[3] = {"robotName" : "Caligola", "robotIP" : "127.0.0.1"}
-        #robot_number_to_robot_ip_map[2] = {"robotName" : "Claudio", "robotIP" : "127.0.0.1"}
+        for robot_number, robot_data in robot_number_to_robot_ip_map.items():
+            robot_data["robotIP"] = LOCAL_INTERFACE_IP
     else:
         LOCAL_INTERFACE_IP = "10.0.255.226"
-        robot_number_to_robot_ip_map[3] = {"robotName" : "Tiberio", "robotIP" : "10.0.19.21"}
-        #robot_number_to_robot_ip_map[3] = {"robotName" : "Caligola", "robotIP" : "10.0.19.17"}
-        #robot_number_to_robot_ip_map[2] = {"robotName" : "Claudio", "robotIP" : "10.0.19.19"}
+        for robot_number, robot_data in robot_number_to_robot_ip_map.items():
+            assert robot_data["robotIP"].startswith((".").join(LOCAL_INTERFACE_IP.split(".")[:2]))
 
     #Notice: 
     # - the DEST_PORTs here have to be the READ_PORTs on the robots
@@ -149,3 +148,22 @@ def setup():
     #-----------------------------------------------------------------
 
     return behavior_controller
+
+def get_robot_name_to_robot_IP_map():
+    return {
+        "Cesare" : "10.0.19.16",
+        "Caligola" : "10.0.19.17",
+        "Nerone" : "10.0.19.18",
+        "Claudio" : "10.0.19.19",
+        "Augusto" : "10.0.19.20",
+        "Tiberio" : "10.0.19.21",
+    }
+
+def get_robot_number_to_IP_map(number_to_name : Dict):
+    robot_name_to_ip_map = get_robot_name_to_robot_IP_map()
+    
+    robot_number_to_robot_ip_map = {}
+    for number, name in number_to_name.items():
+        robot_number_to_robot_ip_map[number] = {"robotName" : name, "robotIP" : robot_name_to_ip_map[name]}
+
+    return robot_number_to_robot_ip_map

@@ -45,11 +45,6 @@
 #include "Tools/BehaviorControl/Framework/BehaviorContext.h"
 #include <vector>
 
-//#define LTL_PROJECT
-
-#ifdef LTL_PROJECT
-  #include "Config/Actions/actionRegister.h"
-#endif
 
 class CardBase;
 
@@ -61,9 +56,6 @@ public:
     std::vector<const char*> requires; /**< The names of representations required by this card. */
     std::vector<const char*> calls; /**< The names of skills called by this card. */
 
-    #ifdef LTL_PROJECT
-      std::vector<Actions::ActionType> completesActions;
-    #endif
   };
 
   /**
@@ -151,9 +143,6 @@ private:
 #define _CARD_PARAMETERS_REQUIRES(type)
 #define _CARD_PARAMETERS_USES(type)
 #define _CARD_PARAMETERS_CALLS(type)
-#ifdef LTL_PROJECT
-  #define _CARD_PARAMETERS_COMPLETES_ACTION(actionType)
-#endif
 #define _CARD_PARAMETERS__MODULE_DEFINES_PARAMETERS(header, ...) _STREAM_STREAMABLE(Params, Streamable, , header, __VA_ARGS__); using NoParameters = Params;
 #define _CARD_PARAMETERS__MODULE_LOADS_PARAMETERS(header, ...) _STREAM_STREAMABLE(Params, Streamable, , header, __VA_ARGS__); using NoParameters = Params;
 
@@ -161,9 +150,6 @@ private:
 #define _CARD_LOAD_REQUIRES(type)
 #define _CARD_LOAD_USES(type)
 #define _CARD_LOAD_CALLS(type)
-#ifdef LTL_PROJECT
-  #define _CARD_LOAD_COMPLETES_ACTION(actionType)
-#endif
 #define _CARD_LOAD__MODULE_DEFINES_PARAMETERS(...)
 #define _CARD_LOAD__MODULE_LOADS_PARAMETERS(...) loadModuleParameters(*this, cardName, fileName, "BehaviorControl/");
 
@@ -171,9 +157,6 @@ private:
 #define _CARD_DECLARE_REQUIRES(type) public: const type& the##type = Blackboard::getInstance().alloc<type>(#type);
 #define _CARD_DECLARE_USES(type) public: const type& the##type = Blackboard::getInstance().alloc<type>(#type);
 #define _CARD_DECLARE_CALLS(type) public: _CARD_SKILLS_NAMESPACE::type##Skill& the##type##Skill = *_CARD_SKILL_REGISTRY::theInstance->getSkill<_CARD_SKILLS_NAMESPACE::type##Skill>(#type);
-#ifdef LTL_PROJECT
-  #define _CARD_DECLARE_COMPLETES_ACTION(actionType) 
-#endif
 #define _CARD_DECLARE__MODULE_DEFINES_PARAMETERS(...)
 #define _CARD_DECLARE__MODULE_DEFINES_PARAMETERS(...)
 #define _CARD_DECLARE__MODULE_LOADS_PARAMETERS(...)
@@ -182,9 +165,6 @@ private:
 #define _CARD_FREE_REQUIRES(type) Blackboard::getInstance().free(#type);
 #define _CARD_FREE_USES(type) Blackboard::getInstance().free(#type);
 #define _CARD_FREE_CALLS(type)
-#ifdef LTL_PROJECT
-  #define _CARD_FREE_COMPLETES_ACTION(actionType)
-#endif
 #define _CARD_FREE__MODULE_DEFINES_PARAMETERS(...)
 #define _CARD_FREE__MODULE_LOADS_PARAMETERS(...)
 
@@ -192,9 +172,6 @@ private:
 #define _CARD_INFO_REQUIRES(type) _info.requires.push_back(#type);
 #define _CARD_INFO_USES(type)
 #define _CARD_INFO_CALLS(type) _info.calls.push_back(#type);
-#ifdef LTL_PROJECT
-  #define _CARD_INFO_COMPLETES_ACTION(actionType) _info.completesActions.push_back(Actions::ActionType::##actionType);  
-#endif
 #define _CARD_INFO__MODULE_DEFINES_PARAMETERS(...)
 #define _CARD_INFO__MODULE_LOADS_PARAMETERS(...)
 

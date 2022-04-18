@@ -19,10 +19,11 @@ class ValueRegistry(ParameterRegistry):
                isinstance(value, int) or \
                isinstance(value, str) or \
                isinstance(value, bool) or \
-               (isinstance(value, tuple) and len(value) == 2 and ((isinstance(value[0], int) and isinstance(value[1], int)) or (isinstance(value[0], float) and isinstance(value[1], float)))) or \
-               (isinstance(value, list) and len(value) > 0)
-        
-        if isinstance(value, list):
+               (isinstance(value, tuple) and len(value) == 2) or \
+               (isinstance(value, tuple) and len(value) == 3) or \
+               (isinstance(value, list))
+
+        if isinstance(value, list) and value:
             item_type = type(value[0])
             assert item_type != Callable
             for item in value:
@@ -49,9 +50,14 @@ class ValueRegistry(ParameterRegistry):
         else:
             raise Exception("Should not be getting here")
         self._update_timestamps[value_name] = time.time()
-        
+
+        if robot_role is not None:
+            self._robot_role_to_item_names[robot_role] = value_name
+        if robot_number is not None:
+            self._robot_number_to_item_names[robot_role] = value_name
+
         if self.allow_delayed_parameter_check:
-            self.perform_scheduled_parameter_checks
+            self.perform_scheduled_parameter_checks()
 
     def reset(self):
         super().reset()
@@ -169,9 +175,9 @@ class SimpleValue(SimpleRegistryItem, Value):
         return "[SimpleValue]%s(%s)" % (self.name_in_registry, str(self.get()))
 
 class FunctionalValue(FunctionalRegistryItem, Value):
-    def __init__(self, name_in_registry : str, formula : Callable, registry_instance : ValueRegistry):
+    def __init__(self, name_in_registry : str, formula : Callable, registry_instance : ValueRegistry, default_value_if_not_evaluable):
         
-        super().__init__(name_in_registry, formula, registry_instance = registry_instance)
+        super().__init__(name_in_registry, formula, registry_instance = registry_instance, default_value_if_not_evaluable = default_value_if_not_evaluable)
 
         ValueRegistry().parameter_check(name_in_registry, formula)
 

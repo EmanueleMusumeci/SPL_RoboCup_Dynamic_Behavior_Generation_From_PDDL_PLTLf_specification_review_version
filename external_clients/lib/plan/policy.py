@@ -32,11 +32,13 @@ import matplotlib.pyplot as plt
 class PolicyEdge:
     def __init__(self, from_node : Type['PolicyNode'], to_node : Type['PolicyNode'], guard_action : Action):
 
+        print(from_node.get_fluents())
         for source_fluent in from_node.get_fluents():
             assert isinstance(source_fluent, Tuple)
             assert isinstance(source_fluent[0], Fluent)
             assert isinstance(source_fluent[1], bool)
         
+        to_node.get_fluents()
         for destination_fluent in to_node.get_fluents():
             assert isinstance(destination_fluent, Tuple)
             assert isinstance(destination_fluent[0], Fluent)
@@ -53,10 +55,21 @@ class PolicyEdge:
             for destination_fluent in to_node.get_fluents():
                 if source_fluent[0] == destination_fluent[0]:
                     is_fluent_in_both = True
+                    break
             #Fluent should be in both
             assert is_fluent_in_both
-            
-            self.guard_fluents.append(destination_fluent)
+
+            #Add fluents as transition conditions for this branch only if they appear in both and
+            # A) They have a different value in the successor node
+            #   OR
+            # B) We are in the root node
+            if is_fluent_in_both and \
+                (\
+                    source_fluent[1] != destination_fluent[1] \
+                        or \
+                    from_node.is_root()
+                ):            
+                self.guard_fluents.append(destination_fluent)
 
         #NOTICE: we can not perform this action unless all guard_fluents are verified 
 
@@ -99,14 +112,19 @@ class PolicyEdge:
         return self.guard_fluents
     '''
 
-    def is_verified(self) -> bool:
+    def is_verified(self, verbose = True) -> bool:
         all_verified = True
         for fluent_tuple in self.guard_fluents:
             
             try:
                 current_fluent_value = bool(fluent_tuple[0])
+                if verbose:
+                    print("Fluent '%s' should be %s and is %s" % (fluent_tuple[0], fluent_tuple[1], bool(fluent_tuple[0])))
             except KeyError as ke:
                 print("KeyError raised: %s.\n\nCan't evaluate fluent %s: no transition is possible." % (str(ke), fluent_tuple[0].name_in_registry))
+                return False
+            except TypeError as te:
+                print("TypeError raised: %s. Something went wrong when evaluating fluent '%s' to bool." % (str(te), fluent_tuple[0].name_in_registry))
                 return False
             except Exception as e:
                 raise e
@@ -116,6 +134,9 @@ class PolicyEdge:
             all_verified = all_verified and this_fluent_verified
             if not all_verified:
                 break
+        
+        if verbose:
+            print("\n")
         return all_verified
     
     def __str__(self):
@@ -200,8 +221,14 @@ class PolicyNode:
                 assert isinstance(predicate[2], str)
         self.predicates = predicates
 
+    def is_root(self):
+        return not self.__incoming_edges
+
     def get_edges(self):
         return self.__edges
+
+    def get_incoming_edges(self):
+        return self.__incoming_edges
 
     def get_outgoing_edges(self):
         return self.__outgoing_edges
@@ -286,6 +313,9 @@ class Policy:
         if edge.from_node != edge.to_node:
             edge.to_node.remove_edge(edge)
 
+    @classmethod 
+    def Idle(cls):
+        return Policy({0 : PolicyNode(node_id = 0)}, is_plan = True)
 
     #A Plan is a policy but without any fluent
     @classmethod
@@ -322,6 +352,10 @@ class Policy:
             
             new_edge = PolicyEdge(from_node = nodes[from_node_id], to_node = nodes[to_node_id], guard_action = new_action_instance)
             nodes[from_node_id].add_edge(new_edge)
+            if to_node_id != from_node_id:
+                nodes[to_node_id].add_edge(new_edge)
+
+
 
         #print(nodes)
         #Create Policy/Plan with the collected information
@@ -364,7 +398,7 @@ class Policy:
                 else:
                     predicate_values = None
 
-                if predicate_name.startswith(FluentRegistry().ITEM_PREFIX) or predicate_name in FluentRegistry():
+                if predicate_name.startswith(FluentRegistry().ITEM_PREFIX) or predicate_name.startswith(FluentRegistry().ITEM_PREFIX.replace("_", "-")) or predicate_name in FluentRegistry():
                     assert predicate_name in FluentRegistry(),"Fluent '"+predicate_name+"' not available in FluentRegistry"
                     fluent_tuples.append((FluentRegistry().get_instance(predicate_name), is_predicate_equality))
 #                elif predicate_values is not None:
@@ -387,6 +421,7 @@ class Policy:
             action_parameter_names = []
             
             action_name = action_strings[0]
+#TODO: Actions starting with OBSERVE are just checks on available variables and are automatically mapped to IdleAction
             if len(action_strings)>1:
                 for param in action_strings[1:]:
                     action_parameter_names.append(param)
@@ -396,6 +431,8 @@ class Policy:
             
             new_edge = PolicyEdge(from_node = nodes[from_node_id], to_node = nodes[to_node_id], guard_action = new_action_instance)
             nodes[from_node_id].add_edge(new_edge)
+            if to_node_id != from_node_id:
+                nodes[to_node_id].add_edge(new_edge)
 
         #print(nodes)
         #Create Policy/Plan with the collected information

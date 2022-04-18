@@ -12,14 +12,14 @@ from lib.registries.registry import ConstantRegistryItem, Registry, RegistryItem
 #Allows specifying an action template, containing its base name in the registry, the robot_skill_name and (optionally) the parameter indices
 # that need to be selected from the parameter list passed to the action upon construction
 class ActionTemplate:
-    def __init__(self, name_in_registry : str, robot_skill_name : str, parameter_indices : List[int] = None):
+    def __init__(self, name_in_registry : str, robot_skill_name : str, parameters : List[Union[int,str]] = None):
         
-        if parameter_indices is not None:
-            assert isinstance(parameter_indices, list)
-            for index in parameter_indices:
-                assert isinstance(index, int)
+        if parameters is not None:
+            assert isinstance(parameters, list)
+            for param in parameters:
+                assert isinstance(param, int) or isinstance(param, str)
 
-        self.parameter_indices = parameter_indices
+        self.parameters = parameters
         assert isinstance(robot_skill_name, str)
 
         self.robot_skill_name = robot_skill_name
@@ -55,7 +55,7 @@ class Action:
 
     def get_parameter_string(self):
         found_parameters = {}
-        print(self.parameters)
+        #print(self.parameters)
         for parameter in self.parameters:
             if isinstance(parameter, list):
                 raise NotImplementedError
@@ -103,6 +103,9 @@ class Action:
                 
 
         return "/".join(param_substrings)
+
+    def is_idle_action(self):
+        return self.get() == ActionRegistry().get_idle_action().get()
 
 
 class ConstantParameterAction(ConstantRegistryItem, Action):
@@ -169,11 +172,12 @@ class DynamicParameterAction(ConstantRegistryItem, Action):
             return "%s('%s')[%s]" % (self.name_in_registry, self.get(), param_string)
         else:
             return "%s('%s')" % (self.name_in_registry, self.get())
-    
+
 class ActionRegistry(Registry):
 
     ITEM_PREFIX = "action_"
     ACTION_BASE_NAME = "action_"
+    CHECK_ACTION_PREFIX ="check"
 
     def __init__(self, robot_idle_skill : str = None, idle_skill_parameters : List = [], allow_delayed_parameter_check : bool = True):
         super().__init__(Action)
@@ -288,17 +292,27 @@ class ActionRegistry(Registry):
     
 
     def create_action_from_template(self, action_template_name, parameter_list : List[Union[Tuple[str, Any], str]] = None):
+        
+        if(action_template_name.startswith(self.CHECK_ACTION_PREFIX)):
+            return ActionRegistry().get_idle_action()
+            
         assert action_template_name in self.__action_templates.keys(), "Unknown ActionTemplate "+action_template_name
-        
         action_template_instance : ActionTemplate = self.__action_templates[action_template_name]
-        
-        
+    
+    
         new_action_parameters = []
         if parameter_list is not None:
-            if action_template_instance.parameter_indices is not None:
-                assert len(parameter_list) >= len(action_template_instance.parameter_indices)
-                for index in action_template_instance.parameter_indices:
-                    new_action_parameters.append(parameter_list[index])
+            if action_template_instance.parameters is not None:
+                int_indices = [param_index for param_index in action_template_instance.parameters if isinstance(param_index, int)]
+                if int_indices:
+                    max_param_index = max(int_indices)
+                    assert len(parameter_list) > max_param_index
+                for param_specification in action_template_instance.parameters:
+                    if isinstance(param_specification, int):
+                        new_action_parameters.append(parameter_list[param_specification])
+                    elif isinstance(param_specification, str):
+                        new_action_parameters.append(param_specification)
+
             else:
                 new_action_parameters = parameter_list
 
@@ -313,36 +327,39 @@ class ActionRegistry(Registry):
         return self.get_instance(new_action_name)
 
 
-    def register_action_template(self, action_template_name : str, robot_skill_name : str, parameter_indices : List[int] = None):
+    def register_action_template(self, action_template_name : str, robot_skill_name : str, parameters : List[Union[int, str]] = None):
         assert action_template_name not in self.__action_templates.keys(), "ActionTemplate "+action_template_name+" was already registered"
-        self.__action_templates[action_template_name] = ActionTemplate(name_in_registry=action_template_name, robot_skill_name=robot_skill_name, parameter_indices=parameter_indices)
+        self.__action_templates[action_template_name] = ActionTemplate(name_in_registry=action_template_name, robot_skill_name=robot_skill_name, parameters=parameters)
 
     def get_action_template(self, action_template_name : str):
         assert action_template_name in self.__action_templates.keys()
         return self.__action_templates[action_template_name]
 
 
+    def get_idle_action(self):
+        return self.get_instance("action_idle")
+
     def set(self, action_name : str, action_data, robot_number : int = None, robot_role : str = None, action_base_name : str = None):
         assert isinstance(action_data, str) or isinstance(action_data, tuple)
-        print(action_name, action_data)
+        #print(action_name, action_data)
         if action_base_name is not None:
             assert action_base_name in action_name
         dynamic_parameters = False
         if isinstance(action_data, tuple):
-            assert len(action_data) == 2 
+            assert len(action_data) == 2 or len(action_data) == 3
             assert isinstance(action_data[0], str)
             assert isinstance(action_data[1], list)
             assert len(action_data[1]) > 0
             for action_parameter in action_data[1]:
                 if isinstance(action_parameter, tuple):
-                    assert len(action_parameter) == 2
+                    assert len(action_parameter) == 2 or len(action_data) == 3
                     assert isinstance(action_parameter[0], str)
                 elif isinstance(action_parameter, str):
                     #if the parameter is a string it must start with the ValueRegistry prefix, 
                     # in this case, the parameter is supposed to be a RegistryItem
                     dynamic_parameters = True
                 
-        action_name = self.get_complete_name(action_name)
+        action_name = self.get_complete_name(action_name, robot_number=robot_number, robot_role=robot_role)
 
         '''
         if not action_name.startswith(ActionRegistry.ITEM_PREFIX):
@@ -361,6 +378,11 @@ class ActionRegistry(Registry):
         
         if self.allow_delayed_parameter_check:
             self.perform_scheduled_parameter_checks()
+
+        if robot_role is not None:
+            self._robot_role_to_item_names[robot_role] = action_name
+        if robot_number is not None:
+            self._robot_number_to_item_names[robot_role] = action_name
         
 
     def signal_action_completed(self, action_name):

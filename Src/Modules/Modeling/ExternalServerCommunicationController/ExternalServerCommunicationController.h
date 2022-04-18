@@ -69,6 +69,8 @@ MODULE(ExternalServerCommunicationController,
       (bool) PREFIX_TIMESTAMP,                      /** Add the timestamp at the beginning of the message */
       (bool) PREFIX_ROBOT_NUMBER,                   /** Add the robot number to the message */
 
+      (bool) PRINT_SENT_MESSAGES,                   /** Print each message sent by this controller */
+
     }),
 });
 
@@ -111,7 +113,7 @@ public:
     std::string obstacles_to_sendable_string();
     std::string plan_action_completed_string();
 
-    void send_data_string(std::string str, bool prefix_timestamp, bool prefix_robot_number);
+    void send_data_string(std::string str, bool prefix_timestamp, bool prefix_robot_number, bool print_message);
     bool read_data_string_from_socket(UdpComm sock, std::string& recv_str);
 
     std::vector<std::string> getTokens(std::string& str, std::string delimiter);

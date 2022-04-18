@@ -17,25 +17,11 @@
         <Translation x="0.85" y="0" z="320mm"/>
         <Rotation z="180degree"/> 
         </Body>
-        <Body ref="Nao" name="robot2">
-        <Translation x="-2.0" y="1.5" z="320mm"/>
-        <Rotation z="330degree"/> 
-        </Body>
     </Compound>
 
     <Compound name="extras">
         <Body ref="NaoDummy" name="robot7">
-        <Translation x="-4.5" y="0" z="320mm"/>
-        <Rotation z="0degree"/>
-        <Set name="NaoColor" value="dblue"/>
-        </Body>
-        <Body ref="NaoDummy" name="robot8">
-        <Translation x="-4.0" y="0.5" z="320mm"/>
-        <Rotation z="0degree"/>
-        <Set name="NaoColor" value="dblue"/>
-        </Body>
-        <Body ref="NaoDummy" name="robot9">
-        <Translation x="-4.0" y="-0.5" z="320mm"/>
+        <Translation x="-1.6" y="-0.5" z="320mm"/>
         <Rotation z="0degree"/>
         <Set name="NaoColor" value="dblue"/>
         </Body>

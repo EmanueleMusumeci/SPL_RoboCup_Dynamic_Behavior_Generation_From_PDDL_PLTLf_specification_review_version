@@ -77,6 +77,7 @@ namespace HRI
     {,
       Idle,
       ReachPosition,
+      ReachPositionAndAngle,
       ReachBall,
       CarryBall,
       Kick,
@@ -110,6 +111,7 @@ STREAMABLE(Action,
   Action() = default;
   Action(HRI::ActionType actionType);
   Action(HRI::ActionType actionType, Vector2f target);
+  Action(HRI::ActionType actionType, Vector2f target, float angle);
   Action(HRI::ActionType actionType, int teammateTarget);
   
   /*Action& operator=(const Action& other)
@@ -124,11 +126,12 @@ STREAMABLE(Action,
   (bool) completed,
   (HRI::ActionType) actionType,
   (Vector2f) target,
+  (float) angle,
   (int) teammateTarget,
 });
 
 //CTOR for actions not based on a target or a teammate
-inline Action::Action(HRI::ActionType actionType) : actionType(actionType), target(Vector2f(0,0)), teammateTarget(-1)
+inline Action::Action(HRI::ActionType actionType) : actionType(actionType), target(Vector2f(0,0)), angle(0.f), teammateTarget(-1)
 {
   //std::cout<<"actionType: "<<TypeRegistry::getEnumName(actionType)<<std::endl;
   //Verify that the action is not target-based
@@ -139,13 +142,15 @@ inline Action::Action(HRI::ActionType actionType) : actionType(actionType), targ
     actionType!=HRI::ActionType::Kick 
     &&
     actionType!=HRI::ActionType::ReachPosition 
+    &&
+    actionType!=HRI::ActionType::ReachPositionAndAngle
     //Teammate-based actions
     &&
     actionType!=HRI::ActionType::PassBall
   );
 };
 //CTOR for target-based actions
-inline Action::Action(HRI::ActionType actionType, Vector2f target) : actionType(actionType), target(target), teammateTarget(-1)
+inline Action::Action(HRI::ActionType actionType, Vector2f target) : actionType(actionType), target(target), angle(0.f), teammateTarget(-1)
 {
   //std::cout<<"actionType: "<<TypeRegistry::getEnumName(actionType)<<std::endl;
   //Verify that the action is target-based and not teammate-based
@@ -162,13 +167,22 @@ inline Action::Action(HRI::ActionType actionType, Vector2f target) : actionType(
     actionType!=HRI::ActionType::PassBall
   );
 };
+//CTOR for target-based actions with an angle
+inline Action::Action(HRI::ActionType actionType, Vector2f target, float angle) : actionType(actionType), target(target), angle(angle), teammateTarget(-1)
+{
+  //std::cout<<"actionType: "<<TypeRegistry::getEnumName(actionType)<<std::endl;
+  //Verify that the action is target-based and not teammate-based
+  ASSERT(
+    actionType==HRI::ActionType::ReachPositionAndAngle
+  );
+};
 //CTOR for teammate-based actions
-inline Action::Action(HRI::ActionType actionType, int teammateNumber) : actionType(actionType), target(Vector2f(0,0)), teammateTarget(teammateNumber)
+inline Action::Action(HRI::ActionType actionType, int teammateNumber) : actionType(actionType), target(Vector2f(0,0)), angle(0.f), teammateTarget(teammateNumber)
 {
   //std::cout<<"actionType: "<<TypeRegistry::getEnumName(actionType)<<std::endl;
   //Verify that the action is teammate-based
   ASSERT(
-    actionType!=HRI::ActionType::PassBall
+    actionType==HRI::ActionType::PassBall
   );
 };
 
@@ -265,7 +279,7 @@ STREAMABLE(TaskController,
   void draw() const;
 
   /* Update current desired destination of the robot based on the current task */
-  FUNCTION(void(Vector2f destinationPose)) updateCurrentDestination;
+  FUNCTION(void(Pose2f destinationPose)) updateCurrentDestination;
 
   /* Update current desired destination of the ball based on the current task */
   FUNCTION(void(Vector2f ballDestination)) updateCurrentBallDestination;
@@ -304,7 +318,7 @@ STREAMABLE(TaskController,
   (std::vector<Task>) taskQueue,
   (int)(0) currentAction,
 
-  (Vector2f) currentRobotDestination,
+  (Pose2f) currentRobotDestination,
   (Vector2f) currentBallDestination,
 
   (int)(-1) lastReceivedTaskID,
@@ -312,6 +326,7 @@ STREAMABLE(TaskController,
 
   (float) ballCarrierDistanceThreshold,
   (float) reachPositionDistanceThreshold,
+  (float) reachPositionAngleThreshold,
   (float) kickDistanceThreshold,
 
   (Vector2f) userPosition,

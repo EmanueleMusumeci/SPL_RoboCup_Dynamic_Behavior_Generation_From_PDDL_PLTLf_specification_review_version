@@ -1,52 +1,60 @@
 #!/bin/sh
 
 #modify the right hand side with the root of your robocup folder
-LTL_ROOT=~/ltl_behavior_synthesis
+parent_path=$( cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P )
+SPL_ROOT=$( cd "$(dirname "$parent_path")" ; pwd -P )
 
-export LTLROOT=${LTL_ROOT}/spqrnao2021
-export LTLCLIENTS=${LTL_ROOT}/spqrnao2021/external_clients
-export LTLBUILD=${LTL_ROOT}/spqrnao2021/Build
-export LTLCONFIG=${LTL_ROOT}/spqrnao2021/Config
-export LTLSCENES=${LTL_ROOT}/spqrnao2021/Config/Scenes
-export LTLSCENEBHF=${LTL_ROOT}/spqrnao2021/Config/Scenes/BHFast.ros2
-export LTLSCENEHW5=${LTL_ROOT}/spqrnao2021/Config/Scenes/HomeWork5.ros2
-export LTLMAKE=${LTL_ROOT}/spqrnao2021/Make/Linux
-export LTLREP=${LTL_ROOT}/spqrnao2021/Src/Representations
-export LTLMOD=${LTL_ROOT}/spqrnao2021/Src/Modules
-export LTLSRC=${LTL_ROOT}/spqrnao2021/Src
-export LTLSIM=${LTL_ROOT}/spqrnao2021/Build/Linux/SimRobot/Develop
-export LTLCONTROLLER=${LTL_ROOT}/GameController
-export LTLBUSH=${LTL_ROOT}/spqrnao2021/Build/Linux/bush/Develop
-export LTLINSTALL=${LTL_ROOT}/spqrnao2021/Install
+export SPLROOT=${SPL_ROOT}/spqrnao2021
+export SPLCLIENTS=${SPL_ROOT}/spqrnao2021/external_clients
+export SPLBUILD=${SPL_ROOT}/spqrnao2021/Build
+export SPLCONFIG=${SPL_ROOT}/spqrnao2021/Config
+export SPLSCENES=${SPL_ROOT}/spqrnao2021/Config/Scenes
+export SPLSCENEBHF=${SPL_ROOT}/spqrnao2021/Config/Scenes/BHFast.ros2
+export SPLSCENEHW5=${SPL_ROOT}/spqrnao2021/Config/Scenes/HomeWork5.ros2
+export SPLMAKE=${SPL_ROOT}/spqrnao2021/Make/Linux
+export SPLREP=${SPL_ROOT}/spqrnao2021/Src/Representations
+export SPLMOD=${SPL_ROOT}/spqrnao2021/Src/Modules
+export SPLSRC=${SPL_ROOT}/spqrnao2021/Src
+export SPLSIM=${SPL_ROOT}/spqrnao2021/Build/Linux/SimRobot/Develop
+export SPLCONTROLLER=${SPL_ROOT}/GameController
+export SPLBUSH=${SPL_ROOT}/spqrnao2021/Build/Linux/bush/Develop
+export SPLINSTALL=${SPL_ROOT}/spqrnao2021/Install
 
 
-alias ltlmcd="cd $LTLMAKE; make CONFIG=Develop"
+alias ltlmcd="cd $SPLMAKE; make CONFIG=Develop"
 
-alias ltlsr="cd $LTLSIM; ./SimRobot"
+alias ltlsr="cd $SPLSIM; ./SimRobot"
 
-alias ltlsrbhf="cd $LTLSIM; ./SimRobot $LTLSCENES/BHFast-devel.ros2"
-alias ltlsr1v3d="cd $LTLSIM; ./SimRobot $LTLSCENES/1vs3Dummies.ros2"
-alias ltlsr2v3d="cd $LTLSIM; ./SimRobot $LTLSCENES/2vs3Dummies.ros2"
-alias ltlsrotf="cd $LTLSIM; ./SimRobot $LTLSCENES/OneTeamFast.ros2"
-alias ltlsrgfd="cd $LTLSIM; ./SimRobot $LTLSCENES/GameFast-devel.ros2"
+alias ltlsrbhf="reset; cd $SPLSIM; ./SimRobot $SPLSCENES/BHFast-devel.ros2"
+alias ltlsr1v3d="reset; cd $SPLSIM; ./SimRobot $SPLSCENES/1vs3Dummies.ros2"
+alias ltlsr2v3d="reset; cd $SPLSIM; ./SimRobot $SPLSCENES/2vs3Dummies.ros2"
+alias ltl_fond_striker_no_obstacle="reset; cd $SPLSIM; ./SimRobot $SPLSCENES/fond_striker_no_obstacle.ros2"
+alias ltl_fond_striker_with_obstacle="reset; cd $SPLSIM; ./SimRobot $SPLSCENES/fond_striker_with_obstacle.ros2"
+alias ltl_fond_striker_jolly_no_obstacle="reset; cd $SPLSIM; ./SimRobot $SPLSCENES/fond_striker_jolly_no_obstacle.ros2"
+alias ltl_fond_striker_jolly_with_obstacle="reset; cd $SPLSIM; ./SimRobot $SPLSCENES/fond_striker_jolly_with_obstacle.ros2"
+alias ltlsrotf="reset; cd $SPLSIM; ./SimRobot $SPLSCENES/OneTeamFast.ros2"
+alias ltlsrgfd="reset; cd $SPLSIM; ./SimRobot $SPLSCENES/GameFast-devel.ros2"
 
-alias srrr="cd $LTLSIM; ./SimRobot $LTLSCENES/RemoteRobot.ros2"
+alias srrr="cd $SPLSIM; ./SimRobot $SPLSCENES/RemoteRobot.ros2"
 
-alias ltlcopd="cd $LTLMAKE; ./copyfiles Develop -b -v 60 "
-alias ltlcopdnorestart="cd $LTLMAKE; ./copyfiles Develop -v 60 "
+alias ltlcopd="cd $SPLMAKE; ./copyfiles Develop -b -v 60 "
+alias ltlcopdnorestart="cd $SPLMAKE; ./copyfiles Develop -v 60 "
 
-#alias ltlpc="/home/asc/anaconda3/envs/robocup/bin/python3 $LTLCLIENTS/run.py"
+#alias ltlpc="/home/asc/anaconda3/envs/robocup/bin/python3 $SPLCLIENTS/run.py"
 
-alias ltldfa0="/home/asc/anaconda3/envs/robocup/bin/python3 $LTLCLIENTS/run_experiment.py LTL_examples.reach_ball_and_kick"
-alias ltldfa1="/home/asc/anaconda3/envs/robocup/bin/python3 $LTLCLIENTS/run_experiment.py LTL_examples.reach_ball_and_kick_until_goal"
-alias ltldfa2="/home/asc/anaconda3/envs/robocup/bin/python3 $LTLCLIENTS/run_experiment.py LTL_examples.patrolling_with_static_waypoints_without_mutual_exclusion"
-alias ltldfa3="/home/asc/anaconda3/envs/robocup/bin/python3 $LTLCLIENTS/run_experiment.py LTL_examples.patrolling_with_static_waypoints_without_mutual_exclusion_stateless"
-alias ltldfa4="/home/asc/anaconda3/envs/robocup/bin/python3 $LTLCLIENTS/run_experiment.py LTL_examples.reach_waypoint_then_reach_ball_and_kick_until_goal"
-alias ltldfa5="/home/asc/anaconda3/envs/robocup/bin/python3 $LTLCLIENTS/run_experiment.py LTL_examples.patrolling_with_static_waypoints_with_mutual_exclusion_stateful"
+alias ltldfa0="reset; /home/asc/anaconda3/envs/robocup/bin/python3 $SPLCLIENTS/run_experiment.py SPL_examples.reach_ball_and_kick"
+alias ltldfa1="reset; /home/asc/anaconda3/envs/robocup/bin/python3 $SPLCLIENTS/run_experiment.py SPL_examples.reach_ball_and_kick_until_goal"
+alias ltldfa2="reset; /home/asc/anaconda3/envs/robocup/bin/python3 $SPLCLIENTS/run_experiment.py SPL_examples.patrolling_with_static_waypoints_without_mutual_exclusion"
+alias ltldfa3="reset; /home/asc/anaconda3/envs/robocup/bin/python3 $SPLCLIENTS/run_experiment.py SPL_examples.patrolling_with_static_waypoints_without_mutual_exclusion_stateless"
+alias ltldfa4="reset; /home/asc/anaconda3/envs/robocup/bin/python3 $SPLCLIENTS/run_experiment.py SPL_examples.reach_waypoint_then_reach_ball_and_kick_until_goal"
+alias ltldfa5="reset; /home/asc/anaconda3/envs/robocup/bin/python3 $SPLCLIENTS/run_experiment.py SPL_examples.patrolling_with_static_waypoints_with_mutual_exclusion_stateful"
 
-alias ltlcpbs="/home/asc/anaconda3/envs/robocup/bin/python3 $LTLCLIENTS/run_experiment.py classical_planning_examples.basic_striker"
-alias ltlcpssp="/home/asc/anaconda3/envs/robocup/bin/python3 $LTLCLIENTS/run_experiment.py classical_planning_examples.striker_supporter_pass"
+alias ltlcpbs="reset; /home/asc/anaconda3/envs/robocup/bin/python3 $SPLCLIENTS/run_experiment.py classical_planning_examples.basic_striker"
+alias ltlcpbsl="reset; /home/asc/anaconda3/envs/robocup/bin/python3 $SPLCLIENTS/run_experiment.py classical_planning_examples.basic_striker --localhost"
+alias ltlcpsspl="reset; /home/asc/anaconda3/envs/robocup/bin/python3 $SPLCLIENTS/run_experiment.py classical_planning_examples.striker_supporter_pass --localhost"
 
-alias ltlnc="node $LTLCLIENTS/web_interface/clientUDP.js"
+alias ltlre="reset; /home/asc/anaconda3/envs/robocup/bin/python3 $SPLCLIENTS/run_experiment.py "
 
-alias ltlrtm="bash $LTLROOT/run_tmux.sh"
+alias ltlnc="node $SPLCLIENTS/web_interface/clientUDP.js"
+
+alias ltlrtm="bash $SPLROOT/run_tmux.sh"

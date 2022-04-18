@@ -43,6 +43,11 @@ class LiteralRegistry(ParameterRegistry):
         if self.allow_delayed_parameter_check:
             self.perform_scheduled_parameter_checks()
 
+        if robot_role is not None:
+            self._robot_role_to_item_names[robot_role] = literal_name
+        if robot_number is not None:
+            self._robot_number_to_item_names[robot_role] = literal_name
+
     def reset(self):
         super().reset()
 
@@ -105,8 +110,8 @@ class SimpleLiteral(SimpleRegistryItem, Literal):
 
 
 class FunctionalLiteral(FunctionalRegistryItem, Literal):
-    def __init__(self, name_in_registry : str, formula : Callable, registry_instance : LiteralRegistry):
-        FunctionalRegistryItem.__init__(self, name_in_registry, formula, registry_instance = registry_instance)
+    def __init__(self, name_in_registry : str, formula : Callable, registry_instance : LiteralRegistry, default_value_if_not_evaluable):
+        FunctionalRegistryItem.__init__(self, name_in_registry, formula, registry_instance = registry_instance, default_value_if_not_evaluable = default_value_if_not_evaluable)
 
         LiteralRegistry().parameter_check(name_in_registry, formula)
 

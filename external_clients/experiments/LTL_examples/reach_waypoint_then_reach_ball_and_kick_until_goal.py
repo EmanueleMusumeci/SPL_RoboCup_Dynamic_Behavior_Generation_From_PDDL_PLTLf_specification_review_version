@@ -6,7 +6,7 @@ from lib.dfa.dfa_handler import DFAHandler, remove_initial_dummy_state
 from lib.registries.action import ActionRegistry
 from lib.registries.literals import LiteralRegistry
 from lib.registries.values import ValueRegistry
-from lib.utils import distance
+from lib.utils import linear_distance, angular_distance
 
 def setup_experiment():
     ''' 

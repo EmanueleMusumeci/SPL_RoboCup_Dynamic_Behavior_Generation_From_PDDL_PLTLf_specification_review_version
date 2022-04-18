@@ -71,12 +71,42 @@ void TaskController::draw() const
                 theRobotPose.translation.x(), theRobotPose.translation.y(), 10, 200, 0, pi2, 5, ColorRGBA(0,255,0,255)
                 );
           
-          //SPHERE3D("representation:TaskController", theTaskController.currentRobotDestination.x(), theTaskController.currentRobotDestination.y(), 10, 10, ColorRGBA(0,255,0,255));
-          CROSS3D("representation:TaskController", theTaskController.currentRobotDestination.x(), theTaskController.currentRobotDestination.y(), 10, 100, 10, ColorRGBA(255,0,0,255));
+          //SPHERE3D("representation:TaskController", theTaskController.currentRobotDestination.translation.x(), theTaskController.currentRobotDestination.translation.y(), 10, 10, ColorRGBA(0,255,0,255));
+          CROSS3D("representation:TaskController", theTaskController.currentRobotDestination.translation.x(), theTaskController.currentRobotDestination.translation.y(), 10, 100, 10, ColorRGBA(255,0,0,255));
           
           CYLINDERARROW3D("representation:TaskController", 
             Vector3f(theRobotPose.translation.x(), theRobotPose.translation.y(), 10),
-            Vector3f(theTaskController.currentRobotDestination.x(), theTaskController.currentRobotDestination.y(), 10),
+            Vector3f(theTaskController.currentRobotDestination.translation.x(), theTaskController.currentRobotDestination.translation.y(), 10),
+            10, 50, 20, ColorRGBA(0,255,0,255));
+
+        };
+        break;
+    }
+    case HRI::ActionType::ReachPositionAndAngle:
+    {
+        DEBUG_DRAWING3D("representation:TaskController", "field")
+        {
+          const RobotPose& theRobotPose = static_cast<const RobotPose&>(Blackboard::getInstance()["RobotPose"]);
+          const LibCheck& theLibCheck = static_cast<const LibCheck&>(Blackboard::getInstance()["LibCheck"]);
+
+          //SPHERE3D("representation:TaskController", theRobotPose.translation.x(), theRobotPose.translation.y(), 10, 10, ColorRGBA(0,255,0,255));  
+          ARC3D("representation:TaskController",
+                theRobotPose.translation.x(), theRobotPose.translation.y(), 10, 200, 0, pi2, 5, ColorRGBA(0,255,0,255)
+                );
+          
+          //SPHERE3D("representation:TaskController", theTaskController.currentRobotDestination.translation.x(), theTaskController.currentRobotDestination.translation.y(), 10, 10, ColorRGBA(0,255,0,255));
+          CROSS3D("representation:TaskController", theTaskController.currentRobotDestination.translation.x(), theTaskController.currentRobotDestination.translation.y(), 10, 100, 10, ColorRGBA(255,0,0,255));
+          
+          CYLINDERARROW3D("representation:TaskController", 
+            Vector3f(theRobotPose.translation.x(), theRobotPose.translation.y(), 10),
+            Vector3f(theTaskController.currentRobotDestination.translation.x(), theTaskController.currentRobotDestination.translation.y(), 10),
+            10, 50, 20, ColorRGBA(0,255,0,255));
+
+          CYLINDERARROW3D("representation:TaskController", 
+            Vector3f(theTaskController.currentRobotDestination.translation.x(), theTaskController.currentRobotDestination.translation.y(), 10),
+            Vector3f(theTaskController.currentRobotDestination.translation.x() + cos(theTaskController.currentRobotDestination.rotation) * 200, 
+                    theTaskController.currentRobotDestination.translation.y() + sin(theTaskController.currentRobotDestination.rotation) * 200, 
+                    10),
             10, 50, 20, ColorRGBA(0,255,0,255));
 
         };
@@ -94,16 +124,16 @@ void TaskController::draw() const
                 theRobotPose.translation.x(), theRobotPose.translation.y(), 10, 200, 0, pi2, 5, ColorRGBA(0,255,0,255)
                 );
           
-          //SPHERE3D("representation:TaskController", theTaskController.currentRobotDestination.x(), theTaskController.currentRobotDestination.y(), 10, 10, ColorRGBA(0,255,0,255));
+          //SPHERE3D("representation:TaskController", theTaskController.currentRobotDestination.translation.x(), theTaskController.currentRobotDestination.translation.y(), 10, 10, ColorRGBA(0,255,0,255));
           ARC3D("representation:TaskController",
-                theTaskController.currentRobotDestination.x(), theTaskController.currentRobotDestination.y(), 10, 200, 0, pi2, 5, ColorRGBA(0,0,255,255)
+                theTaskController.currentRobotDestination.translation.x(), theTaskController.currentRobotDestination.translation.y(), 10, 200, 0, pi2, 5, ColorRGBA(0,0,255,255)
                 );
           
           CYLINDERARROW3D("representation:TaskController", 
             Vector3f(theRobotPose.translation.x(), theRobotPose.translation.y(), 10),
-            Vector3f(theTaskController.currentRobotDestination.x(), theTaskController.currentRobotDestination.y(), 10),
+            Vector3f(theTaskController.currentRobotDestination.translation.x(), theTaskController.currentRobotDestination.translation.y(), 10),
             10, 50, 20, ColorRGBA(0,255,0,255));
-        };
+        }
         break;
     }
     case HRI::ActionType::CarryBall:
@@ -212,7 +242,7 @@ void TaskController::draw() const
     }
     case HRI::ActionType::Kick:
     {
-  //TODO calcolare posizione di approccio come in BallCarrierModel
+    //TODO calcolare posizione di approccio come in BallCarrierModel
       DEBUG_DRAWING3D("representation:TaskController", "field")
       {
         float ARROW_LENGTH = 100;
@@ -374,7 +404,7 @@ void TaskController::draw() const
     {
       DEBUG_DRAWING3D("representation:TaskController", "field")
       {};
-    }    
-  }
+    }
+  }    
   #endif
 }

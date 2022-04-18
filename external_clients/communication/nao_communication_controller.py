@@ -65,7 +65,7 @@ class NAOCommunicationController(twisted.internet.protocol.DatagramProtocol):
 
     #MESSAGE HANDLERS
     def handleLastTaskIDMessage(self, content, message_info):
-        print(content)
+        #print(content)
         content_fields = content.split(",")
         lastReceivedTaskID = int(content_fields[1])
         lastCompletedTaskID = int(content_fields[2])
@@ -104,12 +104,7 @@ class NAOCommunicationController(twisted.internet.protocol.DatagramProtocol):
 
         #print("[Robot %d] Robot role: %s" % (self.robot_number, role))
 
-        old_role = self.communication_manager.getRobotRoleFromNumber(self.robot_number)
         self.communication_manager.updateRobotRole(self.robot_number, message_info["timestamp"], new_role)
-
-        #If role changed, reset the corresponding plan
-        if new_role != old_role and not self.communication_manager.is_task_mode(robot_number = self.robot_number):
-            plan_action : RegistryItem = self.communication_manager.reset_plan(new_role)
     
     def handleObstaclesMessage(self, content, message_info):
         content_fields = content.split(";")[1:]
@@ -172,7 +167,7 @@ class NAOCommunicationController(twisted.internet.protocol.DatagramProtocol):
         #Decode data into a string (might be improved later)
         data = data.decode('utf-8')
 
-        print("Received message from robot %d: %s" % (self.robot_number, data))
+        #print("Received message from robot %d: %s" % (self.robot_number, data))
 
         message_fields = data.split("|")
 
@@ -312,7 +307,7 @@ class NAOCommunicationController(twisted.internet.protocol.DatagramProtocol):
                         "Role assigned to role "+self.communication_manager.getRobotRoleFromNumber(self.robot_number)+" (number: "+str(self.robot_number)+") is in Plan control mode but no Plan is present"
                     
                     robot_role = self.communication_manager.getRobotRoleFromNumber(self.robot_number)
-                    print("Robot %d role: %s" % (self.robot_number, robot_role))
+                    print("\n\n\n------------------\nSending action for robot %d role: %s\n" % (self.robot_number, robot_role))
                     plan_action = self.communication_manager.get_current_plan_action(robot_role)
 
                     #Create message string
@@ -328,7 +323,7 @@ class NAOCommunicationController(twisted.internet.protocol.DatagramProtocol):
                     plan_string += plan_action.get()+","+str(lastCompletedTaskID)+";"
                     plan_string += plan_action.get_parameter_string()
                     
-                    print(plan_string)
+                    print("Sending plan action: "+plan_string)
                     self.send_string(plan_string)
 
                 else:

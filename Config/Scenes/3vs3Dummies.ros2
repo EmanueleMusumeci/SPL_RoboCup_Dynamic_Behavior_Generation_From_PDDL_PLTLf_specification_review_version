@@ -21,6 +21,10 @@
         <Translation x="-2.0" y="1.5" z="320mm"/>
         <Rotation z="330degree"/> 
         </Body>
+        <Body ref="Nao" name="robot4">
+        <Translation x="2.0" y="1.5" z="320mm"/>
+        <Rotation z="330degree"/> 
+        </Body>
     </Compound>
 
     <Compound name="extras">

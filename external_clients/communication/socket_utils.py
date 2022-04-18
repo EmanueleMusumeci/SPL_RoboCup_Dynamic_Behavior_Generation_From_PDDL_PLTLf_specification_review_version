@@ -32,7 +32,11 @@ def setup_write_socket(local_interface_ip, write_port, remote_dest_ip, dest_port
     if dest_port is not None:
         dest_addr = socket.getaddrinfo(remote_dest_ip, dest_port, socket.AF_INET, socket.SOCK_DGRAM)[0]
 
-    write_socket.bind((local_interface_ip, write_port))
+    try:
+        write_socket.bind((local_interface_ip, write_port))
+    except Exception as e:
+        print("Address: %s, Port: %s" % (local_interface_ip, write_port))
+        raise e
     write_socket.setblocking(False)
     
     return write_socket, write_addr, dest_addr

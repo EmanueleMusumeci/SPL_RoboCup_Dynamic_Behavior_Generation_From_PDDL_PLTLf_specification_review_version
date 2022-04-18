@@ -6,7 +6,7 @@ from lib.dfa.dfa_handler import DFAHandler, remove_initial_dummy_state
 from lib.registries.action import ActionRegistry
 from lib.registries.literals import LiteralRegistry
 from lib.registries.values import ValueRegistry
-from lib.utils import distance
+from lib.utils import linear_distance, angular_distance
 
 def setup_experiment():
     ''' 
@@ -26,7 +26,7 @@ def setup_experiment():
     ValueRegistry()["ball_distance_threshold"] = 500
 
     def striker_distance_from_ball(last_ball_position, striker_position):
-        return distance(last_ball_position, striker_position)
+        return linear_distance(last_ball_position, striker_position)
     ValueRegistry().add_function(striker_distance_from_ball)
 
     def is_striker_near_ball(striker_distance_from_ball, ball_distance_threshold):

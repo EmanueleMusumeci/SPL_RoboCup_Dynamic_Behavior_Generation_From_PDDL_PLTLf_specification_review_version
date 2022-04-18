@@ -2,12 +2,14 @@
 ;;; RoboCup Domain with Non-Deterministic Actions ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define (domain robocup-fond)
-  (:requirements :strips :typing :existential-preconditions)
-  (:types movable location)
+(define (domain striker-robocup-fond)
+  (:requirements :strips)
   (:predicates 
-		   (is-opponent-blocking-goal)
-           (goal-scored)
+		   (fluent-is-striker-obstacle-blocking-goal)
+		   (fluent-is-jolly-available)
+		   (fluent-is-jolly-in-position)
+           (striker-should-dribble-opponent)
+		   (goal-scored)
 		   (ball-passed)
 		   (striker-has-ball)
 		   (striker-can-kick)
@@ -20,29 +22,29 @@
 		 )
 	     :effect
 	     (oneof 
-		 	(and (is-opponent-blocking-goal) (striker-has-ball))
-		 	(and (not (is-opponent-blocking-goal)) (striker-has-ball))
+		 	(and (not (fluent-is-striker-obstacle-blocking-goal)) (not (fluent-is-jolly-available)) (not(fluent-is-jolly-in-position)) (striker-has-ball))
+		 	(and (not (fluent-is-striker-obstacle-blocking-goal)) (fluent-is-jolly-available) (striker-has-ball))
+		 	(and (fluent-is-striker-obstacle-blocking-goal) (fluent-is-jolly-available) (not (fluent-is-jolly-in-position)) (striker-has-ball))
+		 	(and (fluent-is-striker-obstacle-blocking-goal) (fluent-is-jolly-available) (fluent-is-jolly-in-position) (striker-has-ball))
+		 	(and (fluent-is-striker-obstacle-blocking-goal) (not(fluent-is-jolly-available)) (not(fluent-is-jolly-in-position)) (striker-has-ball))
 		 )
   )
 
-  (:action move-to-kicking-position
+  (:action move-with-ball-to-kicking-position
 	     :precondition 
 		 (and 
-		 	(not (is-opponent-blocking-goal))
-			(not (striker-can-kick))
+		 	(not (fluent-is-striker-obstacle-blocking-goal))
 			(striker-has-ball)
 		 )
 	     :effect
-	     (oneof 
-		 	(and (is-opponent-blocking-goal) (striker-has-ball) (striker-can-kick))
-		 	(and (not (is-opponent-blocking-goal)) (striker-has-ball) (not(striker-can-kick)))
-		 )
+	     	(striker-can-kick)
+		 
   )
 
   (:action kick-to-goal
 	     :precondition 
 		 	(and 
-			 	(not (is-opponent-blocking-goal)) 
+			 	(not (fluent-is-striker-obstacle-blocking-goal)) 
 				(striker-can-kick)
 			)
 	     
@@ -52,16 +54,39 @@
 			)
   )
 
-  (:action pass-ball-to-supporter
+  (:action wait-for-jolly
 	     :precondition 
 		 	(and 
-		 		(is-opponent-blocking-goal) 
+		 		(fluent-is-striker-obstacle-blocking-goal) 
+				(fluent-is-jolly-available)
+				(not(fluent-is-jolly-in-position))
 				(not(striker-can-kick))
 			)
 	     :effect
-	     (and 
-			(ball-passed)
-		 )
+		 	(oneof
+				(and (fluent-is-jolly-in-position) (fluent-is-jolly-available) (fluent-is-striker-obstacle-blocking-goal))
+				(and (not (fluent-is-jolly-in-position)) (fluent-is-jolly-available) (fluent-is-striker-obstacle-blocking-goal))
+			)
   )
-  
+
+  (:action pass-ball-to-jolly
+	     :precondition 
+		 	(and 
+			 	(fluent-is-striker-obstacle-blocking-goal)
+				(fluent-is-jolly-in-position)
+				(fluent-is-jolly-available)
+			)
+	     :effect
+			(and (ball-passed))
+  )
+
+  (:action dribble-opponent
+	     :precondition 
+		 	(and 
+		 		(fluent-is-striker-obstacle-blocking-goal) 
+				(not(fluent-is-jolly-available))
+			)
+		 :effect
+	     	(striker-attempting-dribble)
+  )
 )

@@ -1,7 +1,7 @@
 /**
  * @file ApproachAndKickCard.cpp
  *
- * This file implements a behavior to kick the ball to a specific location.
+ * This file implements a behavior to kick the ball to the goal.
  *
  * @author Emanuele Musumeci
  */
@@ -145,21 +145,21 @@ class ApproachAndKickToGoalCard : public ApproachAndKickToGoalCardBase
   {
     Vector2f globalBall = theLibCheck.rel2Glob(theBallModel.estimate.position.x(), theBallModel.estimate.position.y()).translation;
 
-    std::cout<<"ApproachAndKickToGoalCard preconditions"<<std::endl;
     //std::cout<<"theTaskController.getCurrentActionType(): "<<TypeRegistry::getEnumName(theTaskController.getCurrentActionType())<<std::endl;
-    return theTaskController.getCurrentActionType() == HRI::ActionType::CarryAndKickToGoal
+    return (theTaskController.getCurrentActionType() == HRI::ActionType::CarryAndKickToGoal
             &&
             theBallCarrierModel.xRangeDistanceFromGoalToUseKicks.isInside(theFieldDimensions.xPosOpponentGroundline - globalBall.x())
               &&
               theBallCarrierModel.isTargetOnGoal
                   && 
-                  theFieldBall.ballWasSeen(ballNotSeenTimeout)
+                  theFieldBall.ballWasSeen(ballNotSeenTimeout))
+            ||
+            (theTaskController.planControlledMode && theTaskController.getCurrentActionType() == HRI::ActionType::CarryAndKickToGoal);
             ; 
   }
 
   bool postconditions() const override
   {
-    std::cout<<"ApproachAndKickToGoalCard postconditions"<<std::endl;
     //std::cout<<"theTaskController.getCurrentActionType(): "<<TypeRegistry::getEnumName(theTaskController.getCurrentActionType())<<std::endl;
     return theTaskController.getCurrentActionType() != HRI::ActionType::CarryAndKickToGoal
             ||
@@ -183,7 +183,7 @@ class ApproachAndKickToGoalCard : public ApproachAndKickToGoalCardBase
 
     initial_state(start)
     {
-      std::cout<<"APPROACH_AND_KICK: start"<<std::endl;
+      std::cout<<"APPROACH_AND_KICK_TO_GOAL: start"<<std::endl;
       transition
       {
         if(state_time > initialWaitTime)

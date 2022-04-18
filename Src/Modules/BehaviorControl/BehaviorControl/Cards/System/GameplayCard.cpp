@@ -13,12 +13,18 @@
 #include "Tools/BehaviorControl/Framework/Card/Card.h"
 #include "Tools/BehaviorControl/Framework/Card/Dealer.h"
 #include "Representations/BehaviorControl/Role.h"
+#include "Representations/BehaviorControl/Skills.h"
+#include "Representations/Sensing/FallDownState.h"
+#include "Representations/HRI/TaskController.h"
 
 CARD(GameplayCard,
 {,
   REQUIRES(GameInfo),
   REQUIRES(Role),
   REQUIRES(OwnTeamInfo),
+  REQUIRES(FallDownState),
+  REQUIRES(TaskController),
+  CALLS(Activity),
   LOADS_PARAMETERS(
   {,
 
@@ -35,8 +41,9 @@ CARD(GameplayCard,
     (DeckOfCards<CardRegistry>) goalie,
     (DeckOfCards<CardRegistry>) searcher,
 #else 
-    (DeckOfCards<CardRegistry>) TaskBasedStriker,
-    (DeckOfCards<CardRegistry>) TaskBasedSupporter,
+    (DeckOfCards<CardRegistry>) PlanBasedStriker,
+    (DeckOfCards<CardRegistry>) PlanBasedSupporter,
+    (DeckOfCards<CardRegistry>) PlanBasedJolly,
     (DeckOfCards<CardRegistry>) goalie,
     (DeckOfCards<CardRegistry>) searcher,
 #endif
@@ -48,29 +55,38 @@ class GameplayCard : public GameplayCardBase
   bool preconditions() const override
   {
     //return theGameInfo.state == STATE_PLAYING;
-    return true;
+    return theFallDownState.state != FallDownState::fallen &&
+              theFallDownState.state != FallDownState::squatting && 
+                !theTaskController.isIdle();
   }
 
   bool postconditions() const override
   {
-    return theGameInfo.state != STATE_PLAYING;
+    //return theGameInfo.state != STATE_PLAYING;
+    return theFallDownState.state == FallDownState::fallen ||
+           theFallDownState.state == FallDownState::squatting ||
+           theTaskController.isIdle();
   }
 
   void execute() override
   {
-
+    //theActivitySkill(BehaviorStatus::unknown);
     #ifdef PAPER
     if(theRole.role == Role::goalie){
       dealer.deal(goalie)->call();
       setState("goalie");
     }
     else if(theRole.role == Role::supporter){
-      dealer.deal(TaskBasedSupporter)->call();
-      setState("TaskBasedSupporter");
+      dealer.deal(PlanBasedSupporter)->call();
+      setState("PlanBasedSupporter");
     }
     else if(theRole.role == Role::striker){
-      dealer.deal(TaskBasedStriker)->call();
-      setState("TaskBasedStriker");
+      dealer.deal(PlanBasedStriker)->call();
+      setState("PlanBasedStriker");
+    }
+    else if(theRole.role == Role::jolly){
+      dealer.deal(PlanBasedJolly)->call();
+      setState("PlanBasedJolly");
     }
     #else
         // ASSERT(theGameInfo.state == STATE_PLAYING);

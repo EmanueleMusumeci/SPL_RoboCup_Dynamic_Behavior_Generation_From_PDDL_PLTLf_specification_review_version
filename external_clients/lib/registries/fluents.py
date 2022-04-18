@@ -43,6 +43,12 @@ class FluentRegistry(ParameterRegistry):
         if self.allow_delayed_parameter_check:
             self.perform_scheduled_parameter_checks()
 
+        if robot_role is not None:
+            self._robot_role_to_item_names[robot_role] = fluent_name
+        if robot_number is not None:
+            self._robot_number_to_item_names[robot_role] = fluent_name
+            
+
     def reset(self):
         super().reset()
 
@@ -105,8 +111,8 @@ class SimpleFluent(SimpleRegistryItem, Fluent):
 
 
 class FunctionalFluent(FunctionalRegistryItem, Fluent):
-    def __init__(self, name_in_registry : str, formula : Callable, registry_instance : FluentRegistry):
-        FunctionalRegistryItem.__init__(self, name_in_registry, formula, registry_instance = registry_instance)
+    def __init__(self, name_in_registry : str, formula : Callable, registry_instance : FluentRegistry, default_value_if_not_evaluable):
+        FunctionalRegistryItem.__init__(self, name_in_registry, formula, registry_instance = registry_instance, default_value_if_not_evaluable = default_value_if_not_evaluable)
 
         FluentRegistry().parameter_check(name_in_registry, formula)
 

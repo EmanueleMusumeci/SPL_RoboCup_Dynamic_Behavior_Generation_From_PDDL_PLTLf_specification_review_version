@@ -73,20 +73,33 @@ ExternalServerCommunicationController::ExternalServerCommunicationController(){
     ASSERT(this->READ_IP_ADDRESS.length()>0);
 
     //IF on the robot, make this print well visible in the log
-    #ifdef TARGET_ROBOT
-        std::cout<<"#################################\n\n# LOCAL INTERFACE IP: "<<READ_IP_ADDRESS<<" - "<<SystemCall::getHostName()<<" #\n\n#################################"<<std::endl;
-        std::cout<<"#################################\n\n# TARGET INTERFACE IP: "<<TARGET_IP_ADDRESS<<" #\n\n#################################"<<std::endl;
-    #endif
+    if(SystemCall::getMode() == SystemCall::Mode::physicalRobot)
+    {
+        READ_IP_ADDRESS = SystemCall::getHostAddr();
+    }
+    else
+    {
+        READ_IP_ADDRESS = std::string("127.0.0.1");
+        TARGET_IP_ADDRESS = std::string("127.0.0.1");
+    }
+    std::cout<<"#################################\n\n# LOCAL INTERFACE IP: "<<READ_IP_ADDRESS<<" - "<<SystemCall::getHostName()<<" #\n\n#################################"<<std::endl;
+    std::cout<<"#################################\n\n# TARGET INTERFACE IP: "<<TARGET_IP_ADDRESS<<" #\n\n#################################"<<std::endl;
 
     //Setup the WRITE socket (for outgoing messages)
     int write_port_number = CONTROL_DEVICE_COMMUNICATION_WRITE_PORT_BASE + theRobotInfo.number-1;
+    DEBUG_NUMB(true, "Trying to setup write socket with target address: "<<TARGET_IP_ADDRESS<<":"<<write_port_number);
     this->udp_write_socket.setTarget(TARGET_IP_ADDRESS.c_str(), write_port_number);
     this->udp_write_socket.setBlocking(false);
-    DEBUG_NUMB(true, "Write socket set on address: "<<TARGET_IP_ADDRESS<<":"<<write_port_number);
+    DEBUG_NUMB(true, "Write socket set with target address: "<<TARGET_IP_ADDRESS<<":"<<write_port_number);
 
     //Setup the READ socket (for incoming messages)
     int read_port_number = CONTROL_DEVICE_COMMUNICATION_READ_PORT_BASE + theRobotInfo.number-1;
-    this->udp_read_socket.bind(READ_IP_ADDRESS.c_str(), read_port_number);
+    DEBUG_NUMB(true, "Trying to bind read socket on address: "<<READ_IP_ADDRESS<<":"<<read_port_number);
+    if(!this->udp_read_socket.bind(READ_IP_ADDRESS.c_str(), read_port_number))
+    {
+        DEBUG_NUMB(true, "Could not bind read socket! Exiting...");
+        exit(1);
+    }
     this->udp_read_socket.setBlocking(false);
     DEBUG_NUMB(true, "Read socket bound on address: "<<READ_IP_ADDRESS<<":"<<read_port_number);
     
@@ -220,7 +233,6 @@ std::string ExternalServerCommunicationController::obstacles_to_sendable_string(
             ret_string.append(std::to_string(globalObstacle.y()));
         }
     }
-    if(PRINT_DEBUG) std::cout<<"Obstacles: "<<ret_string<<std::endl;
     return ret_string;
 }
 
@@ -234,7 +246,7 @@ std::string ExternalServerCommunicationController::plan_action_completed_string(
 }
 
 //Given a string to be sent as a MESSAGE, prefixes a HEADER to it containing the timestamp (if required) and the robot number (if required)
-void ExternalServerCommunicationController::send_data_string(std::string str, bool prefix_timestamp, bool prefix_robot_number)
+void ExternalServerCommunicationController::send_data_string(std::string str, bool prefix_timestamp, bool prefix_robot_number, bool print_message)
 {
     std::string header;
     if(prefix_timestamp)
@@ -252,7 +264,7 @@ void ExternalServerCommunicationController::send_data_string(std::string str, bo
 
     str = header + str;
     const char *s_str = str.c_str();
-    if(PRINT_DEBUG) std::cout<<str.c_str()<<std::endl;
+    if(print_message) std::cout<<str.c_str()<<std::endl;
     this->udp_write_socket.write(s_str, str.length());    
 }
 
@@ -296,13 +308,13 @@ std::vector<std::string> ExternalServerCommunicationController::getTokens(std::s
 */
 void ExternalServerCommunicationController::handleMessage(std::string message, std::vector<Task>& currentTaskQueue)
 {
-    //DEBUG_NUMB(PRINT_DEBUG,"Handling message: "<<message);
+    DEBUG_NUMB(PRINT_DEBUG,"Handling message: "<<message);
     //DEBUG_NUMB(PRINT_DEBUG,"Message length:"<<std::to_string(message.length()));
     
     if(string_startswith(message, ACTION_QUEUE_TAG_STRING))
     {
         theTaskController.setTaskMode();
-        if(PRINT_DEBUG) std::cout<<message<<std::endl;
+        //if(PRINT_DEBUG) std::cout<<message<<std::endl;
         
         //1.1) Divide the message into header and payload
         std::vector<std::string> taskTokens = getTokens(message, std::string("|"));
@@ -368,7 +380,6 @@ void ExternalServerCommunicationController::handleMessage(std::string message, s
                         std::cout << "ERROR: task "<<taskParameters[0]<<" was not recognized"<<std::endl;
                     }
                 }
-                DEBUG_NUMB(PRINT_DEBUG, currentTaskQueue.size());
             }
             else if(taskParameters.size()==2)
             {
@@ -394,7 +405,7 @@ void ExternalServerCommunicationController::handleMessage(std::string message, s
                         return;
                     }
                 }
-                DEBUG_NUMB(PRINT_DEBUG, currentTaskQueue.size());
+                //DEBUG_NUMB(PRINT_DEBUG, currentTaskQueue.size());
                 
             }
             else
@@ -403,17 +414,17 @@ void ExternalServerCommunicationController::handleMessage(std::string message, s
             }
         }
     }
-    if(string_startswith(message, PLAN_ACTION_TAG_STRING))
+    else if(string_startswith(message, PLAN_ACTION_TAG_STRING))
     {
         theTaskController.setPlanMode();
-        DEBUG_NUMB(PRINT_DEBUG, "theTaskController.isTaskComplete(): "<<std::to_string(theTaskController.isTaskComplete()));
+        //DEBUG_NUMB(PRINT_DEBUG, "theTaskController.isTaskComplete(): "<<std::to_string(theTaskController.isTaskComplete()));
         //if(theTaskController.isTaskComplete() || theTaskController.isIdle())
         //{
         //    send_data_string(plan_action_completed_string(), PREFIX_TIMESTAMP, PREFIX_ROBOT_NUMBER);
         //}
         //else
         //{
-            if(PRINT_DEBUG) std::cout<<message<<std::endl;
+            //if(PRINT_DEBUG) std::cout<<message<<std::endl;
             
             //1.1) Divide the message into header and payload
             std::vector<std::string> actionTokens = getTokens(message, std::string("|"));
@@ -447,13 +458,13 @@ void ExternalServerCommunicationController::handleMessage(std::string message, s
                 actionParameters = getTokens(actionFields[1], std::string("/"));
             }
 
-            DEBUG_NUMB(PRINT_DEBUG, "actionParameters.size(): "<<std::to_string(actionParameters.size()));
+            //DEBUG_NUMB(PRINT_DEBUG, "actionParameters.size(): "<<std::to_string(actionParameters.size()));
 
             //1.5) Create an Action instance based on the number of parameters
             Action PlanAction;
-            //1.3.3) Based on task type, create the task instance and add it to the local task queue
-            if(actionParameters.size()==2)
+            if(actionParameters.size() == 3)
             {
+
                 std::cout<<actionParameters[0]<<std::endl;
                 std::vector<std::string> firstParamInfo = getTokens(actionParameters[0], std::string(":"));
                 std::string firstParamName = firstParamInfo[0];
@@ -461,6 +472,73 @@ void ExternalServerCommunicationController::handleMessage(std::string message, s
                 std::vector<std::string> firstParamValueInfo = getTokens(firstParamInfo[1], std::string(","));
                 std::string firstParamTypeString = firstParamValueInfo[1];
                 std::string firstParamValueString = firstParamValueInfo[0];
+
+
+
+                std::cout<<actionParameters[1]<<std::endl;
+                std::vector<std::string> secondParamInfo = getTokens(actionParameters[1], std::string(":"));
+                std::string secondParamName = secondParamInfo[0];
+
+                std::vector<std::string> secondParamValueInfo = getTokens(secondParamInfo[1], std::string(","));
+                std::string secondParamTypeString = secondParamValueInfo[1];
+                std::string secondParamValueString = secondParamValueInfo[0];
+
+
+
+                std::cout<<actionParameters[1]<<std::endl;
+                std::vector<std::string> thirdParamInfo = getTokens(actionParameters[2], std::string(":"));
+                std::string thirdParamName = thirdParamInfo[0];
+
+                std::vector<std::string> thirdParamValueInfo = getTokens(thirdParamInfo[1], std::string(","));
+                std::string thirdParamTypeString = thirdParamValueInfo[1];
+                std::string thirdParamValueString = thirdParamValueInfo[0];
+
+
+
+                std::cout<<firstParamTypeString<<std::endl;
+                std::cout<<secondParamTypeString<<std::endl;
+                std::cout<<thirdParamTypeString<<std::endl;
+
+                switch(actionType)
+                {
+                    case HRI::ActionType::ReachPositionAndAngle:
+                    {
+                        ASSERT(string_startswith(firstParamTypeString, INT_TYPE_STRING) || string_startswith(firstParamTypeString, FLOAT_TYPE_STRING));
+                        ASSERT(string_startswith(secondParamTypeString, INT_TYPE_STRING) || string_startswith(secondParamTypeString, FLOAT_TYPE_STRING));
+
+                        //Coordinates
+                        float coordX = std::stof(secondParamValueString);
+                        float coordY = std::stof(thirdParamValueString);
+                        Vector2f position = Vector2f(coordX, coordY);
+
+                        ASSERT(thirdParamValueString.length() > 0);
+                        ASSERT(thirdParamTypeString.length() > 0);
+                        ASSERT(string_startswith(thirdParamTypeString, INT_TYPE_STRING) || string_startswith(thirdParamTypeString, FLOAT_TYPE_STRING));
+                        
+                        float angle = std::stof(firstParamValueString);
+
+                        PlanAction = Action(HRI::ActionType::ReachPositionAndAngle, position, angle);
+                        break;
+                        
+                    }
+                    default:
+                    {
+                        std::cout << "ERROR: action "<<actionName<<" was not recognized"<<std::endl;
+                        return;
+                    }
+                }
+            }
+            else if(actionParameters.size() == 2)
+            {
+
+                std::cout<<actionParameters[0]<<std::endl;
+                std::vector<std::string> firstParamInfo = getTokens(actionParameters[0], std::string(":"));
+                std::string firstParamName = firstParamInfo[0];
+
+                std::vector<std::string> firstParamValueInfo = getTokens(firstParamInfo[1], std::string(","));
+                std::string firstParamTypeString = firstParamValueInfo[1];
+                std::string firstParamValueString = firstParamValueInfo[0];
+
 
 
                 std::cout<<actionParameters[1]<<std::endl;
@@ -474,6 +552,8 @@ void ExternalServerCommunicationController::handleMessage(std::string message, s
 
                 std::cout<<firstParamTypeString<<std::endl;
                 std::cout<<secondParamTypeString<<std::endl;
+
+
                 switch(actionType)
                 {
                     case HRI::ActionType::ReachPosition:
@@ -488,6 +568,7 @@ void ExternalServerCommunicationController::handleMessage(std::string message, s
 
                         PlanAction = Action(HRI::ActionType::ReachPosition, position);
                         break;
+                        
                     }
                     case HRI::ActionType::CarryBall:
                     {
@@ -533,8 +614,6 @@ void ExternalServerCommunicationController::handleMessage(std::string message, s
                 std::string firstParamTypeString = firstParamValueInfo[1];
                 std::string firstParamValueString = firstParamValueInfo[0];
 
-
-
                 switch(actionType)
                 {
                     case HRI::ActionType::PassBall:
@@ -577,7 +656,6 @@ void ExternalServerCommunicationController::handleMessage(std::string message, s
                         return;
                     }
                 }
-                
             }
             else
             {
@@ -588,19 +666,19 @@ void ExternalServerCommunicationController::handleMessage(std::string message, s
             currentTaskQueue.push_back(TaskControllerProvider::PlanControlledTask(PlanAction, taskID));
         //}
     }
-    if(string_startswith(message, LAST_TASK_ID_REQUEST_STRING))
+    else if(string_startswith(message, LAST_TASK_ID_REQUEST_STRING))
     {
-        send_data_string(last_task_id_string(), PREFIX_TIMESTAMP, PREFIX_ROBOT_NUMBER);
+        send_data_string(last_task_id_string(), PREFIX_TIMESTAMP, PREFIX_ROBOT_NUMBER, PRINT_SENT_MESSAGES);
     }
-    if(string_startswith(message, LAST_TASK_QUEUE_REQUEST_STRING))
+    else if(string_startswith(message, LAST_TASK_QUEUE_REQUEST_STRING))
     {
-        send_data_string(last_task_queue_string(), PREFIX_TIMESTAMP, PREFIX_ROBOT_NUMBER);
+        send_data_string(last_task_queue_string(), PREFIX_TIMESTAMP, PREFIX_ROBOT_NUMBER, PRINT_SENT_MESSAGES);
     }
-    if(string_startswith(message, RESET_TASKS_STRING))
+    else if(string_startswith(message, RESET_TASKS_STRING))
     {
         theTaskController.resetTaskQueue();
     }
-    if(string_startswith(message, DELETE_TASK_STRING))
+    else if(string_startswith(message, DELETE_TASK_STRING))
     {
         std::cout<<message<<std::endl;
         
@@ -612,6 +690,11 @@ void ExternalServerCommunicationController::handleMessage(std::string message, s
         
         theTaskController.deleteSingleTask(taskID);
     }
+    else
+    {
+        DEBUG_NUMB(PRINT_DEBUG,"Unknown message: "<<message); 
+    }
+    std::cout<<"\n"<<std::endl;
 }
 
 
@@ -736,7 +819,7 @@ void ExternalServerCommunicationController::update(ExternalServerCommunicationCo
             {
                 this->client_alive = false;
                 //DEBUG_NUMB(PRINT_DEBUG,"Checking if client is alive");
-                send_data_string(keepalive_check_string(), PREFIX_TIMESTAMP, PREFIX_ROBOT_NUMBER);
+                send_data_string(keepalive_check_string(), PREFIX_TIMESTAMP, PREFIX_ROBOT_NUMBER, PRINT_SENT_MESSAGES);
                 this->awaiting_keepalive_response = true;
             }
         }
@@ -765,7 +848,7 @@ void ExternalServerCommunicationController::update(ExternalServerCommunicationCo
     
     //Send a MESSAGE with the robot pose every ROBOT_POSE_UPDATE_FREQUENCY millisecs
     if(this->cycles_since_robot_pose_update % ROBOT_POSE_UPDATE_FREQUENCY == 0){
-        send_data_string(robot_pose_to_sendable_string(), PREFIX_TIMESTAMP, PREFIX_ROBOT_NUMBER);
+        send_data_string(robot_pose_to_sendable_string(), PREFIX_TIMESTAMP, PREFIX_ROBOT_NUMBER, PRINT_SENT_MESSAGES);
         this->cycles_since_robot_pose_update = 0;
     }
     this->cycles_since_robot_pose_update++;
@@ -774,14 +857,14 @@ void ExternalServerCommunicationController::update(ExternalServerCommunicationCo
     
     //Send a MESSAGE with the ball position every BALL_POSITION_UPDATE_FREQUENCY millisecs
     if(this->cycles_since_ball_update % BALL_POSITION_UPDATE_FREQUENCY == 0){
-        send_data_string(ball_position_to_sendable_string(), PREFIX_TIMESTAMP, PREFIX_ROBOT_NUMBER);
+        send_data_string(ball_position_to_sendable_string(), PREFIX_TIMESTAMP, PREFIX_ROBOT_NUMBER, PRINT_SENT_MESSAGES);
         this->cycles_since_ball_update = 0;
     }
     this->cycles_since_ball_update++;
 
     //Send a MESSAGE with the role every ROLE_UPDATE_FREQUENCY millisecs
     if(this->cycles_since_role_update % ROLE_UPDATE_FREQUENCY == 0){
-        send_data_string(role_to_sendable_string(), PREFIX_TIMESTAMP, PREFIX_ROBOT_NUMBER);
+        send_data_string(role_to_sendable_string(), PREFIX_TIMESTAMP, PREFIX_ROBOT_NUMBER, PRINT_SENT_MESSAGES);
         this->cycles_since_role_update = 0;
     }
     this->cycles_since_role_update++;
@@ -791,7 +874,7 @@ void ExternalServerCommunicationController::update(ExternalServerCommunicationCo
 
     //Send a MESSAGE with the obstacles position every OBSTACLES_UPDATE_FREQUENCY millisecs
     if(this->cycles_since_obstacles_update % OBSTACLES_UPDATE_FREQUENCY == 0){
-        send_data_string(obstacles_to_sendable_string(), PREFIX_TIMESTAMP, PREFIX_ROBOT_NUMBER);
+        send_data_string(obstacles_to_sendable_string(), PREFIX_TIMESTAMP, PREFIX_ROBOT_NUMBER, PRINT_SENT_MESSAGES);
         this->cycles_since_obstacles_update = 0;
     }
     this->cycles_since_obstacles_update++;
@@ -800,7 +883,7 @@ void ExternalServerCommunicationController::update(ExternalServerCommunicationCo
     
     //Send a MESSAGE with the task queue every LAST_TASK_QUEUE_UPDATE_FREQUENCY millisecs, to ensure synchronization of the task queue
     if(this->cycles_since_task_queue_update % LAST_TASK_QUEUE_UPDATE_FREQUENCY == 0){
-        send_data_string(last_task_queue_string(), PREFIX_TIMESTAMP, PREFIX_ROBOT_NUMBER);
+        send_data_string(last_task_queue_string(), PREFIX_TIMESTAMP, PREFIX_ROBOT_NUMBER, PRINT_SENT_MESSAGES);
         this->cycles_since_task_queue_update = 0;
     }
     this->cycles_since_task_queue_update++;
@@ -808,7 +891,7 @@ void ExternalServerCommunicationController::update(ExternalServerCommunicationCo
     
     //Send a MESSAGE with the boolean flags every BOOLEANS_UPDATE_FREQUENCY millisecs, to stream boolean flags to the Behavior Controller
     if(this->cycles_since_boolean_flags_update % BOOLEANS_UPDATE_FREQUENCY == 0 && theBooleanRegistry.ALWAYS_SEND){
-        send_data_string(theBooleanRegistry.getString(), PREFIX_TIMESTAMP, PREFIX_ROBOT_NUMBER);
+        send_data_string(theBooleanRegistry.getString(), PREFIX_TIMESTAMP, PREFIX_ROBOT_NUMBER, PRINT_SENT_MESSAGES);
         this->cycles_since_boolean_flags_update = 0;
     }
     this->cycles_since_task_queue_update++;

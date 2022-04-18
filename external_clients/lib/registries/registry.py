@@ -31,6 +31,9 @@ class Registry(metaclass=Singleton):
 
         self.__item_aliases = {}
 
+        self._robot_role_to_item_names = {}
+        self._robot_number_to_item_names = {}
+
     @classmethod
     def get_registries(cls):
         return Registry.__REGISTRIES
@@ -74,6 +77,7 @@ class Registry(metaclass=Singleton):
         return self.__item_aliases
 
     def get_complete_name(self, item_name : str, robot_number : int = None, robot_role : str = None):
+        assert not(robot_number is not None and robot_role is not None), "Specify only one among robot_number and robot_role"
         item_name = item_name.lower()
         if not item_name.startswith(self.ITEM_PREFIX):
             if robot_number is not None:
@@ -102,14 +106,6 @@ class Registry(metaclass=Singleton):
     @abstractmethod    
     def set(self, item_name : str, item, robot_number : int = None, robot_role : str = None):
         pass
-
-    def set_robot_item(self, robot_number : int, item_name : str, item):
-        self._items[str(robot_number)+"_"+item_name] = item
-
-    def set_robot_role_item(self, robot_role : str, item_name : str, item):
-        self._items[str(robot_role)+"_"+item_name] = item
-
-
 
 
 
@@ -144,12 +140,6 @@ class Registry(metaclass=Singleton):
             return self._items[aliased_item_name]
         else:
             raise KeyError("Unknown item: %s" % (item_name))
-
-    def get_robot_item(self, robot_number : int, item_name : str):
-        return self._items[str(robot_number)+"_"+item_name]
-
-    def get_robot_role_item(self, robot_role : str, item_name : str):
-        return self._items[str(robot_role)+"_"+item_name]
             
 
 
@@ -175,14 +165,26 @@ class Registry(metaclass=Singleton):
         else:
             raise KeyError("Unknown item: %s" % (item_name))
 
-    def remove_robot_item(self, robot_number : int, item_name : str):
-        if str(robot_number)+"_"+item_name in self._items.keys():
-            del self._items[str(robot_number)+"_"+item_name]
+    def remove_robot_number_item(self, robot_number : int, item_name : str):
+        complete_item_name = self.get_complete_name(item_name, robot_number=robot_number)
+        if complete_item_name in self._items.keys():
+            del self._items[complete_item_name]
+
+    def remove_all_items_for_robot_number(self, robot_number : str):
+        for item_name in self._robot_number_to_item_names[robot_number].values():
+            self._items.pop(item_name)
+        self._robot_number_to_item_names.pop(self._robot_number_to_item_names)
+
 
     def remove_robot_role_item(self, robot_role : str, item_name : str):
-        if str(robot_role)+"_"+item_name in self._items.keys():
-            del self._items[str(robot_role)+"_"+item_name]
+        complete_item_name = self.get_complete_name(item_name, robot_role=robot_role)
+        if complete_item_name in self._items.keys():
+            del self._items[complete_item_name]
 
+    def remove_all_items_for_robot_role(self, robot_role : str):
+        for item_name in self._robot_role_to_item_names[robot_role].values():
+            self._items.pop(item_name)
+        self._robot_role_to_item_names.pop(self._robot_role_to_item_names)
 
 
 
@@ -213,7 +215,8 @@ class Registry(metaclass=Singleton):
         if item_name in self.__item_aliases.keys():
             aliased_item_name = self.__item_aliases[item_name]
             if aliased_item_name not in self._items.keys():
-                raise KeyError("Unknown item (alias '%s'): %s" % (item_name, aliased_item_name))
+                #raise KeyError("Unknown item (alias '%s'): %s" % (item_name, aliased_item_name))
+                return False
             return aliased_item_name in self._items.keys()
         else:
             return item_name in self._items.keys()
@@ -290,11 +293,14 @@ class ParameterRegistry(Registry):
             raise KeyError("Unknown item: %s" % (item_name))
     
 
-    def add_function(self, function : Callable):
+    def add_function(self, function : Callable, aliases = [], default_value_if_not_evaluable = None):
         item_name = self.get_complete_name(function.__name__)
         #print(item_name)
+        
+        self[item_name] = self.__base_function_item_type(item_name, formula=function, registry_instance = self, default_value_if_not_evaluable = default_value_if_not_evaluable)
 
-        self[item_name] = self.__base_function_item_type(item_name, formula=function, registry_instance = self)
+        for alias in aliases:
+            self.register_alias(item_name, alias)
 
         if self.allow_delayed_parameter_check:
             self.perform_scheduled_parameter_checks()
@@ -501,10 +507,11 @@ class SimpleRegistryItem(RegistryItem):
 
 
 class FunctionalRegistryItem(RegistryItem):
-    def __init__(self, name_in_registry : str, formula : Callable, registry_instance : ParameterRegistry):
+    def __init__(self, name_in_registry : str, formula : Callable, registry_instance : ParameterRegistry, default_value_if_not_evaluable = None):
         super().__init__(name_in_registry = name_in_registry, allowed_types = [Callable], registry_instance = registry_instance)    
         
         self.__formula : Callable = formula
+        self.default_value_if_not_evaluable = default_value_if_not_evaluable
 
     def collect_formula_parameters(self):
         values_needed_by_formula = {}
@@ -521,7 +528,8 @@ class FunctionalRegistryItem(RegistryItem):
                         raise AssertionError
 
             if parameter_found_in_registry is None:
-                raise KeyError("Can't currently find parameter '%s' in any registry! Delayed parameter check is %s \nIf calling a FunctionalValue using parameters for specific robot roles or numbers, you should call them:\n\t<robot_role_here_without_angled_parentheses>_<parameter_name_here_without_angled_parentheses>\n\tOR\n\trobot#<robot_number_here_without_angled_parentheses>_<parameter_name_here_without_angled_parentheses>" % (parameter_name, ("ON, so check if the parameter has yet to be added" if self.registry_instance.allow_delayed_parameter_check else "OFF")))
+                #raise KeyError("Can't currently find parameter '%s' in any registry! Delayed parameter check is %s \nIf calling a FunctionalValue using parameters for specific robot roles or numbers, you should call them:\n\t<robot_role_here_without_angled_parentheses>_<parameter_name_here_without_angled_parentheses>\n\tOR\n\trobot#<robot_number_here_without_angled_parentheses>_<parameter_name_here_without_angled_parentheses>" % (parameter_name, ("ON, so check if the parameter has yet to be added" if self.registry_instance.allow_delayed_parameter_check else "OFF")))
+                raise KeyError("Can't currently find parameter '%s' in any registry! Delayed parameter check is %s \n" % (parameter_name, ("ON, so check if the parameter has yet to be added" if self.registry_instance.allow_delayed_parameter_check else "OFF")))
 
         return values_needed_by_formula
 
@@ -535,7 +543,14 @@ class FunctionalRegistryItem(RegistryItem):
         return parameter_names
     
     def get(self):
-        formula_parameters = self.collect_formula_parameters() 
+        try:
+            formula_parameters = self.collect_formula_parameters() 
+        except KeyError as ke:
+            if self.default_value_if_not_evaluable is not None:
+                return self.default_value_if_not_evaluable
+            else:
+                raise ke
+                
         return self.__formula(**formula_parameters)
     
     def set(self, formula : Callable):

@@ -29,9 +29,10 @@ class PolicyHandler:
         self.__trace = [{"edge" : None, "performed_action" : ActionRegistry().get_instance("action_idle"), "destination_state" : self.__current_state.node_id, "timestamp" : time.time()}]
     
     def get_current_action(self):
-        self.update()
+        action = self.update()
         #print(self.__trace)
-        return self.__trace[-1]["performed_action"]
+        print("Chosen action: "+str(action)+"\n------------\n")
+        return action
 
     def get_previous_action(self):
         if len(self.__trace) == 1:
@@ -51,59 +52,82 @@ class PolicyHandler:
     
     def update(self):
         outgoing_edges : List[PolicyEdge] = self.__current_state.get_outgoing_edges()
-
+        
+        print("------------\nUPDATE\n------------\nCurrent node: %s" % (str(self.__current_state.node_id)))
         #Select only edges where all literals are verified
         verified_edge = None
         #print(outgoing_edges)
         if self.policy.is_plan:
             assert len(outgoing_edges) == 1 or len(outgoing_edges) == 0
         
+        verified_edges = []
         for edge in outgoing_edges:
             if edge.is_verified():
-                assert verified_edge is None, "More than one verified edge available"
-                    
-                verified_edge = edge
+                verified_edges.append(edge)
                 #Even if we found a verified edge, keep looping to check consistency of this plan/policy
-                # (a plan/policy always has ONE verified outgoing edge at each time)
-                
+                # (a plan/policy always has ONE verified outgoing edge or ONE verified edge and ONE edge without conditions at each time)
+        
+        #print("\n"+str(verified_edges))
+        
+        
+        if self.__trace[-1]["performed_action"].completed or self.__trace[-1]["performed_action"].is_idle_action():
+            if len(verified_edges) > 1:
+                assert len(verified_edges) == 2, "More than 2 edges are verified"
+                assert (verified_edges[0].get_fluents() and not verified_edges[1].get_fluents()) or (not verified_edges[0].get_fluents() and verified_edges[1].get_fluents())
+                if not verified_edges[0].get_fluents():
+                    chosen_transition : PolicyEdge = verified_edges[1]
+                else:
+                    chosen_transition : PolicyEdge = verified_edges[0]
 
-        print("\n"+str(verified_edge))
-        
-        
-        print(self.__trace[-1]["performed_action"].completed)
-        if self.__trace[-1]["performed_action"].completed or self.__trace[-1]["performed_action"] == ActionRegistry().get_instance("action_idle"):
-            #print("CHOOSING BEST ACTION")
-            chosen_transition : PolicyEdge = verified_edge
+            elif not verified_edges:
+                chosen_transition : PolicyEdge = None
+            else:
+                chosen_transition : PolicyEdge = verified_edges[0]
+            print("Last action completed")
         else:
-            print("USING PREVIOUS ACTION")
             chosen_transition = self.__trace[-1]["edge"]
-        
+            if chosen_transition is not None:
+                print("Last action NOT completed\nChosing last action")
+                
         #print(chosen_transition)
         if chosen_transition is not None:
             chosen_action : Action = chosen_transition.guard_action
             destination_state : PolicyNode = chosen_transition.to_node
+            #print("\tCurrent action: "+str(chosen_transition.guard_action))
         else:
             chosen_action : Action = ActionRegistry().get_instance("action_idle")
             destination_state : PolicyNode = self.__current_state
+            #print("\tCurrent action: Idle Action")
 
         #If we're not still repeating the same current action
         if chosen_transition != self.__current_edge:
-            print("UPDATING TRACE WITH CHOSEN ACTION '%s'" % (str(chosen_action)))
+            print("\tUpdating trace with chosen action '%s'" % (str(chosen_action)))
             #Update previous state/edge and trace in case the new one is different from the previous one
             self.__previous_edge = self.__current_edge
             self.__previous_state = self.__current_state
 
             self.__trace.append({"edge" : chosen_transition, "performed_action" : chosen_action, "destination_state" : destination_state, "timestamp" : time.time()})
 
-            print(self.__trace)
+            print("\t\tCurrent trace:\n"+self.trace_to_string())
 
             #Transition through the chosen edge
             self.__current_state = destination_state
             self.__current_edge = chosen_transition
-
+    
+        print("------------")
+        return chosen_action
+        
 #TODO: add some logic to choose an edge (maybe planning techniques)    
     def choose_best_edge(self, edges):
         return edges[0]
+
+
+    def trace_to_string(self):
+        trace_string = ""
+        for edge in self.__trace:
+            trace_string += "\t"+str(edge["performed_action"])+"\n"
+        
+        return trace_string
 
     def __str__(self):
         return "PolicyHandler:\nCurrent state: %s\n,Policy: %s" % (str(self.__current_state), str(self.dfa)) 

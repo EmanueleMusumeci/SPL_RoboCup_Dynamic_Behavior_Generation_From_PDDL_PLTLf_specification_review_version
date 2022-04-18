@@ -21,6 +21,8 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description='Run an experiment (which has to be contained in a subdirectory inside the "experiments" directory).')
     parser.add_argument('experiment', type=str, help='Use to specify the experiment name in the format "<experiment_subfolder>.<experiment_name>". The name has to refer to a "<experiment_name>.py" file of the same name inside the subdirectory "<experiment_subfolder>" of the "experiments" folder.')
+    parser.add_argument('--localhost', '-l', action="store_true", help='Use to tell if the robot is simulated.')
+    parser.add_argument('--simulator', '-s', action="store_true", help='Use to tell if the robot is simulated.')
 
     args = parser.parse_args()
     
@@ -41,14 +43,21 @@ if __name__ == "__main__":
     assert hasattr(loaded_experiments[experiment_name], "setup_experiment")
     plan_handlers = loaded_experiments[experiment_name].setup_experiment()
 
+    #Check that the module has a get_robot_formation method and get it
+    assert hasattr(loaded_experiments[experiment_name], "get_robot_formation")
+    robot_formation = loaded_experiments[experiment_name].get_robot_formation()
+
     #Check that the handlers are of the correct type(s)
     assert isinstance(plan_handlers, dict)
     for role, handler in plan_handlers.items():
         assert isinstance(role, str)
         assert isinstance(handler, PolicyHandler) or isinstance(handler, DFAHandler)
 
+    localhost = args.localhost or args.simulator
+
+
     #Setup behavior controller and pass policy handler
-    behavior_controller = setup()
+    behavior_controller = setup(robot_formation, localhost)
 
     for role, handler in plan_handlers.items():
         #We need to first updateRobotRole as, in normal conditions, we would already know the robot role as it is announced as soon as the robot connects

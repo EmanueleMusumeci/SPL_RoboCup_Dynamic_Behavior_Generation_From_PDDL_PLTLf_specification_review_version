@@ -13,7 +13,7 @@ def setup_experiment():
     from lib.registries.action import ActionRegistry
     from lib.registries.fluents import FluentRegistry
     from lib.registries.values import ValueRegistry
-    from lib.utils import distance
+    from lib.utils import linear_distance, angular_distance
 
 
 

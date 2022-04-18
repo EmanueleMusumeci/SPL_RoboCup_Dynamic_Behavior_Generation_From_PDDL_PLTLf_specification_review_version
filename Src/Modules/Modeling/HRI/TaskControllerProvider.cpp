@@ -32,6 +32,7 @@ void TaskControllerProvider::update(TaskController& controller)
     controller.ballCarrierDistanceThreshold = BALL_CARRIER_DISTANCE_THRESHOLD;
     controller.kickDistanceThreshold = KICK_DISTANCE_THRESHOLD;
     controller.reachPositionDistanceThreshold = REACH_POSITION_DISTANCE_THRESHOLD;
+    controller.reachPositionAngleThreshold = REACH_POSITION_ANGLE_THRESHOLD;
 
     controller.interactWithUser = INTERACT_WITH_USER;
     
@@ -52,7 +53,7 @@ void TaskControllerProvider::update(TaskController& controller)
     //DEBUG_NUMB(PRINT_DEBUG, std::to_string(controller.taskQueue.empty()));
     
     /* Update current desired destination for the robot */
-    controller.updateCurrentDestination = [&] (Vector2f destinationPose) -> void
+    controller.updateCurrentDestination = [&] (Pose2f destinationPose) -> void
     {
         controller.currentRobotDestination = destinationPose;
     };
@@ -124,7 +125,7 @@ void TaskControllerProvider::update(TaskController& controller)
         and then calls the nextTask method */
     controller.signalTaskCompleted = [&] (bool playSound) -> void
     {
-        //DEBUG_NUMB(PRINT_DEBUG, "Current tasks: "<<controller.tasksToString());
+        DEBUG_NUMB(PRINT_DEBUG, "Current tasks: "<<controller.tasksToString());
         //DEBUG_NUMB(PRINT_DEBUG, "taskCompleted");
         controller.completedTasks.push_back(controller.taskQueue.at(0));
         if(playSound && !controller.planControlledMode) SoundPlayer::play("TaskCompleted.wav");
@@ -142,11 +143,11 @@ void TaskControllerProvider::update(TaskController& controller)
         if(!controller.taskQueue.empty())
         {
             //DEBUG_NUMB(PRINT_DEBUG, "Task queue not empty");
-            DEBUG_NUMB(PRINT_DEBUG, std::to_string(controller.taskQueue.at(0).taskID));
+            //DEBUG_NUMB(PRINT_DEBUG, std::to_string(controller.taskQueue.at(0).taskID));
             controller.lastCompletedTaskID = controller.taskQueue.at(0).taskID;
             controller.taskQueue.erase(controller.taskQueue.begin());
             controller.currentAction = 0;
-            DEBUG_NUMB(PRINT_DEBUG, std::to_string(controller.currentAction));
+            //DEBUG_NUMB(PRINT_DEBUG, std::to_string(controller.currentAction));
         }    
         //DEBUG_NUMB(PRINT_DEBUG, "Gone to next task");    
     };
@@ -203,7 +204,7 @@ void TaskControllerProvider::update(TaskController& controller)
             int i=0;
             for(auto task : controller.taskQueue)
             {
-                DEBUG_NUMB(PRINT_DEBUG, std::to_string(task.taskID));
+                //DEBUG_NUMB(PRINT_DEBUG, std::to_string(task.taskID));
                 if(task.taskID == taskID) 
                 {
                     DEBUG_NUMB(PRINT_DEBUG, "found task "+std::to_string(task.taskID));
@@ -239,9 +240,9 @@ void TaskControllerProvider::update(TaskController& controller)
     /* Return the actionType field of the current action (or the Idle ActionType in case of IdleTask) */
     controller.getCurrentActionType = [&] () -> HRI::ActionType
     {
-        DEBUG_NUMB(PRINT_DEBUG, "\n\ncontroller.getCurrentActionType");
-        DEBUG_CODE(controller.taskQueue.size());
-        DEBUG_CODE(controller.currentAction);
+        //DEBUG_NUMB(PRINT_DEBUG, "\n\ncontroller.getCurrentActionType");
+        //DEBUG_CODE(controller.taskQueue.size());
+        //DEBUG_CODE(controller.currentAction);
         if(controller.taskQueue.empty() || controller.taskQueue.at(0).actionQueue.empty()) return HRI::ActionType::Idle;
         return controller.taskQueue.at(0).actionQueue.at(controller.currentAction).actionType;
     };
@@ -354,6 +355,11 @@ void TaskControllerProvider::update(TaskController& controller)
                 result<<" (location: ("<<action.target.x()<<", "<<action.target.y()<<"))";
                 break;
             }
+            case HRI::ActionType::ReachPositionAndAngle:
+            {
+                result<<" (location: (angle: "<<action.angle<<", "<<action.target.x()<<", "<<action.target.y()<<"))";
+                break;
+            }
             case HRI::ActionType::ReachBall:
             {
                 Vector2f globalBall = theLibCheck.rel2Glob(theBallModel.estimate.position.x(), theBallModel.estimate.position.y()).translation;
@@ -454,6 +460,20 @@ void TaskControllerProvider::update(TaskController& controller)
                 
                 bool completed = controller.checkActionCompleted(
                     theLibCheck.distance(theRobotPose.translation, controller.currentRobotDestination)<controller.reachPositionDistanceThreshold
+                );
+                break;
+            }
+            //ReachPositionAndAngle CONDITION: the robot is within controller.reachPositionDistanceThreshold mm from the desired destination controller.currentRobotDestination
+            //and its angle controller.currentRobotDestination.rotation (it's a Pose2f) is within (-Angle::fromDegrees(controller.reachPositionAngleThreshold), Angle::fromDegrees(controller.reachPositionAngleThreshold)) 
+            case HRI::ActionType::ReachPositionAndAngle:
+            {
+                controller.updateCurrentDestination(Pose2f(currentAction.angle, currentAction.target.x(), currentAction.target.y()));
+                controller.updateCurrentBallDestination(globalBall);
+                
+                bool completed = controller.checkActionCompleted(
+                    theLibCheck.distance(theRobotPose.translation, controller.currentRobotDestination)<controller.reachPositionDistanceThreshold
+                    &&
+                    std::abs(theRobotPose.rotation - controller.currentRobotDestination.rotation) < Angle::fromDegrees(controller.reachPositionAngleThreshold)
                 );
                 break;
             }

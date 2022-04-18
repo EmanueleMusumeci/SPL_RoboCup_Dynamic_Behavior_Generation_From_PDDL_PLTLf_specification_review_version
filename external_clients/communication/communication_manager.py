@@ -349,12 +349,21 @@ class CommunicationManager(metaclass=Singleton):
         if robot_number in self.robot_tasks.keys():
             self.robot_tasks.pop(robot_number) 
 
-    #Only called in case the server just restarted after the crash and the robot was still running and had already an assigned role
-    #so the server will recover the control session (uses robot_number instead of role to allow the NAOCommunicationController to call it more easily)
+    #If it is not "unknown" or "undefined", resets the role for a specific robot number by:
+    # 1) Removing it from the robot_role_to_number dictionary
+    # 2) Removes all entries for that role from the registries
+    # 3) In Plan mode, it also resets the plan to the initial state
     def resetRobotRole(self, robot_number):
         robot_role = self.getRobotRoleFromNumber(robot_number)
+        
         if robot_role != self.UNKNOWN_ROLE:
-            self.robot_role_to_number.pop(self.getRobotRoleFromNumber(robot_number))
+            if robot_role != self.UNDEFINED_ROLE and \
+                robot_role in self.role_to_plan.keys() and not self.is_task_mode(robot_number = robot_number):
+                
+                    self.reset_plan(robot_role)
+            
+                #Remove all entries for that role
+                #ValueRegistry().remove_all_items_for_robot_role(robot_role)
 
         self.update_frontend(robot_number, "robotRole:"+str(robot_number)+",unknown")
 
@@ -393,8 +402,15 @@ class CommunicationManager(metaclass=Singleton):
         if role in self.robot_role_to_number.keys() and self.robot_role_to_number[role]["robot_number"] == robot_number:
             return
 
-        #Remove current robot role entry (given that roles are stored in a role -> robot_number map, if robot_number now has a different role, we want to remove the existing entry)
-        self.resetRobotRole(robot_number)
+
+        old_role = self.getRobotRoleFromNumber(robot_number)
+        
+        #If role changed...
+        if role != old_role:
+
+            #...Remove current robot role entry (given that roles are stored in a role -> robot_number map, if robot_number now has a different role, we want to remove the existing entry)
+            self.resetRobotRole(robot_number) 
+        
 
         #Set new role with the new robot number assignment
         self.robot_role_to_number[role] = {"role_timestamp": timestamp, "update_timestamp": time.time(), "robot_number" : robot_number}
