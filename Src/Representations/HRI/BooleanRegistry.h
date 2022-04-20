@@ -28,8 +28,9 @@ STREAMABLE(BooleanRegistry,
   void draw() const; //NOT CURRENTLY USED
 
   /* Functions that compute booleans to send */
-  FUNCTION(bool()) isPassAvailable;
+  //FUNCTION(bool()) isPassAvailable;
   FUNCTION(bool()) isCurrentActionCompleted;
+  FUNCTION(bool()) isBatteryLow;
 
   /* Returns a string with all booleans, ready to be sent to the client */
   FUNCTION(std::string()) getString;

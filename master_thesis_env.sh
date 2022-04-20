@@ -5,7 +5,7 @@ parent_path=$( cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P )
 SPL_ROOT=$( cd "$(dirname "$parent_path")" ; pwd -P )
 
 export SPLROOT=${SPL_ROOT}/spqrnao2021
-export SPLCLIENTS=${SPL_ROOT}/spqrnao2021/external_clients
+export SPLCLIENTS=${SPL_ROOT}/spqrnao2021/robocup_spl_temporal_goals
 export SPLBUILD=${SPL_ROOT}/spqrnao2021/Build
 export SPLCONFIG=${SPL_ROOT}/spqrnao2021/Config
 export SPLSCENES=${SPL_ROOT}/spqrnao2021/Config/Scenes

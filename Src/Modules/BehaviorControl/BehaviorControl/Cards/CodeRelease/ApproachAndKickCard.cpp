@@ -285,7 +285,19 @@ class ApproachAndKickCard : public ApproachAndKickCardBase
       transition
       {
         Vector2f globalBall = theLibCheck.rel2Glob(theBallModel.estimate.position.x(), theBallModel.estimate.position.y()).translation;
-        float offsetBallYPosition = theBallModel.estimate.position.y() + BALL_KICK_OFFSET_Y;
+        //float offsetBallYPosition = theBallModel.estimate.position.y() + BALL_KICK_OFFSET_Y;
+
+        Vector2f approachPoint;
+        if(theLibCheck.distance(theRobotPose, theBallCarrierModel.staticApproachPoint().translation) < theBallCarrierModel.staticApproachRadius * 1/2)
+        {
+          approachPoint = theBallCarrierModel.dynamicApproachPoint().translation;
+        }
+        else
+        {
+          approachPoint = theBallCarrierModel.staticApproachPoint().translation;
+        }
+        Pose2f secondStepXPos = theLibCheck.glob2Rel(approachPoint.x(), approachPoint.y());
+        float offsetBallYPosition = secondStepXPos.translation.y() + BALL_KICK_OFFSET_Y;
 
         //if the LOCAL ball is inside the approach on the x axis 
         //AND the LOCAL ball is inside the approach range on the y axis 
@@ -393,7 +405,19 @@ class ApproachAndKickCard : public ApproachAndKickCardBase
           goto walkToBall;
         }
 
-        float offsetBallYPosition = theBallModel.estimate.position.y() + BALL_KICK_OFFSET_Y;
+        //float offsetBallYPosition = theBallModel.estimate.position.y() + BALL_KICK_OFFSET_Y;
+
+        Vector2f approachPoint;
+        if(theLibCheck.distance(theRobotPose, theBallCarrierModel.staticApproachPoint().translation) < theBallCarrierModel.staticApproachRadius * 1/2)
+        {
+          approachPoint = theBallCarrierModel.dynamicApproachPoint().translation;
+        }
+        else
+        {
+          approachPoint = theBallCarrierModel.staticApproachPoint().translation;
+        }
+        Pose2f secondStepXPos = theLibCheck.glob2Rel(approachPoint.x(), approachPoint.y());
+        float offsetBallYPosition = secondStepXPos.translation.y() + BALL_KICK_OFFSET_Y;
 
         DEBUG_CODE(approachXRange.isInside(theBallModel.estimate.position.x()))
         DEBUG_CODE(theBallModel.estimate.position.x())
@@ -499,6 +523,18 @@ class ApproachAndKickCard : public ApproachAndKickCardBase
 
         float offsetBallYPosition = theBallModel.estimate.position.y() + BALL_KICK_OFFSET_Y;
 
+        //Vector2f approachPoint;
+        //if(theLibCheck.distance(theRobotPose, theBallCarrierModel.staticApproachPoint().translation) < theBallCarrierModel.staticApproachRadius * 1/2)
+        //{
+        //  approachPoint = theBallCarrierModel.dynamicApproachPoint().translation;
+        //}
+        //else
+        //{
+        //  approachPoint = theBallCarrierModel.staticApproachPoint().translation;
+        //}
+        //Pose2f secondStepXPos = theLibCheck.glob2Rel(approachPoint.x(), approachPoint.y());
+        //float offsetBallYPosition = secondStepXPos.translation.y() + BALL_KICK_OFFSET_Y;
+
         if(!approachXRange.isInside(theBallModel.estimate.position.x())
         || !approachYRange.isInside(offsetBallYPosition)
         || !smallBallAlignmentRange.isInside(Angle(theLibCheck.angleToTarget(chosenTarget.x(), chosenTarget.y())).toDegrees()))
@@ -587,7 +623,19 @@ class ApproachAndKickCard : public ApproachAndKickCardBase
     {
       transition
       {
-        float offsetBallYPosition = theBallModel.estimate.position.y() + BALL_KICK_OFFSET_Y;
+        //float offsetBallYPosition = theBallModel.estimate.position.y() + BALL_KICK_OFFSET_Y;
+
+        Vector2f approachPoint;
+        if(theLibCheck.distance(theRobotPose, theBallCarrierModel.staticApproachPoint().translation) < theBallCarrierModel.staticApproachRadius * 1/2)
+        {
+          approachPoint = theBallCarrierModel.dynamicApproachPoint().translation;
+        }
+        else
+        {
+          approachPoint = theBallCarrierModel.staticApproachPoint().translation;
+        }
+        Pose2f secondStepXPos = theLibCheck.glob2Rel(approachPoint.x(), approachPoint.y());
+        float offsetBallYPosition = secondStepXPos.translation.y() + BALL_KICK_OFFSET_Y;
 
         if(theLibCheck.distance(previousBallPosition, theLibCheck.rel2Glob(theBallModel.estimate.position.x(), theBallModel.estimate.position.y())) > ballPositionChangedThreshold)
         {

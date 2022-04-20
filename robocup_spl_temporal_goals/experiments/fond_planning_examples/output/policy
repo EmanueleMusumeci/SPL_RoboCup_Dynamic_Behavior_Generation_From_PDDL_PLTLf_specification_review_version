@@ -1,0 +1,43 @@
+digraph G {
+0 [label="{ (not (fluent-is-striker-obstacle-blocking-goal)), (not (jolly-aligned-to-striker)), (not (jolly-in-position)), (not (jolly-position-ok)), (not (jolly-ready)), (not (jolly-rotation-ok)) }"];
+1 [label="{ (not (fluent-is-striker-obstacle-blocking-goal)), (not (jolly-aligned-to-striker)), (jolly-in-position), (not (jolly-position-ok)), (not (jolly-ready)), (not (jolly-rotation-ok)) }"];
+2 [label="{ (fluent-is-striker-obstacle-blocking-goal), (not (jolly-aligned-to-striker)), (not (jolly-in-position)), (not (jolly-position-ok)), (not (jolly-ready)), (not (jolly-rotation-ok)) }"];
+3 [label="{ (not (fluent-is-striker-obstacle-blocking-goal)), (not (jolly-aligned-to-striker)), (jolly-in-position), (jolly-position-ok), (not (jolly-ready)), (not (jolly-rotation-ok)) }"];
+4 [label="{ (fluent-is-striker-obstacle-blocking-goal), (not (jolly-aligned-to-striker)), (jolly-in-position), (not (jolly-position-ok)), (not (jolly-ready)), (not (jolly-rotation-ok)) }"];
+5 [label="{ (not (fluent-is-striker-obstacle-blocking-goal)), (jolly-aligned-to-striker), (jolly-in-position), (jolly-position-ok), (not (jolly-ready)), (not (jolly-rotation-ok)) }"];
+6 [label="{ (fluent-is-striker-obstacle-blocking-goal), (not (jolly-aligned-to-striker)), (jolly-in-position), (jolly-position-ok), (not (jolly-ready)), (not (jolly-rotation-ok)) }"];
+7 [label="{ (not (fluent-is-striker-obstacle-blocking-goal)), (jolly-aligned-to-striker), (jolly-in-position), (jolly-position-ok), (not (jolly-ready)), (jolly-rotation-ok) }"];
+8 [label="{ (fluent-is-striker-obstacle-blocking-goal), (jolly-aligned-to-striker), (jolly-in-position), (jolly-position-ok), (not (jolly-ready)), (not (jolly-rotation-ok)) }"];
+9 [label="{ (not (fluent-is-striker-obstacle-blocking-goal)), (jolly-aligned-to-striker), (jolly-in-position), (jolly-position-ok), (jolly-ready), (jolly-rotation-ok) }"];
+10 [label="{ (fluent-is-striker-obstacle-blocking-goal), (jolly-aligned-to-striker), (jolly-in-position), (jolly-position-ok), (not (jolly-ready)), (jolly-rotation-ok) }"];
+11 [label="{ (fluent-is-striker-obstacle-blocking-goal), (jolly-aligned-to-striker), (jolly-in-position), (jolly-position-ok), (jolly-ready), (jolly-rotation-ok) }"];
+0 -> 1 [label="check-obstacle-position", color="#E8B76C", fontcolor="#E8B76C"];
+0 -> 2 [label="check-obstacle-position", color="#E8B76C", fontcolor="#E8B76C"];
+1 -> 3 [label="check-jolly-position", color="#9A3B69", fontcolor="#9A3B69"];
+2 -> 4 [label="move-to-receiving-position", color="#112E79", fontcolor="#112E79"];
+3 -> 5 [label="turn-to-striker", color="#E5D5E6", fontcolor="#E5D5E6"];
+4 -> 6 [label="check-jolly-position", color="#434BE2", fontcolor="#434BE2"];
+5 -> 7 [label="check-jolly-rotation", color="#5E8D51", fontcolor="#5E8D51"];
+6 -> 8 [label="turn-to-striker", color="#BCD912", fontcolor="#BCD912"];
+7 -> 9 [label="check-jolly-ready", color="#5341C1", fontcolor="#5341C1"];
+8 -> 10 [label="check-jolly-rotation", color="#8D64F1", fontcolor="#8D64F1"];
+10 -> 11 [label="check-jolly-ready", color="#C46441", fontcolor="#C46441"];
+subgraph cluster_goal_9 {
+style=filled;
+color=palegreen;
+9;
+label="GOAL";
+}
+subgraph cluster_goal_11 {
+style=filled;
+color=palegreen;
+11;
+label="GOAL";
+}
+subgraph cluster_init {
+style=filled;
+color=lightblue;
+0;
+label="INIT";
+}
+}

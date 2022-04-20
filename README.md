@@ -1,4 +1,4 @@
-# Dynamic Behaviors Generation in RoboCup SPL using LTL rules
+# Dynamic Behaviors Generation in RoboCup SPL from PDDL+PLTLf formal specification
 
 ## Installation
 
@@ -158,11 +158,25 @@ then rebuild:
 sudo make install-strip
 ```
 
+### Install dependencies for next repo 
+Install OpenJDK 8 (NOTICE: the next repo can not be built with Java versions above 8):
+```
+sudo apt-get install openjdk-8-jdk
+```
+Install swig:
+```
+sudo apt-get install swig3.0
+```
+Install latexmk:
+```
+sudo apt-get install latexmk
+```
 
 ### Download and install the `planning-for-past-temporal-goals` repo from the [Whitemech research group](https://github.com/whitemech)
-* Clone the repo (anywhere):
+Follow the [install guide for this repo](https://github.com/whitemech/planning-for-past-temporal-goals/tree/benchmark)
+<!--* Clone the repo (anywhere):
 ```
-git clone https://github.com/whitemech/planning-for-past-temporal-goals
+git clone -b benchmark https://github.com/whitemech/planning-for-past-temporal-goals
 ```
 * Install the dependencies required for pygraphviz: 
 ```
@@ -178,6 +192,7 @@ pip install .
 cd third_party
 git clone https://github.com/aibasel/downward; git clone https://github.com/robertmattmueller/myND; git clone https://github.com/whitemech/pddl; git clone https://github.com/QuMuLab/planner-for-relevant-policies
 ```
+
 * Install the dependencies required for these repos:
 ```
 sudo apt-get install gcc-multilib g++-multilib
@@ -187,7 +202,7 @@ sudo apt-get install gcc-multilib g++-multilib
 cd ..
 ./scripts/build.sh
 ```
-
+-->
 
 
 
@@ -211,9 +226,9 @@ Run SimRobot
 Click on File->Open and then move to the `RoboCup/master_thesis/spqrnao2021/Config/Scenes` folder and open the `1vs3Dummies.ros2` scene. This scene features one playing robot and 3 draggable inactive robots acting as obstacles.
 
 #### Run the python server
-Move to `external_clients/` folder
+Move to `robocup_spl_temporal_goals/` folder
 ```
-cd RoboCup/master_thesis/spqrnao2021/external_clients/
+cd RoboCup/master_thesis/spqrnao2021/robocup_spl_temporal_goals/
 ```
 
 Run the python server 
@@ -222,9 +237,9 @@ python async_socket_NAO.py
 ```
 
 #### Run the NodeJS server
-Move to `external_clients/web_interface` folder
+Move to `robocup_spl_temporal_goals/web_interface` folder
 ```
-cd RoboCup/master_thesis/spqrnao2021/external_clients/web_interface
+cd RoboCup/master_thesis/spqrnao2021/robocup_spl_temporal_goals/web_interface
 ```
 
 Run the python server
@@ -279,6 +294,6 @@ To run an experiment:
   ```
 
   where:
-  * The module run_experiment.py is located in the spqrnao2021/external_clients folder
+  * The module run_experiment.py is located in the spqrnao2021/robocup_spl_temporal_goals folder
   * `EXPERIMENT_SUBFOLDER` is a subfolder of the "experiments" folder
   * `EXPERIMENT_NAME` is the name of a file providing the `setup_experiment()` function

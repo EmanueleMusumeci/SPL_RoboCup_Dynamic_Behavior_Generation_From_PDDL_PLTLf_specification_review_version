@@ -33,6 +33,11 @@ void BooleanRegistryProvider::update(BooleanRegistry& booleanRegistry)
       return theTaskController.isTaskComplete();
     };
 
+    booleanRegistry.isBatteryLow = [&] () -> bool
+    {
+      return theRobotHealth.batteryLevel < BATTERY_LOW;
+    };
+
     booleanRegistry.getString = [&] () -> std::string
     {
       std::string ret_string;

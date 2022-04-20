@@ -12,6 +12,7 @@
 #include "Representations/HRI/BooleanRegistry.h"
 #include "Representations/HRI/TaskController.h"
 #include "Representations/Communication/RobotInfo.h"
+#include "Representations/Infrastructure/RobotHealth.h"
 
 #include <iostream>
 #include <ostream>
@@ -20,6 +21,7 @@ MODULE(BooleanRegistryProvider,
 {,
     REQUIRES(RobotInfo),
     REQUIRES(TaskController),
+    REQUIRES(RobotHealth),
     PROVIDES(BooleanRegistry),
     
     LOADS_PARAMETERS(
@@ -27,6 +29,8 @@ MODULE(BooleanRegistryProvider,
       (bool) PRINT_DEBUG,
       
       (bool) ALWAYS_SEND,
+
+      (float) BATTERY_LOW,
 
     }),
 });

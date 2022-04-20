@@ -1,0 +1,5 @@
+(define (problem strikerfond)
+    (:domain strikerrobocupfond)
+    (:init (not (ballpassed)) (not (goalscored)) (not (strikerattemptingdribble)))
+    (:goal (val_strikerattemptingdribble))
+)
