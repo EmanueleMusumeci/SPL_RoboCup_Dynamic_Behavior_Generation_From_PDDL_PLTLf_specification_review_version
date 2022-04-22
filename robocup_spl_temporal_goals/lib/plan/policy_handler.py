@@ -1,4 +1,6 @@
 import time
+import os
+from pathlib import Path
 
 from lib.plan.policy import Policy, PolicyEdge, PolicyNode 
 
@@ -7,12 +9,46 @@ from lib.registries.action import *
 
 #TODO: get_current_state should 1) Update the Policy 2) return the literals and are actions for the current state (only action is needed but we want this to be more general purpose)
 class PolicyHandler:
-    def __init__(self, policy : Policy, plan_postprocessing_functions = []):
+    def __init__(self, 
+            policy : Policy, 
+            plan_postprocessing_functions = [],
+
+            pddl_domain_path : str = None,
+            pddl_problem_path : str = None,
+            goal : str = None,
+            PLTLf_mapping_path : str = None,
+
+            working_dir : str = None,
+
+            FOND : bool = False,
+
+            problem_name : str = None,
+
+            ):
+
+
+        self.pddl_domain_path = pddl_domain_path
+        self.pddl_problem_path = pddl_problem_path
+        self.goal = goal
+        self.PLTLf_mapping_path = PLTLf_mapping_path
+
+        self.working_dir = working_dir
+
+        self.FOND = FOND
+
+        if problem_name is not None:
+            assert isinstance(problem_name, str)
+        else:
+            problem_name = Path(os.path.abspath(pddl_problem_path)).stem
+        self.problem_name = problem_name
+
         assert isinstance(policy, Policy), "This instance should wrap a networkx DiGraph"
         self.policy = policy
+
         if plan_postprocessing_functions:
             for preprocessing_step in plan_postprocessing_functions:
                 preprocessing_step(policy)
+        
         self.__current_state : PolicyNode = policy.initial_state
         self.__current_edge = None
 
@@ -20,6 +56,149 @@ class PolicyHandler:
         self.__previous_edge = None
         self.__trace = [{"edge" : None, "performed_action" : ActionRegistry().get_idle_action(), "destination_state" : self.__current_state.node_id, "timestamp" : time.time()}]
     
+
+
+    @classmethod
+    def create_policy_with_PLTLf(cls, pddl_domain_path : str, pddl_problem_path : str, goal : str, working_dir : str, PLTLf_mapping_path : str = None, problem_name : str = None, plot : bool = False, plan_postprocessing_functions = []):
+
+        assert isinstance(pddl_domain_path, str)
+        assert isinstance(pddl_problem_path, str)
+        assert isinstance(goal, str)
+
+        assert working_dir is not None
+        assert isinstance(working_dir, str)
+        
+        if not os.path.exists(working_dir):
+            os.makedirs(working_dir)
+        
+        if problem_name is not None:
+            assert isinstance(problem_name, str)
+        else:
+            problem_name = Path(os.path.abspath(pddl_problem_path)).stem
+
+        if PLTLf_mapping_path is not None:
+            assert isinstance(PLTLf_mapping_path, str)
+
+        print("Creating FOND Policy for striker role from domain file: %s with problem file %s and PLTLf formula '%s'\n" % (pddl_domain_path, pddl_problem_path, goal))
+        policy = Policy.build_from_FOND_PDDL_and_PLTLf_formula(pddl_domain_path, pddl_problem_path, working_dir, goal, mapping_path = PLTLf_mapping_path)
+        
+        if plot:
+            policy.plot(save_to=os.path.join(working_dir, "plan_preview", problem_name+".png"), show_plot = False)
+        
+        policy_handler = PolicyHandler(
+
+            pddl_domain_path = pddl_domain_path,
+            pddl_problem_path = pddl_problem_path,
+            goal = goal,
+            PLTLf_mapping_path = PLTLf_mapping_path,
+
+            working_dir = working_dir,
+
+            FOND = True,
+
+            problem_name = problem_name
+        )
+
+        return policy_handler
+    
+
+
+    @classmethod
+    def create_FOND_policy(cls, pddl_domain_path : str, pddl_problem_path : str, goal : str, working_dir : str = None, problem_name : str = None, plot : bool = False, plan_postprocessing_functions = []):
+
+        assert isinstance(pddl_domain_path, str)
+        assert isinstance(pddl_problem_path, str)
+        assert isinstance(goal, str)
+
+        if working_dir is not None:
+            assert isinstance(working_dir, str)
+            if not os.path.exists(working_dir):
+                os.makedirs(working_dir)
+        
+        if problem_name is not None:
+            assert isinstance(problem_name, str)
+        else:
+            problem_name = Path(os.path.abspath(pddl_problem_path)).stem
+
+        print("Creating FOND Policy for striker role from domain file: %s with problem file %s\n" % (pddl_domain_path, pddl_problem_path))
+        policy = Policy.build_from_FOND_PDDL(pddl_domain_path, pddl_problem_path, working_dir)
+        
+        if plot:
+            policy.plot(save_to=os.path.join(working_dir, "plan_preview", problem_name+".png"), show_plot = False)
+        
+        policy_handler = PolicyHandler(
+
+            pddl_domain_path = pddl_domain_path,
+            pddl_problem_path = pddl_problem_path,
+            FOND = True,
+            
+            working_dir = working_dir,
+
+            problem_name = problem_name
+        )
+
+        return policy_handler
+
+
+
+    @classmethod
+    def create_policy(cls, pddl_domain_path : str, pddl_problem_path : str, goal : str, working_dir : str = None, problem_name : str = None, plot : bool = False, plan_postprocessing_functions = []):
+        
+        assert isinstance(pddl_domain_path, str)
+        assert isinstance(pddl_problem_path, str)
+        assert isinstance(goal, str)
+
+        if working_dir is not None:
+            assert isinstance(working_dir, str)
+            if not os.path.exists(working_dir):
+                os.makedirs(working_dir)
+        
+        if problem_name is not None:
+            assert isinstance(problem_name, str)
+        else:
+            problem_name = Path(os.path.abspath(pddl_problem_path)).stem
+
+        print("Creating Policy for striker role from domain file: %s with problem file %s\n" % (pddl_domain_path, pddl_problem_path))
+        policy = Policy.build_from_PDDL(pddl_domain_path, pddl_problem_path, working_dir)
+        
+        if plot:
+            policy.plot(save_to=os.path.join(working_dir, "plan_preview", problem_name+".png"), show_plot = False)
+        
+        policy_handler = PolicyHandler(
+
+            pddl_domain_path = pddl_domain_path,
+            pddl_problem_path = pddl_problem_path,
+
+            working_dir = working_dir,
+
+            problem_name = problem_name
+        )
+    
+        return policy_handler
+
+
+
+    def replan(self, goal, plot : bool = False):
+        assert self.pddl_domain_path is not None
+        assert self.pddl_problem_path is not None
+        assert self.working_dir is not None
+        
+        assert goal is not None
+        assert isinstance(goal, str)
+        
+        if goal == self.goal:
+            print("Goal is the same, no replan needed. Goal: \n\t%s" % (self.goal))
+            return
+
+        #We only cover the PLTLf case (because that's the only case where the goal is specified dynamically)
+        self.policy = Policy.build_from_FOND_PDDL_and_PLTLf_formula(self.pddl_domain_path, self.pddl_problem_path, self.working_dir, goal, self.PLTLf_mapping_path)
+
+        if plot:
+            self.policy.plot(save_to=os.path.join(self.working_dir, "plan_preview", self.problem_name+".png"), show_plot = False)
+
+        self.reset()
+
+
     def reset(self):
         self.__current_state : PolicyNode = self.policy.initial_state
         self.__current_edge = None

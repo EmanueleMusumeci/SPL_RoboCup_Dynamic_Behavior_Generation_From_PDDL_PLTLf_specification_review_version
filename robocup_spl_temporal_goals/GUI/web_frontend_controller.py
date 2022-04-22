@@ -38,7 +38,7 @@ class FrontendController(ABC, twisted.internet.protocol.DatagramProtocol):
         pass
 
 
-class GUIController(FrontendController):
+class WebGUIController(FrontendController):
     def __init__(self, 
         reactor, 
         

@@ -14,6 +14,8 @@ from lib.plan.policy_handler import PolicyHandler
 from lib.registries.literals import LiteralRegistry
 from lib.registries.values import ValueRegistry
 
+#from GUI.shell import InputShell
+
 class BehaviorControlMode(Enum):
     TASK_MODE = 0
     PLAN_MODE = 1
@@ -40,16 +42,20 @@ class CommunicationManager(metaclass=Singleton):
         print("LOCAL INTERFACE IP: %s" % local_interface_ip)
 
         ''' 
-        ______________________________
-        |                             |
-        |  SETUP FRONTEND CONTROLLER  |
-        |_____________________________|
+        ___________________
+        |                  |
+        |  SETUP FRONTEND  |
+        |__________________|
 
         '''
         
         self.frontend_controller = frontend_controller
         if frontend_controller is not None:
             self.frontend_controller.set_manager(self)
+        
+        self.control_shell = None
+
+        
 
     #-----------------------------------------------------------------
 
@@ -177,6 +183,9 @@ class CommunicationManager(metaclass=Singleton):
         
         if self.frontend_controller is not None:
             self.frontend_controller.close_sockets()
+        
+        if self.control_shell is not None:
+            self.control_shell.close()
 
     #--------------------
     # 
@@ -229,6 +238,14 @@ class CommunicationManager(metaclass=Singleton):
 
         if robot_number is not None:
             self.scheduleRobotTasksReset(robot_number=robot_number)
+        
+
+        #Sends a "lastTaskQueue?" message to the robot every LAST_TASK_ID_TIMEOUT seconds, to which the robot will answer with a message like:
+        #   "lastTaskQueue;lastTaskID,<last task ID received by robot>,<last task ID completed by robot>;<task type>,<task fields separated by commas>;..."
+        #where "..." represents other task types and their fields (i.e. destination for robot or for ball)
+        #   NOTICE: this task is activated when the Python server first starts or whenever the robot is detected as "not alive". It is deactivated when the robot
+        #   is detected to be "alive"
+        self.robot_communication_controllers[robot_number].check_task_queue_task.start(self.last_task_id_timeout)
             
 
     def set_plan_mode(self, robot_role : str = None, robot_number : int = None):
@@ -245,6 +262,8 @@ class CommunicationManager(metaclass=Singleton):
                 
         if robot_number is not None:
             self.scheduleRobotTasksReset(robot_number=robot_number)
+
+        self.robot_communication_controllers[robot_number].check_task_queue_task.stop()
 
 
     def is_task_mode(self, robot_role : str = None, robot_number : int = None):
@@ -497,7 +516,9 @@ class CommunicationManager(metaclass=Singleton):
     def sendRobotNotRespondingMessageToFrontend(self, robotNumber):
         self.frontend_controller.sendRobotNotRespondingMessage(robotNumber)
 
-
+    #def register_shell(self, shell : InputShell):
+    #    assert isinstance(shell, InputShell)
+    #    shell.set_manager(self)
 
 
 

@@ -4,11 +4,14 @@ import signal
 from twisted.internet import reactor
 
 from communication.communication_manager import BehaviorControlMode, CommunicationManager
-from communication.frontend_controller import GUIController
+#from GUI.web_frontend_controller import WebGUIController
+#from GUI.constraints_frontend_controller import ConstraintGUIController
+#from GUI.shell import ConstraintShell
 
 def setup(
     robot_formation : Dict, 
     USE_LOCALHOST : bool = False, 
+    #USE_FRONTEND : bool = False,
 
     WEBSOCKET_INTERFACE_IP = "127.0.0.1",
     FRONTEND_SOCKET_IP = "127.0.0.1",
@@ -58,17 +61,19 @@ def setup(
     |____________________________________|
 
     '''
-    frontend_controller = GUIController(
-        reactor, 
-        WEBSOCKET_INTERFACE_IP, WEB_CLIENT_READ_PORT, 
-        FRONTEND_SOCKET_IP, WEB_CLIENT_WRITE_PORT, WEB_CLIENT_REMOTE_READ_PORT, 
-        
-        READ_SOCKET_TIMEOUT, 
-        ALIVE_CLIENT_TIMEOUT
-    )
-
-
-
+    #frontend_controller = None
+    #if USE_FRONTEND:
+    #    frontend_controller = GUIController(
+    #        reactor, 
+    #        WEBSOCKET_INTERFACE_IP, WEB_CLIENT_READ_PORT, 
+    #        FRONTEND_SOCKET_IP, WEB_CLIENT_WRITE_PORT, WEB_CLIENT_REMOTE_READ_PORT, 
+    #        
+    #        READ_SOCKET_TIMEOUT, 
+    #        ALIVE_CLIENT_TIMEOUT
+    #    )
+    #    DEFAULT_BEHAVIOR_CONTROL_MODE = BehaviorControlMode.TASK_MODE
+    #else:
+    #    DEFAULT_BEHAVIOR_CONTROL_MODE = BehaviorControlMode.PLAN_MODE
 
     #TODO: replace this with an automatic robot discovery broadcast
     ''' 
@@ -123,7 +128,7 @@ def setup(
         last_task_id_timeout = LAST_TASK_ID_TIMEOUT,
         update_tasks_timeout = UPDATE_TASKS_TIMEOUT,                   
 
-        frontend_controller = frontend_controller,
+        #frontend_controller = frontend_controller,
         frontend_alive_timeout = ALIVE_CLIENT_TIMEOUT,
         default_behavior_control_mode = BehaviorControlMode.PLAN_MODE
     )
