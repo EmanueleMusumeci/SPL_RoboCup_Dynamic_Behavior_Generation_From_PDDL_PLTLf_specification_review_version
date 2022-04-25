@@ -228,7 +228,7 @@ class ActionRegistry(Registry):
                 raise e
         self.__actions_scheduled_for_check = remaining_checks
         
-        print("Performed delayed parameter check: %d checks remaining" % (len(self.__actions_scheduled_for_check)))
+        #print("Performed delayed parameter check: %d checks remaining" % (len(self.__actions_scheduled_for_check)))
 
     def action_parameter_check(self, name_in_registry, parameters : Union[List[Tuple[str, Any]], List[str]]):
         

@@ -407,10 +407,6 @@ function drawTargetPreviewOnField(canvas, debugInfo=false, scaledTargetPos = und
     }
     else
     {
-        x-special/nautilus-clipboard
-copy
-file:///home/asc/Downloads/Emanuele%20Musumeci%20(1653885)%20-%20Report.pdf
-
         unscaledTarget = scaleFieldPositionToCanvas(canvas, scaledTargetPos[0], scaledTargetPos[1])
         scaledTarget = scaledTargetPos;
     }

@@ -261,11 +261,12 @@ class NAOCommunicationController(twisted.internet.protocol.DatagramProtocol):
         #We also reset the current robot role to 'unknown' and clean its Plan
         self.communication_manager.resetRobotRole(self.robot_number)
 
-#TODO: architectural weakness
-        self.communication_manager.sendRobotNotRespondingMessageToFrontend(self.robot_number)
-        print("Starting task queue check")
-        if not self.check_task_queue_task.running:
-            self.check_task_queue_task.start(self.communication_manager.last_task_id_timeout)
+        if self.communication_manager.frontend_controller is not None:
+    #TODO: architectural weakness
+            self.communication_manager.sendRobotNotRespondingMessageToFrontend(self.robot_number)
+            print("Starting task queue check")
+            if not self.check_task_queue_task.running:
+                self.check_task_queue_task.start(self.communication_manager.last_task_id_timeout)
 
 
     def check_alive_states(self):

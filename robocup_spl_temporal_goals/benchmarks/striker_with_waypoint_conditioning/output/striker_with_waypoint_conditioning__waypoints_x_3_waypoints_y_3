@@ -1,0 +1,19 @@
+digraph G {
+0 [label="{ (not (isat ball wpc0r0)), (not (isat ball wpc0r1)), (not (isat ball wpc0r2)), (not (isat ball wpc1r0)), (isat ball wpc1r1), (not (isat ball wpc1r2)), (not (isat ball wpc2r0)), (not (isat ball wpc2r1)), (not (isat ball wpc2r2)), (not (isat robot wpc0r0)), (isat robot wpc0r1), (not (isat robot wpc0r2)), (not (isat robot wpc1r0)), (not (isat robot wpc1r1)), (not (isat robot wpc1r2)), (not (isat robot wpc2r0)), (not (isat robot wpc2r1)), (not (isat robot wpc2r2)), (not (val_isat_ball_wpc2r1)) }"];
+1 [label="{ (not (isat ball wpc0r0)), (not (isat ball wpc0r1)), (not (isat ball wpc0r2)), (not (isat ball wpc1r0)), (isat ball wpc1r1), (not (isat ball wpc1r2)), (not (isat ball wpc2r0)), (not (isat ball wpc2r1)), (not (isat ball wpc2r2)), (not (isat robot wpc0r0)), (not (isat robot wpc0r1)), (not (isat robot wpc0r2)), (not (isat robot wpc1r0)), (isat robot wpc1r1), (not (isat robot wpc1r2)), (not (isat robot wpc2r0)), (not (isat robot wpc2r1)), (not (isat robot wpc2r2)), (not (val_isat_ball_wpc2r1)) }"];
+2 [label="{ (not (isat ball wpc0r0)), (not (isat ball wpc0r1)), (not (isat ball wpc0r2)), (not (isat ball wpc1r0)), (not (isat ball wpc1r1)), (not (isat ball wpc1r2)), (not (isat ball wpc2r0)), (isat ball wpc2r1), (not (isat ball wpc2r2)), (not (isat robot wpc0r0)), (not (isat robot wpc0r1)), (not (isat robot wpc0r2)), (not (isat robot wpc1r0)), (not (isat robot wpc1r1)), (not (isat robot wpc1r2)), (not (isat robot wpc2r0)), (isat robot wpc2r1), (not (isat robot wpc2r2)), (val_isat_ball_wpc2r1) }"];
+0 -> 1 [label="moverobot robot wpc0r1 wpc1r1", color="#3A84A0", fontcolor="#3A84A0"];
+1 -> 2 [label="carryball robot ball wpc1r1 wpc2r1", color="#696841", fontcolor="#696841"];
+subgraph cluster_goal_2 {
+style=filled;
+color=palegreen;
+2;
+label="GOAL";
+}
+subgraph cluster_init {
+style=filled;
+color=lightblue;
+0;
+label="INIT";
+}
+}

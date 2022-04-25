@@ -377,7 +377,7 @@ class ParameterRegistry(Registry):
                 raise e
         self.__parameters_scheduled_for_check = remaining_checks
         
-        print("Performed delayed parameter check: %d checks remaining" % (len(self.__parameters_scheduled_for_check)))
+        #print("Performed delayed parameter check: %d checks remaining" % (len(self.__parameters_scheduled_for_check)))
 
 
 

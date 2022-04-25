@@ -1,0 +1,6 @@
+(define (problem simplestriker)
+    (:domain robocupdeterministic)
+    (:objects ball robot wpc0r0 wpc0r1 wpc0r2 wpc0r3 wpc0r4 wpc1r0 wpc1r1 wpc1r2 wpc1r3 wpc1r4 wpc2r0 wpc2r1 wpc2r2 wpc2r3 wpc2r4)
+    (:init (adjacent wpc0r1 wpc0r0) (adjacent wpc0r2 wpc0r1) (adjacent wpc0r3 wpc0r2) (adjacent wpc0r4 wpc0r3) (adjacent wpc1r0 wpc0r0) (adjacent wpc1r1 wpc0r1) (adjacent wpc1r1 wpc1r0) (adjacent wpc1r2 wpc0r2) (adjacent wpc1r2 wpc1r1) (adjacent wpc1r3 wpc0r3) (adjacent wpc1r3 wpc1r2) (adjacent wpc1r4 wpc0r4) (adjacent wpc1r4 wpc1r3) (adjacent wpc2r0 wpc1r0) (adjacent wpc2r1 wpc1r1) (adjacent wpc2r1 wpc2r0) (adjacent wpc2r2 wpc1r2) (adjacent wpc2r2 wpc2r1) (adjacent wpc2r3 wpc1r3) (adjacent wpc2r3 wpc2r2) (adjacent wpc2r4 wpc1r4) (adjacent wpc2r4 wpc2r3) (isat ball wpc1r2) (isat robot wpc0r2) (isball ball) (isrobot robot))
+    (:goal (val_isat_ball_wpc2r2))
+)

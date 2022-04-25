@@ -9,6 +9,8 @@ import experiments
 from lib.dfa.dfa_handler import DFAHandler
 from lib.plan.policy_handler import PolicyHandler
 
+from lib.constraints import ask_additional_constraints
+
 #from GUI.shell import InputShell
 
 
@@ -28,12 +30,20 @@ if __name__ == "__main__":
     #parser.add_argument('--frontend', '-f', action="store_true", help='Use to tell if the graphical frontend is to be used.')
     #parser.add_argument('--GUI', '-g', action="store_true", help='Use to tell if the graphical frontend is to be used.')
     #parser.add_argument('--shell', '-s', action="store_true", help='Use to launch a separate shell for interactive behavior conditioning through PLTLf constraints.')
-    #parser.add_argument('--constraints', '-c', action="store_true", help='Use to launch a separate shell for interactive behavior conditioning through PLTLf constraints.')
+    
+    parser.add_argument('--ask_constraints', '-c', action="store_true", help='Use to require constraints in advance for each role for interactive behavior conditioning through PLTLf constraints.')
 
     args = parser.parse_args()
     
-    #experiment_name = "reach_waypoint_then_reach_ball_and_kick_until_goal"
-    #experiment_name = "classical_planning_examples.classical_planning_example"
+
+
+    ''' 
+    ____________________
+    |                   |
+    |  LOAD EXPERIMENT  |
+    |___________________|
+
+    '''
 
     experiment_name = "experiments."+args.experiment
     
@@ -45,14 +55,34 @@ if __name__ == "__main__":
             print("Unknown experiment '%s'." % (experiment_name))
         exit()
     
-    #Check that the module has a function setup_experiment
-    assert hasattr(loaded_experiments[experiment_name], "setup_experiment")
-    plan_handlers = loaded_experiments[experiment_name].setup_experiment()
+    chosen_experiment = loaded_experiments[experiment_name]
 
-    #Check that the module has a get_robot_formation method and get it
-    assert hasattr(loaded_experiments[experiment_name], "get_robot_formation")
-    robot_formation = loaded_experiments[experiment_name].get_robot_formation()
+    #Check that the experiment module has all necessary functions
+    assert hasattr(chosen_experiment, "setup")
+    assert hasattr(chosen_experiment, "get_problem_name")
+    assert hasattr(chosen_experiment, "get_robot_formation")
+    assert hasattr(chosen_experiment, "role_to_generation_data")
+    assert hasattr(chosen_experiment, "initialize_registries")
 
+    #Check that the module has a get_robot_formation method
+    robot_formation = chosen_experiment.get_robot_formation()
+
+    #Initialize registries with correct variables
+    chosen_experiment.initialize_registries()
+
+    additional_constraints = {}
+    #Ask for additional constraints to the goal of each robot
+    if args.ask_constraints:
+
+        policy_generation_data = chosen_experiment.role_to_generation_data()
+        
+        additional_constraints = ask_additional_constraints(role_to_generation_data = policy_generation_data)
+        
+        plan_handlers = chosen_experiment.setup(additional_constraints)
+
+    else:
+        plan_handlers = chosen_experiment.setup()
+    
     #Check that the handlers are of the correct type(s)
     assert isinstance(plan_handlers, dict)
     for role, handler in plan_handlers.items():
@@ -60,10 +90,20 @@ if __name__ == "__main__":
         assert isinstance(handler, PolicyHandler) or isinstance(handler, DFAHandler)
 
     localhost = args.localhost or args.simulator
+
+    
+    ''' 
+    __________________________
+    |                         |
+    |   SETUP COMMUNICATION   |
+    |_________________________|
+
+    '''
+
     #frontend = args.frontend or args.GUI
+    #behavior_controller = setup(robot_formation, localhost, frontend)
 
     #Setup behavior controller and pass policy handler
-    #behavior_controller = setup(robot_formation, localhost, frontend)
     behavior_controller = setup(robot_formation, localhost)
 
     #if args.shell or args.constraints:

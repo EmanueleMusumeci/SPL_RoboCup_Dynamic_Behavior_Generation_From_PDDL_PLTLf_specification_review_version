@@ -23,9 +23,7 @@ class PolicyHandler:
             FOND : bool = False,
 
             problem_name : str = None,
-
-            ):
-
+        ):
 
         self.pddl_domain_path = pddl_domain_path
         self.pddl_problem_path = pddl_problem_path
@@ -59,27 +57,121 @@ class PolicyHandler:
 
 
     @classmethod
-    def create_policy_with_PLTLf(cls, pddl_domain_path : str, pddl_problem_path : str, goal : str, working_dir : str, PLTLf_mapping_path : str = None, problem_name : str = None, plot : bool = False, plan_postprocessing_functions = []):
-
-        assert isinstance(pddl_domain_path, str)
-        assert isinstance(pddl_problem_path, str)
-        assert isinstance(goal, str)
-
-        assert working_dir is not None
-        assert isinstance(working_dir, str)
+    def create_policy(cls, 
+        pddl_domain_path : str, 
+        pddl_problem_path : str, 
         
-        if not os.path.exists(working_dir):
-            os.makedirs(working_dir)
+        working_dir : str = None, 
+        problem_name : str = None, 
+        plot : bool = False, 
         
-        if problem_name is not None:
-            assert isinstance(problem_name, str)
-        else:
-            problem_name = Path(os.path.abspath(pddl_problem_path)).stem
+        domain_preprocessing_functions : List[Dict[Dict[str, Any], Callable]] = [], 
+        problem_preprocessing_functions : List[Dict[Dict[str, Any], Callable]] = [], 
+        plan_postprocessing_functions : List[Dict[Dict[str, Any], Callable]] = []
+    ):
+        working_dir, problem_name = check_and_preprocess_policy_generation_data(pddl_domain_path, pddl_problem_path, None, working_dir, problem_name, None, domain_preprocessing_functions=domain_preprocessing_functions, problem_preprocessing_functions=problem_preprocessing_functions)
 
-        if PLTLf_mapping_path is not None:
-            assert isinstance(PLTLf_mapping_path, str)
+        #print("Creating Policy for striker role from domain file: %s with problem file %s\n" % (pddl_domain_path, pddl_problem_path))
+        policy = Policy.build_from_PDDL(pddl_domain_path, pddl_problem_path, working_dir)
+        
+        if plot:
+            policy.plot(save_to=os.path.join(working_dir, "plan_preview", problem_name+".png"), show_plot = False)
+        
+        policy_handler = PolicyHandler(
 
-        print("Creating FOND Policy for striker role from domain file: %s with problem file %s and PLTLf formula '%s'\n" % (pddl_domain_path, pddl_problem_path, goal))
+            policy,
+            pddl_domain_path = pddl_domain_path,
+            pddl_problem_path = pddl_problem_path,
+
+            working_dir = working_dir,
+
+            problem_name = problem_name
+        )
+    
+        return policy_handler
+
+
+
+    @classmethod
+    def create_policy_with_PLTLf(cls, 
+        pddl_domain_path : str, 
+        pddl_problem_path : str, 
+        goal : str, 
+        
+        working_dir : str, 
+        
+        PLTLf_mapping_path : str = None, 
+        
+        problem_name : str = None, 
+        plot : bool = False, 
+            
+        domain_preprocessing_functions : List[Dict[Dict[str, Any], Callable]] = [], 
+        problem_preprocessing_functions : List[Dict[Dict[str, Any], Callable]] = [], 
+        plan_postprocessing_functions : List[Dict[Dict[str, Any], Callable]] = []
+    ):
+        #It has the same result (but the policy will actually have no branches so it will be a plan)
+        return PolicyHandler.create_FOND_policy_with_PLTLf(pddl_domain_path, pddl_problem_path, goal, working_dir, PLTLf_mapping_path, problem_name, plot, PLTLf_mapping_path = PLTLf_mapping_path, domain_preprocessing_functions = domain_preprocessing_functions, problem_preprocessing_functions = problem_preprocessing_functions, plan_postprocessing_functions = plan_postprocessing_functions)
+
+
+
+    @classmethod
+    def create_FOND_policy(cls, 
+        pddl_domain_path : str, 
+        pddl_problem_path : str, 
+        
+        working_dir : str = None, 
+        
+        problem_name : str = None, 
+        plot : bool = False, 
+            
+        domain_preprocessing_functions : List[Dict[Dict[str, Any], Callable]] = [], 
+        problem_preprocessing_functions : List[Dict[Dict[str, Any], Callable]] = [], 
+        plan_postprocessing_functions : List[Dict[Dict[str, Any], Callable]] = []        
+    ):
+        working_dir, problem_name = check_and_preprocess_policy_generation_data(pddl_domain_path, pddl_problem_path, None, working_dir, problem_name, None, domain_preprocessing_functions, problem_preprocessing_functions)
+
+        #print("Creating FOND Policy for striker role from domain file: %s with problem file %s\n" % (pddl_domain_path, pddl_problem_path))
+        policy = Policy.build_from_FOND_PDDL(pddl_domain_path, pddl_problem_path, working_dir)
+        
+        if plot:
+            policy.plot(save_to=os.path.join(working_dir, "plan_preview", problem_name+".png"), show_plot = False)
+        
+        policy_handler = PolicyHandler(
+
+            policy,
+            pddl_domain_path = pddl_domain_path,
+            pddl_problem_path = pddl_problem_path,
+            FOND = True,
+            
+            working_dir = working_dir,
+
+            problem_name = problem_name
+        )
+
+        return policy_handler
+
+
+
+    @classmethod
+    def create_FOND_policy_with_PLTLf(cls, 
+        pddl_domain_path : str, 
+        pddl_problem_path : str, 
+        goal : str, 
+        
+        working_dir : str, 
+        
+        PLTLf_mapping_path : str = None, 
+        
+        problem_name : str = None, 
+        plot : bool = False, 
+        
+        domain_preprocessing_functions : List[Dict[Dict[str, Any], Callable]] = [], 
+        problem_preprocessing_functions : List[Dict[Dict[str, Any], Callable]] = [], 
+        plan_postprocessing_functions : List[Dict[Dict[str, Any], Callable]] = []
+    ):
+        working_dir, problem_name = check_and_preprocess_policy_generation_data(pddl_domain_path, pddl_problem_path, goal, working_dir, problem_name, PLTLf_mapping_path = PLTLf_mapping_path, domain_preprocessing_functions=domain_preprocessing_functions, problem_preprocessing_functions=problem_preprocessing_functions)
+
+        #print("Creating FOND Policy for striker role from domain file: %s with problem file %s and PLTLf formula '%s'\n" % (pddl_domain_path, pddl_problem_path, goal))
         policy = Policy.build_from_FOND_PDDL_and_PLTLf_formula(pddl_domain_path, pddl_problem_path, working_dir, goal, mapping_path = PLTLf_mapping_path)
         
         if plot:
@@ -87,6 +179,7 @@ class PolicyHandler:
         
         policy_handler = PolicyHandler(
 
+            policy,
             pddl_domain_path = pddl_domain_path,
             pddl_problem_path = pddl_problem_path,
             goal = goal,
@@ -103,78 +196,6 @@ class PolicyHandler:
     
 
 
-    @classmethod
-    def create_FOND_policy(cls, pddl_domain_path : str, pddl_problem_path : str, goal : str, working_dir : str = None, problem_name : str = None, plot : bool = False, plan_postprocessing_functions = []):
-
-        assert isinstance(pddl_domain_path, str)
-        assert isinstance(pddl_problem_path, str)
-        assert isinstance(goal, str)
-
-        if working_dir is not None:
-            assert isinstance(working_dir, str)
-            if not os.path.exists(working_dir):
-                os.makedirs(working_dir)
-        
-        if problem_name is not None:
-            assert isinstance(problem_name, str)
-        else:
-            problem_name = Path(os.path.abspath(pddl_problem_path)).stem
-
-        print("Creating FOND Policy for striker role from domain file: %s with problem file %s\n" % (pddl_domain_path, pddl_problem_path))
-        policy = Policy.build_from_FOND_PDDL(pddl_domain_path, pddl_problem_path, working_dir)
-        
-        if plot:
-            policy.plot(save_to=os.path.join(working_dir, "plan_preview", problem_name+".png"), show_plot = False)
-        
-        policy_handler = PolicyHandler(
-
-            pddl_domain_path = pddl_domain_path,
-            pddl_problem_path = pddl_problem_path,
-            FOND = True,
-            
-            working_dir = working_dir,
-
-            problem_name = problem_name
-        )
-
-        return policy_handler
-
-
-
-    @classmethod
-    def create_policy(cls, pddl_domain_path : str, pddl_problem_path : str, goal : str, working_dir : str = None, problem_name : str = None, plot : bool = False, plan_postprocessing_functions = []):
-        
-        assert isinstance(pddl_domain_path, str)
-        assert isinstance(pddl_problem_path, str)
-        assert isinstance(goal, str)
-
-        if working_dir is not None:
-            assert isinstance(working_dir, str)
-            if not os.path.exists(working_dir):
-                os.makedirs(working_dir)
-        
-        if problem_name is not None:
-            assert isinstance(problem_name, str)
-        else:
-            problem_name = Path(os.path.abspath(pddl_problem_path)).stem
-
-        print("Creating Policy for striker role from domain file: %s with problem file %s\n" % (pddl_domain_path, pddl_problem_path))
-        policy = Policy.build_from_PDDL(pddl_domain_path, pddl_problem_path, working_dir)
-        
-        if plot:
-            policy.plot(save_to=os.path.join(working_dir, "plan_preview", problem_name+".png"), show_plot = False)
-        
-        policy_handler = PolicyHandler(
-
-            pddl_domain_path = pddl_domain_path,
-            pddl_problem_path = pddl_problem_path,
-
-            working_dir = working_dir,
-
-            problem_name = problem_name
-        )
-    
-        return policy_handler
 
 
 
@@ -317,3 +338,55 @@ class PolicyHandler:
     def __str__(self):
         return "PolicyHandler:\nCurrent state: %s\n,Policy: %s" % (str(self.__current_state), str(self.dfa)) 
 
+
+def apply_preprocessing(pddl_path, preprocessing_steps):
+    domain_str = ""
+    with open(pddl_path, mode="r") as domain_file:
+        domain_str = domain_file.readlines()
+    
+    assert domain_str
+
+    for preprocessing_step_tuple in preprocessing_steps:
+        assert isinstance(preprocessing_step_tuple, tuple)
+        assert len(preprocessing_step_tuple) == 2
+        assert isinstance(preprocessing_step_tuple[0], dict)
+        assert isinstance(preprocessing_step_tuple[1], Callable)
+            
+        domain_str = preprocessing_step_tuple(domain_str, function = preprocessing_step_tuple[1], parameters = preprocessing_step_tuple[0])
+
+    with open(pddl_path, mode="w") as domain_file:
+        domain_file.write(domain_str)
+
+
+def check_and_preprocess_policy_generation_data(pddl_domain_path : str, pddl_problem_path : str, goal : str, working_dir : str, problem_name : str, PLTLf_mapping_path : str = None, domain_preprocessing_functions : List[Tuple[Dict[str, Any], Callable]] = [], problem_preprocessing_functions : List[Dict[Dict[str, Any], Callable]] = []):
+ 
+    assert isinstance(pddl_domain_path, str)
+    assert os.path.exists(pddl_domain_path)
+
+    assert isinstance(pddl_problem_path, str)
+    assert os.path.exists(pddl_problem_path)
+    
+    if goal is not None:
+        assert isinstance(goal, str)
+
+    if working_dir is not None:
+        assert isinstance(working_dir, str)
+        if not os.path.exists(working_dir):
+            os.makedirs(working_dir)
+    
+    if problem_name is not None:
+        assert isinstance(problem_name, str)
+    else:
+        problem_name = Path(os.path.abspath(pddl_problem_path)).stem
+
+    if PLTLf_mapping_path is not None:
+        assert isinstance(PLTLf_mapping_path, str)
+        assert os.path.exists(PLTLf_mapping_path)
+
+    if domain_preprocessing_functions:
+        apply_preprocessing(pddl_domain_path, domain_preprocessing_functions)
+    
+    if problem_preprocessing_functions:
+        apply_preprocessing(pddl_problem_path, problem_preprocessing_functions)
+
+    return working_dir, problem_name

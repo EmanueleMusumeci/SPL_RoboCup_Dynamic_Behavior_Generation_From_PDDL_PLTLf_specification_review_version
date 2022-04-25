@@ -1,0 +1,21 @@
+digraph G {
+0 [label="{ (not (isat ball wpc0r0)), (not (isat ball wpc0r1)), (not (isat ball wpc0r2)), (not (isat ball wpc1r0)), (isat ball wpc1r1), (not (isat ball wpc1r2)), (not (isat ball wpc2r0)), (not (isat ball wpc2r1)), (not (isat ball wpc2r2)), (not (isat ball wpc3r0)), (not (isat ball wpc3r1)), (not (isat ball wpc3r2)), (not (isat robot wpc0r0)), (isat robot wpc0r1), (not (isat robot wpc0r2)), (not (isat robot wpc1r0)), (not (isat robot wpc1r1)), (not (isat robot wpc1r2)), (not (isat robot wpc2r0)), (not (isat robot wpc2r1)), (not (isat robot wpc2r2)), (not (isat robot wpc3r0)), (not (isat robot wpc3r1)), (not (isat robot wpc3r2)), (not (val_isat_ball_wpc3r1)) }"];
+1 [label="{ (not (isat ball wpc0r0)), (not (isat ball wpc0r1)), (not (isat ball wpc0r2)), (not (isat ball wpc1r0)), (isat ball wpc1r1), (not (isat ball wpc1r2)), (not (isat ball wpc2r0)), (not (isat ball wpc2r1)), (not (isat ball wpc2r2)), (not (isat ball wpc3r0)), (not (isat ball wpc3r1)), (not (isat ball wpc3r2)), (not (isat robot wpc0r0)), (not (isat robot wpc0r1)), (not (isat robot wpc0r2)), (not (isat robot wpc1r0)), (isat robot wpc1r1), (not (isat robot wpc1r2)), (not (isat robot wpc2r0)), (not (isat robot wpc2r1)), (not (isat robot wpc2r2)), (not (isat robot wpc3r0)), (not (isat robot wpc3r1)), (not (isat robot wpc3r2)), (not (val_isat_ball_wpc3r1)) }"];
+2 [label="{ (not (isat ball wpc0r0)), (not (isat ball wpc0r1)), (not (isat ball wpc0r2)), (not (isat ball wpc1r0)), (not (isat ball wpc1r1)), (not (isat ball wpc1r2)), (isat ball wpc2r0), (not (isat ball wpc2r1)), (not (isat ball wpc2r2)), (not (isat ball wpc3r0)), (not (isat ball wpc3r1)), (not (isat ball wpc3r2)), (not (isat robot wpc0r0)), (not (isat robot wpc0r1)), (not (isat robot wpc0r2)), (not (isat robot wpc1r0)), (not (isat robot wpc1r1)), (not (isat robot wpc1r2)), (isat robot wpc2r0), (not (isat robot wpc2r1)), (not (isat robot wpc2r2)), (not (isat robot wpc3r0)), (not (isat robot wpc3r1)), (not (isat robot wpc3r2)), (not (val_isat_ball_wpc3r1)) }"];
+3 [label="{ (not (isat ball wpc0r0)), (not (isat ball wpc0r1)), (not (isat ball wpc0r2)), (not (isat ball wpc1r0)), (not (isat ball wpc1r1)), (not (isat ball wpc1r2)), (not (isat ball wpc2r0)), (not (isat ball wpc2r1)), (not (isat ball wpc2r2)), (not (isat ball wpc3r0)), (isat ball wpc3r1), (not (isat ball wpc3r2)), (not (isat robot wpc0r0)), (not (isat robot wpc0r1)), (not (isat robot wpc0r2)), (not (isat robot wpc1r0)), (not (isat robot wpc1r1)), (not (isat robot wpc1r2)), (not (isat robot wpc2r0)), (not (isat robot wpc2r1)), (not (isat robot wpc2r2)), (not (isat robot wpc3r0)), (isat robot wpc3r1), (not (isat robot wpc3r2)), (val_isat_ball_wpc3r1) }"];
+0 -> 1 [label="moverobot robot wpc0r1 wpc1r1", color="#E0C692", fontcolor="#E0C692"];
+1 -> 2 [label="carryball robot ball wpc1r1 wpc2r0", color="#4D609C", fontcolor="#4D609C"];
+2 -> 3 [label="carryball robot ball wpc2r0 wpc3r1", color="#27E1E3", fontcolor="#27E1E3"];
+subgraph cluster_goal_3 {
+style=filled;
+color=palegreen;
+3;
+label="GOAL";
+}
+subgraph cluster_init {
+style=filled;
+color=lightblue;
+0;
+label="INIT";
+}
+}

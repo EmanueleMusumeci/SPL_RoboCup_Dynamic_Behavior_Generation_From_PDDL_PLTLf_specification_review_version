@@ -19,12 +19,6 @@ import lib.utils
 import fond4ltlfpltlf
 from fond4ltlfpltlf.core import execute
 
-#currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-#parentdir = os.path.dirname(currentdir)
-#parentparentdir = os.path.dirname(parentdir)
-#sys.path.insert(0, parentparentdir) 
-#print(sys.path)
-
 from pylogics.parsers import parse_pltl
 
 import networkx as nx
@@ -44,13 +38,13 @@ from robocup_spl_temporal_goals.third_party.pddl.pddl.formatter import domain_to
 class PolicyEdge:
     def __init__(self, from_node : Type['PolicyNode'], to_node : Type['PolicyNode'], guard_action : Action):
 
-        print(from_node.get_fluents())
+        #print(from_node.get_fluents())
         for source_fluent in from_node.get_fluents():
             assert isinstance(source_fluent, Tuple)
             assert isinstance(source_fluent[0], Fluent)
             assert isinstance(source_fluent[1], bool)
         
-        to_node.get_fluents()
+        #to_node.get_fluents()
         for destination_fluent in to_node.get_fluents():
             assert isinstance(destination_fluent, Tuple)
             assert isinstance(destination_fluent[0], Fluent)
@@ -603,14 +597,6 @@ class Policy:
             problem_path = Path(problem_path)
         ).graph
 
-        #for node_data in plan.nodes.data():
-        #    print(node_data)
-        #print(plan.nodes.data())
-
-        #for edge_data in plan.edges.data():
-        #    print(edge_data)
-        #print(plan.edges.data())
-
         return Policy.build_plan_from_networkx_digraph(plan)
 
 
@@ -650,49 +636,3 @@ class Policy:
             G.write(save_to.replace(".png", ".dot"))
             G.layout(prog='dot') # use dot
             G.draw(save_to.replace(".dot", ".png"))
-    '''
-        G = nx.DiGraph()
-        edges = []
-        edge_labels = {}
-        for edge in self.edges:
-            edges.append((edge.from_node.node_id, edge.to_node.node_id))
-            edge_labels[(edge.from_node.node_id, edge.to_node.node_id)] = edge.get_label_string()
-
-        print(edges)
-        print(edge_labels)
-        G.add_edges_from(edges)
-
-        val_map = {'A': 1.0,
-                'D': 0.5714285714285714,
-                'H': 0.0}
-
-        values = [val_map.get(node, 0.25) for node in G.nodes()]
-
-
-        # Need to create a layout when doing
-        # separate calls to draw nodes and edges
-        pos = nx.spring_layout(G)
-        nx.draw_networkx_nodes(G, pos, cmap=plt.get_cmap('jet'), 
-                            node_color = [1.0 for node in self.nodes], node_size = 500)
-        nx.draw_networkx_edge_labels(
-            G, pos,
-            edge_labels=edge_labels,
-            font_color='black'
-        )
-        nx.draw_networkx_edges(G, pos, edgelist=edges, edge_color='black', arrows=True)
-        p=nx.drawing.nx_pydot.to_pydot(G)
-
-
-        plt.axis('off')
-
-        if show_plot:
-            plt.show()
-
-        assert isinstance(save_to, str)
-        if save_to is not None
-            if not os.path.exists(save_to):
-                os.makedirs(os.path.dirname(save_to))
-        
-            #plt.savefig(fname=save_to, dpi = 600)
-            p.write_png(save_to)
-    '''

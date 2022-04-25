@@ -1,4 +1,5 @@
 import os
+import inspect
 
 from lib.dfa.dfa import DFA
 from lib.dfa.dfa_handler import DFAHandler, remove_initial_dummy_state
@@ -8,7 +9,35 @@ from lib.registries.values import ValueRegistry
 from lib.utils import linear_distance, angular_distance
 from pathlib import Path
 
-def setup_experiment():
+from lib.experiment import setup_LTL_DFA_for_experiment, ExperimentType
+
+def get_experiment_type():
+    return ExperimentType.DFA
+
+def get_problem_name():
+    return "patrolling_with_static_waypoints_with_mutual_exclusion"
+
+def get_robot_formation():
+    return {3 : "Caligola"}
+
+def role_to_generation_data():
+    currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+    parentdir = os.path.dirname(currentdir)
+
+    return {
+        "striker" : {
+            "goal" : "G(\
+                        (striker_has_reached_waypoint_1 && !striker_has_reached_waypoint_2 && action_go_to_waypoint_2) ||\
+                            (striker_has_reached_waypoint_2 && !striker_has_reached_waypoint_1 && action_go_to_waypoint_1) ||\
+                                        (striker_has_not_reached_any_waypoint && action_go_to_waypoint_1) \
+                        )",
+                    }
+    }
+
+def setup():
+    return setup_LTL_DFA_for_experiment(get_problem_name(), role_to_generation_data())
+    
+def initialize_registries():
     ''' 
     ___________________
     |                  |
@@ -33,46 +62,16 @@ def setup_experiment():
     #Setup LiteralRegistry
     def striker_has_reached_waypoint_1(striker_position, waypoint_distance_threshold):
         print(striker_position)
-        return distance(striker_position, ValueRegistry()["waypoint1"]) < waypoint_distance_threshold
+        return linear_distance(striker_position, ValueRegistry()["waypoint1"]) < waypoint_distance_threshold
     LiteralRegistry().add_function(striker_has_reached_waypoint_1)
 
     def striker_has_reached_waypoint_2(striker_position, waypoint_distance_threshold):
         print(striker_position)
-        return distance(striker_position, ValueRegistry()["waypoint2"]) < waypoint_distance_threshold
+        return linear_distance(striker_position, ValueRegistry()["waypoint2"]) < waypoint_distance_threshold
     LiteralRegistry().add_function(striker_has_reached_waypoint_2)
-
-
-    '''
-    def is_striker_next_waypoint_1(striker_next_waypoint):
-        return striker_next_waypoint == "waypoint1"
-    LiteralRegistry().add_function(is_striker_next_waypoint_1)
-
-    def is_striker_next_waypoint_2(striker_next_waypoint):
-        return striker_next_waypoint == "waypoint2"
-    LiteralRegistry().add_function(is_striker_next_waypoint_2)
-    '''
     
 
     #Setup ActionRegistry
     ActionRegistry(robot_idle_skill="Idle")
     ActionRegistry()["action_go_to_waypoint_1"] = ("ReachPosition", [("positionX", ValueRegistry()["waypoint1"][0]), ("positionY", ValueRegistry()["waypoint1"][1])])
     ActionRegistry()["action_go_to_waypoint_2"] = ("ReachPosition", [("positionX", ValueRegistry()["waypoint2"][0]), ("positionY", ValueRegistry()["waypoint2"][1])])
-    
-
-    #Patrol with static params and mutual exclusion DFA
-    ltl_formula_str = "G(\
-        (striker_has_reached_waypoint_1 && !striker_has_reached_waypoint_2 && action_go_to_waypoint_2) ||\
-            (striker_has_reached_waypoint_2 && !striker_has_reached_waypoint_1 && action_go_to_waypoint_1) ||\
-                           (striker_has_not_reached_any_waypoint && action_go_to_waypoint_1) \
-        )"
-    print("Creating DFA from formula: %s with post-processing step 'remove_initial_dummy_state'" % (ltl_formula_str))
-    try:
-        dfa = DFA.DFA_from_LTL_formula_string(ltl_formula_str)
-        dfa.plot(save_to=os.path.join(os.path.dirname(os.path.abspath(__file__)), "dfa_preview", Path(os.path.abspath(__file__)).stem+".png"), show_plot = False)
-        dfa_handler = DFAHandler(dfa, dfa_postprocessing_functions = [remove_initial_dummy_state])
-    except AssertionError as e:
-        raise e
-    else:
-        print("OK")
-    
-    return {"striker" : dfa_handler}

@@ -29,6 +29,8 @@ import subprocess
 import tempfile
 from pathlib import Path
 from typing import Dict, Optional
+import time
+
 
 import networkx
 import pydot
@@ -59,7 +61,6 @@ class MyNDPlanner(Planner):
         :param heuristic: -heuristic argument.
         :param timeout: timeout of execution.
         """
-        print(jar_path)
         assert jar_path.exists()
         self._jar_path = jar_path
 
@@ -82,7 +83,7 @@ class MyNDPlanner(Planner):
         """Return the heuristic argument."""
         return self._heuristic
 
-    def plan(self, domain_path: Path, problem_path: Path, working_dir : Optional[Path] = None) -> Plan:
+    def plan(self, domain_path: Path, problem_path: Path, working_dir : Optional[Path] = None, output_log_file_name : str = None, output_policy_file_name : str = None, time_benchmark_mode = False) -> Plan:
         """Planning for temporally extended goals (LTLf or PLTLf)."""
         domain_path = str(Path(domain_path).absolute())
         problem_path = str(Path(problem_path).absolute())
@@ -90,12 +91,21 @@ class MyNDPlanner(Planner):
             working_dir.mkdir(exist_ok=True)
         else:
             working_dir = Path(tempfile.mkdtemp())
-        output_path = working_dir / MYND_POLICY_OUTPUT_FILENAME
+        
+        if output_policy_file_name is not None:
+            output_path = working_dir / output_policy_file_name
+        else:
+            output_path = working_dir / MYND_POLICY_OUTPUT_FILENAME
 
         translate_command = [sys.executable, f"{MYND_DIR}/translator-fond/translate.py", f"{domain_path}",
                             f"{problem_path}"]
         launch(translate_command, cwd=working_dir)
-        output_sas = (working_dir / Path("output.sas")).absolute()
+        
+        if output_log_file_name is not None:
+            output_sas = (working_dir / Path(output_log_file_name+".sas"))
+        else:
+            output_sas = (working_dir / Path("output.sas")).absolute()
+        
         planner_command = ['java',
                         "-Xmx4g",
                         '-jar',
@@ -110,8 +120,16 @@ class MyNDPlanner(Planner):
                         ]
 
         print("Start planner")
+        if time_benchmark_mode:
+            start = time.time()
+
         launch(planner_command, cwd=str(working_dir))
-        return from_dot_to_policy(policy_dot_path = output_path)
+        
+        if time_benchmark_mode:
+            end = time.time()
+            return end - start
+        else:
+            return from_dot_to_policy(policy_dot_path = output_path)
 
 
 def from_dot_to_policy(policy_dot_path: Path) -> Plan:

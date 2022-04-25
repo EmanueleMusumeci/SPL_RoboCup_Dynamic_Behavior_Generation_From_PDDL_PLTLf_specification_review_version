@@ -34,14 +34,12 @@ currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentfram
 parentdir = os.path.dirname(currentdir)
 parentparentdir = os.path.dirname(parentdir)
 sys.path.insert(0, parentdir) 
-print(sys.path)
 
 from robocup_spl_temporal_goals.third_party.planning_with_past.helpers.utils import cd
 from robocup_spl_temporal_goals.third_party.planning_with_past.planners.base import Planner
 from robocup_spl_temporal_goals.third_party.planning_with_past.plans import Plan
 
 repo_root = Path(parentparentdir)
-print(repo_root)
 DEFAULT_BIN_DOWNWARD_PATH = (repo_root / "bin" / "fast-downward").absolute()
 DEFAULT_HEURISTIC = "ff()"
 DEFAULT_SEARCH = f"astar({DEFAULT_HEURISTIC})"

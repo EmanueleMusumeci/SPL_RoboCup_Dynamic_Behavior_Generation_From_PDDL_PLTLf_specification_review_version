@@ -1,4 +1,5 @@
 import os
+import inspect
 from pathlib import Path
 
 from lib.dfa.dfa import DFA
@@ -8,7 +9,31 @@ from lib.registries.literals import LiteralRegistry
 from lib.registries.values import ValueRegistry
 from lib.utils import linear_distance, angular_distance
 
-def setup_experiment():
+from lib.experiment import setup_LTL_DFA_for_experiment, ExperimentType
+
+def get_experiment_type():
+    return ExperimentType.DFA
+
+def get_problem_name():
+    return "reach_ball_and_kick_until_goal"
+
+def get_robot_formation():
+    return {3 : "Caligola"}
+
+def role_to_generation_data():
+    currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+    parentdir = os.path.dirname(currentdir)
+
+    return {
+        "striker" : {
+            "goal" : "(((is_striker_near_ball & action_kick_ball) | (!(is_striker_near_ball) & action_reach_ball)) U is_ball_in_goal)",
+                    }
+    }
+
+def setup():
+    return setup_LTL_DFA_for_experiment(get_problem_name(), role_to_generation_data())
+    
+def initialize_registries():
     ''' 
     ___________________
     |                  |
@@ -26,7 +51,7 @@ def setup_experiment():
     ValueRegistry()["ball_distance_threshold"] = 500
 
     def striker_distance_from_ball(last_ball_position, striker_position):
-        return distance(last_ball_position, striker_position)
+        return linear_distance(last_ball_position, striker_position)
     ValueRegistry().add_function(striker_distance_from_ball)
 
     def is_striker_near_ball(striker_distance_from_ball, ball_distance_threshold):
@@ -44,17 +69,3 @@ def setup_experiment():
         return is_inside_bounding_box(last_ball_position, (goal_corner_1, goal_corner_2))
     LiteralRegistry().add_function(is_ball_in_goal)
     
-
-    #Simple approacher DFA
-    ltl_formula_str = "(((is_striker_near_ball & action_kick_ball) | (!(is_striker_near_ball) & action_reach_ball)) U is_ball_in_goal)"
-    print("Creating DFA from formula: %s with post-processing step 'remove_initial_dummy_state'" % (ltl_formula_str))
-    try:
-        simple_approacher_dfa = DFA.DFA_from_LTL_formula_string(ltl_formula_str)
-        simple_approacher_dfa.plot(save_to=os.path.join(os.path.dirname(os.path.abspath(__file__)), "dfa_preview", Path(os.path.abspath(__file__)).stem+".png"), show_plot = False)
-        dfa_handler = DFAHandler(simple_approacher_dfa, dfa_postprocessing_functions = [remove_initial_dummy_state])
-    except AssertionError as e:
-        raise e
-    else:
-        print("OK")
-    
-    return {"striker" : dfa_handler}

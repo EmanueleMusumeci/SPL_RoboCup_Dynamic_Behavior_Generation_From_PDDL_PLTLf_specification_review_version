@@ -238,15 +238,7 @@ class CommunicationManager(metaclass=Singleton):
 
         if robot_number is not None:
             self.scheduleRobotTasksReset(robot_number=robot_number)
-        
-
-        #Sends a "lastTaskQueue?" message to the robot every LAST_TASK_ID_TIMEOUT seconds, to which the robot will answer with a message like:
-        #   "lastTaskQueue;lastTaskID,<last task ID received by robot>,<last task ID completed by robot>;<task type>,<task fields separated by commas>;..."
-        #where "..." represents other task types and their fields (i.e. destination for robot or for ball)
-        #   NOTICE: this task is activated when the Python server first starts or whenever the robot is detected as "not alive". It is deactivated when the robot
-        #   is detected to be "alive"
-        self.robot_communication_controllers[robot_number].check_task_queue_task.start(self.last_task_id_timeout)
-            
+                    
 
     def set_plan_mode(self, robot_role : str = None, robot_number : int = None):
         assert robot_role is not None or robot_number is not None
@@ -262,8 +254,6 @@ class CommunicationManager(metaclass=Singleton):
                 
         if robot_number is not None:
             self.scheduleRobotTasksReset(robot_number=robot_number)
-
-        self.robot_communication_controllers[robot_number].check_task_queue_task.stop()
 
 
     def is_task_mode(self, robot_role : str = None, robot_number : int = None):
@@ -301,7 +291,11 @@ class CommunicationManager(metaclass=Singleton):
 
             self.robot_tasks[robot_number] = {"last_timestamp": timestamp, "update_timestamp" : time.time(), "lastCompletedTaskID" : lastCompletedTaskID, "lastReceivedTaskID" : lastReceivedTaskID, "tasks" : new_tasks, "reset" : False, "tasksToDelete" : self.robot_tasks[robot_number]["tasksToDelete"]}
         
-        self.update_frontend(robot_number, self.frontend_controller.generateLastQueueMessage(robot_number))
+
+        if self.frontend_controller is not None:
+            self.update_frontend(robot_number, self.frontend_controller.generateLastQueueMessage(robot_number))
+
+        
         self.get_robot_controller(robot_number).update_assigned_tasks()
 
     def addTask(self, robot_number, taskType, taskID, parameters = None):
@@ -453,7 +447,19 @@ class CommunicationManager(metaclass=Singleton):
             self.set_default_behavior_control_mode(robot_number = robot_number)
         
         self.update_frontend(robot_number, message = "robotRole:"+str(robot_number)+","+new_role)
-    
+
+        if self.is_task_mode(robot_number=robot_number):
+            if not self.robot_communication_controllers[robot_number].check_task_queue_task.running:
+                #Sends a "lastTaskQueue?" message to the robot every LAST_TASK_ID_TIMEOUT seconds, to which the robot will answer with a message like:
+                #   "lastTaskQueue;lastTaskID,<last task ID received by robot>,<last task ID completed by robot>;<task type>,<task fields separated by commas>;..."
+                #where "..." represents other task types and their fields (i.e. destination for robot or for ball)
+                #   NOTICE: this task is activated when the Python server first starts or whenever the robot is detected as "not alive". It is deactivated when the robot
+                #   is detected to be "alive"
+                self.robot_communication_controllers[robot_number].check_task_queue_task.start(self.last_task_id_timeout)
+        else:
+            if self.robot_communication_controllers[robot_number].check_task_queue_task.running:
+                self.robot_communication_controllers[robot_number].check_task_queue_task.stop()
+
 
 
     #MIGHT ADD A CONTROL ON THE DISTANCE OF THE BALL TO CHOOSE THE MOST PRECISE OBSERVATION

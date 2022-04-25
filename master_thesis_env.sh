@@ -54,6 +54,7 @@ alias ltlcpbsl="reset; /home/asc/anaconda3/envs/robocup/bin/python3 $SPLCLIENTS/
 alias ltlcpsspl="reset; /home/asc/anaconda3/envs/robocup/bin/python3 $SPLCLIENTS/run_experiment.py classical_planning_examples.striker_supporter_pass --localhost"
 
 alias ltlre="reset; /home/asc/anaconda3/envs/robocup/bin/python3 $SPLCLIENTS/run_experiment.py "
+alias ltlrb="reset; /home/asc/anaconda3/envs/robocup/bin/python3 $SPLCLIENTS/run_benchmark.py "
 
 alias ltlnc="node $SPLCLIENTS/web_interface/clientUDP.js"
 

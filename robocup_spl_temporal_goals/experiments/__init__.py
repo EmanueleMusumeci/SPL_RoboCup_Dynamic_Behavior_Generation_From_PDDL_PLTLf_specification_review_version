@@ -17,7 +17,9 @@ experiments = []
 import_string = ""
 for dir, modules in modules.items():
     import_string += 'from experiments import {}; '.format(dir)
+    assert " " not in dir, "Please rename '"+dir+"' to '"+dir.replace(" ", "_")+"'"
     for module_name in modules:
+        assert " " not in module_name, "Please rename '"+module_name+"' to '"+module_name.replace(" ", "_")+"'"
         import_string += 'from experiments.{} import {}; '.format(dir, module_name)
         import_string += 'experiments.append({}); '.format(module_name)
 exec(import_string)

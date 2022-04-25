@@ -27,10 +27,17 @@ class DFAHandler:
         self.__trace = [{"edge" : None, "performed_action" : ActionRegistry().get_instance("action_idle"), "destination_state" : self.__current_state.node_id, "timestamp" : time.time()}]
         
 
-    def get_next_action(self):
-        self.update()
+    def get_next_action(self, verbose = False):
+        action = self.update(verbose)
         #print(self.__trace)
-        return self.__trace[-1]["performed_action"]
+        if verbose: print("Chosen action: "+str(action)+"\n------------\n")
+        return action
+
+    def get_current_action(self):
+        if len(self.__trace) == 1:
+            return ActionRegistry().get_idle_action()
+        else:
+            return self.__trace[-1]["performed_action"]
 
     def get_previous_action(self):
         if len(self.__trace) == 1:
@@ -48,9 +55,10 @@ class DFAHandler:
     def get_last_transition_timestamp(self):
         return self.__trace[-1]["timestamp"]
     
-    def update(self):
+    def update(self, verbose):
         outgoing_edges : List[DFAEdge] = self.__current_state.get_outgoing_edges()
 
+        if verbose: print("------------\nUPDATE\n------------\nCurrent node: %s" % (str(self.__current_state.node_id)))
         #Select only edges where all literals are verified
         verified_edges = []
         #print(outgoing_edges)
@@ -75,7 +83,7 @@ class DFAHandler:
             filtered_verified_edges.append(edge)
         
         assert filtered_verified_edges
-        print("\n"+str(filtered_verified_edges))
+        #print("\n"+str(filtered_verified_edges))
         
         
         if not filtered_verified_edges:
@@ -109,9 +117,19 @@ class DFAHandler:
             self.__current_state = destination_state
             self.__current_edge = chosen_transition
 
+        return chosen_action
+
 #TODO: add some logic to choose an edge (maybe planning techniques)    
     def choose_best_edge(self, edges):
         return edges[0]
+
+
+    def trace_to_string(self):
+        trace_string = ""
+        for edge in self.__trace:
+            trace_string += "\t"+str(edge["performed_action"])+"\n"
+        
+        return trace_string
 
     def __str__(self):
         return "DFAHandler:\nCurrent state: %s\n,DFA: %s" % (str(self.__current_state), str(self.dfa)) 
