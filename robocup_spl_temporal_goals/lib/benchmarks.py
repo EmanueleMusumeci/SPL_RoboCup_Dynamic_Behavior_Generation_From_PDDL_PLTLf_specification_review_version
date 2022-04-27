@@ -18,6 +18,12 @@ from robocup_spl_temporal_goals.third_party.pddl.pddl.formatter import domain_to
 
 from pylogics.parsers import parse_pltl
 
+def generate_position_once_constraint(position_predicate_token, constrained_entity, waypoint_symbol, x, y):
+    return "O("+position_predicate_token+" "+constrained_entity+" "+get_waypoint_string(waypoint_symbol, x, y)+")"
+
+def get_waypoint_string(waypoint_symbol, x, y):
+    return waypoint_symbol+"c"+str(x)+"r"+str(y)
+
 #Generate waypoints matrix ([columns][rows])
 def get_waypoints_matrix(waypoint_str, waypoints_x, waypoints_y):
     
@@ -26,7 +32,7 @@ def get_waypoints_matrix(waypoint_str, waypoints_x, waypoints_y):
         #Append new column to matrix
         column = []
         for y in range(waypoints_y):
-            waypoint_name = waypoint_str+"c"+str(x)+"r"+str(y)
+            waypoint_name = get_waypoint_string(waypoint_str, x, y)
             column.append(waypoint_name)
         waypoints_matrix.append(column)
     
@@ -98,11 +104,6 @@ def benchmark_conditioned_FOND_policy_over_generated_problems_with_fixed_constra
     working_dir = benchmark_generation_data["working_dir"]
 
 
-    constraints_string = ""
-    if benchmark_name in benchmark_name_to_additional_constraints:
-        for constraint in benchmark_name_to_additional_constraints[benchmark_name]:
-            constraints_string += " && "
-            constraints_string += constraint
 
     
 
@@ -113,16 +114,37 @@ def benchmark_conditioned_FOND_policy_over_generated_problems_with_fixed_constra
     assert benchmark_name in os.listdir(generated_problems_dir), "No generated problems directory available for benchmark "+benchmark_name
 
     for generated_problem_file in os.listdir(os.path.join(generated_problems_dir, benchmark_name)):
+
+        constraints_string = ""
+        if benchmark_name in benchmark_name_to_additional_constraints:
+            for constraint in benchmark_name_to_additional_constraints[benchmark_name]:
+                constraints_string += " && "
+                constraints_string += constraint.replace(" ", "_")
+
         if generated_problem_file.endswith(".json"):
             continue
     
         generated_problem_data_file_path = os.path.join(generated_problems_dir, benchmark_name, generated_problem_file).replace("pddl", "json")
         with open(generated_problem_data_file_path, "r") as generated_problem_data_file:
             generated_problem_json_data = json.loads(generated_problem_data_file.read())
-            formula = generated_problem_json_data["base_goal_condition"].replace(" ", "_")
-            formula += constraints_string
-            waypoints_x = generated_problem_json_data["waypoints_x"]
 
+            #Add benchmark-specific additional constraints if present
+            if "additional_constraints" in generated_problem_json_data.keys():
+                for constraint in generated_problem_json_data["additional_constraints"]:
+                    constraints_string += " && "
+                    #Preprocess constraint for compiler
+                    constraints_string += constraint.replace(" ", "_")
+
+            #Preprocess goal for compiler
+            formula = generated_problem_json_data["base_goal_condition"].replace(" ", "_")
+
+            #Add constraints to goal
+            formula += constraints_string
+
+            waypoints_x = generated_problem_json_data["waypoints_x"]
+        
+        #print(generated_problem_json_data["additional_constraints"])
+        #print(formula)
         formula = parse_pltl(formula)
         problem = problem_parser(Path(os.path.join(generated_problems_dir, benchmark_name, generated_problem_file)).read_text())
         
@@ -132,6 +154,9 @@ def benchmark_conditioned_FOND_policy_over_generated_problems_with_fixed_constra
 
         if not os.path.exists(working_dir):
             os.makedirs(working_dir)
+
+        if not os.path.exists(os.path.join(working_dir, "compiled_pddl")):
+            os.makedirs(os.path.join(working_dir, "compiled_pddl"))
 
         try:
             with open(Path(working_dir) / "compiled_pddl" / ("compiled_domain_"+os.path.splitext(generated_problem_file)[0]+".pddl"), "w+") as dom:
@@ -166,7 +191,7 @@ def benchmark_conditioned_FOND_policy_over_generated_problems_with_fixed_constra
     time_benchmarks = dict(sorted(time_benchmarks.items()))
     return time_benchmarks
 
-def plot(plot_title, plots_values : dict, subtitle : str = None, plot_colors : dict = None, x_axis_label = "", y_axis_label = "", save_to_dir = None, show = False):
+def plot(plot_title, plots_values : dict, subtitle : str = None, plot_colors : dict = None, x_axis_label = "", y_axis_label = "", save_to_dir = None, show = False, prevent_overlaying_tick_labels = True):
     
     plt.clf()
 
@@ -183,16 +208,66 @@ def plot(plot_title, plots_values : dict, subtitle : str = None, plot_colors : d
         plots_values_x.append(x)
         plots_values_y.append(y)
     
-    ax.set_xticks(list(range(len(plots_values_x))[::5]) + [len(plots_values_x)-1])
-    ax.set_xticklabels(plots_values_x[::5] + [plots_values_x[-1]])
+    xticks = list(range(len(plots_values_x))[::5]) + [len(plots_values_x)-1]
+    xticklabels = plots_values_x[::5] + [plots_values_x[-1]]
+    if prevent_overlaying_tick_labels and len(xticks) > 1 and abs(xticks[-2] - xticks[-1]) < 2:
+        xticks.pop(-2)
+        xticklabels.pop(-2)
 
     plt.plot(plots_values_x, plots_values_y)
+
+    ax.set_xticks(xticks)
+    ax.set_xticklabels(xticklabels)
 
     if x_axis_label:
         plt.xlabel(x_axis_label)
 
     if y_axis_label:
         plt.ylabel(y_axis_label)
+
+    if show:
+        plt.show()
+    
+    if save_to_dir is not None:
+        plt.savefig(os.path.join(save_to_dir, plot_title+" "+subtitle), dpi = 300)
+
+
+def multi_plot(plot_title, plots_values : dict, subtitle : str = None, plot_colors : dict = None, x_axis_label = "", y_axis_label = "", save_to_dir = None, show = False, prevent_overlaying_tick_labels = True):
+    
+    plt.clf()
+
+    ax = plt.axes()
+    
+    if subtitle is not None:
+        plt.title(plot_title + "\n"+subtitle)
+    else:
+        plt.title(plot_title)
+
+    for plot_name, plot_values in plots_values.items():
+        plots_values_x = [] 
+        plots_values_y = [] 
+        for x, y in plot_values.items():
+            plots_values_x.append(x)
+            plots_values_y.append(y)
+
+        xticks = list(range(len(plots_values_x))[::5]) + [len(plots_values_x)-1]
+        xticklabels = plots_values_x[::5] + [plots_values_x[-1]]
+        if prevent_overlaying_tick_labels and len(xticks) > 1 and abs(xticks[-2] - xticks[-1]) < 2:
+            del xticks[-2]
+            del xticklabels[-2]
+            
+        plt.plot(plots_values_x, plots_values_y)
+
+    ax.set_xticks(xticks)
+    ax.set_xticklabels(xticklabels)
+
+    if x_axis_label:
+        plt.xlabel(x_axis_label)
+
+    if y_axis_label:
+        plt.ylabel(y_axis_label)
+
+    plt.legend(list(plots_values.keys()))
 
     if show:
         plt.show()

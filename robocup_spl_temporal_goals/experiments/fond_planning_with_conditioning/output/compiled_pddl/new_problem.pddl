@@ -2,5 +2,5 @@
     (:domain robocupdeterministic)
     (:objects ball ballcurrentposition goaltarget kickingposition robot1 strikercurrentposition)
     (:init (isat ball ballcurrentposition) (isat robot1 strikercurrentposition) (isball ball) (isrobot robot1))
-    (:goal (val_isat_ball_goaltarget-and-not-Ohighbatteryconsumption))
+    (:goal (val_isat_ball_goaltarget))
 )

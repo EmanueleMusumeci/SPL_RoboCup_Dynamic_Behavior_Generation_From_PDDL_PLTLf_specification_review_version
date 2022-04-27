@@ -157,16 +157,19 @@ class PolicyEdge:
 
         return "Edge: %s -> %s%s%s" % (self.from_node.node_id, self.to_node.node_id, fluents_string, action_string) + "\n"
 
-    def get_label_string(self):
+    def get_label_string(self, shorten_fluents = True, show_aliases = False):
         if not self.guard_action and not self.guard_fluents:
             return "True"
         label_string = ""
         if self.get_fluents():
-            label_string += "["
+            label_string += "Fluents:\n"
             for i, fluent in enumerate(self.guard_fluents):
-                label_string += (" & " if i > 0 else "") +("~" if not fluent[1] else "") + str(fluent[0].name_in_registry)
-            label_string += "] "
-            label_string += " -> " 
+                fluent_str = fluent[0].name_in_registry
+                if shorten_fluents:
+                    fluent_str = fluent_str.replace(FluentRegistry.ITEM_PREFIX, "")
+                label_string += (" & " if i > 0 else "") +("~" if not fluent[1] else "") + str(fluent_str) + "\n"
+            #label_string += "]\n"
+            label_string += " Action:\n" 
         label_string += str(self.guard_action.base_name)
         if self.guard_action.parameters:
             label_string += "("
@@ -175,7 +178,7 @@ class PolicyEdge:
                     label_string += str(parameter[1])
                 else:
                     #check if the parameter name is actually an alias
-                    if ValueRegistry().is_alias_name(parameter):
+                    if ValueRegistry().is_alias_name(parameter) and show_aliases:
                         label_string += ValueRegistry().get_aliased_name(parameter)
                         label_string += "(alias '"+parameter+"')"
                     else:
@@ -611,7 +614,7 @@ class Policy:
         return str(self)
 
     
-    def plot(self, save_to : str, show_plot = False):
+    def plot(self, save_to : str, show_plot = False, chosen_layout = "dot"): #neato, dot, twopi, circo, fdp, nop, wc, acyclic, gvpr, gvcolor, ccomps, sccmap, tred, sfdp, unflatten.
 
         G=pgv.AGraph(directed=True)
 
@@ -623,16 +626,14 @@ class Policy:
             #print(edge.get_label_string())
             G.add_edge(edge.from_node.node_id, edge.to_node.node_id, color='black', label=edge.get_label_string())
 
-        # write to a dot file
-
         #create a png file
-
         assert isinstance(save_to, str)
         if save_to is not None:
             if not os.path.exists(os.path.dirname(save_to)):
                 os.makedirs(os.path.dirname(save_to))
         
             #plt.savefig(fname=save_to, dpi = 600)
-            G.write(save_to.replace(".png", ".dot"))
-            G.layout(prog='dot') # use dot
-            G.draw(save_to.replace(".dot", ".png"))
+            G.write(save_to.replace(".png", "."+chosen_layout))
+            G.layout(prog=chosen_layout) # use dot
+            G.draw(save_to.replace("."+chosen_layout, ".png"))
+        

@@ -27,27 +27,23 @@ def role_to_generation_data():
 
     return {
         "striker" : {
-            "goal" : None,
             "pddl_domain_path" : os.path.join(currentdir, "PDDL", "robocup_striker_domain_fond.pddl"),
             "pddl_problem_path" : os.path.join(currentdir, "PDDL", "striker_problem_fond.pddl"),
             #"pddl_mapping_path" : os.path.join(currentdir, "PDDL", "simple_striker_mapping.map"),
             "pddl_mapping_path" : None,
             "working_dir" : os.path.join(currentdir, "output"),
-
-            "constrainable_predicates" : None,
         },
         "jolly" : {
-            "goal" : None,
             "pddl_domain_path" : os.path.join(currentdir, "PDDL", "robocup_jolly_domain_fond.pddl"),
             "pddl_problem_path" : os.path.join(currentdir, "PDDL", "jolly_problem_fond.pddl"),
             #"pddl_mapping_path" : os.path.join(currentdir, "PDDL", "simple_striker_mapping.map"),
             "pddl_mapping_path" : None,
             "working_dir" : os.path.join(currentdir, "output"),
-
-            "constrainable_predicates" : None,
         }
     }
 
+def setup():
+    return setup_FOND_policy_for_experiment(get_problem_name(), role_to_generation_data())
 
 def initialize_registries():
 
@@ -73,7 +69,7 @@ def initialize_registries():
     ValueRegistry()["goal_position"] = (3000, 0)
     ValueRegistry()["field_sideline"] = 3000
 
-    def jolly_receiving_position(striker_obstacles, jolly_position):
+    def jolly_pass_position(striker_obstacles, jolly_position):
         if striker_obstacles:
             centroid = striker_obstacles[0]
             for obstacle in striker_obstacles[1:]:
@@ -92,7 +88,7 @@ def initialize_registries():
 
 
                 
-    ValueRegistry().add_function(jolly_receiving_position)
+    ValueRegistry().add_function(jolly_pass_position)
 
 
     #Register aliases to map objects in the domain to actual values (not necessarily already in the registry)
@@ -106,7 +102,7 @@ def initialize_registries():
     #Argument 2: robot skill name 
     #Argument 3: which parameters should be selected from the list of parameters in the .pddl domain specification 
     #   ([] means no parameter, not specifying the argument instead means ALL parameters)
-    ActionRegistry().register_action_template("move-with-ball-to-kicking-position", "CarryBall", ["kicking_position"])
+    ActionRegistry().register_action_template("carry-ball-to-kick", "CarryBall", ["kicking_position"])
     ActionRegistry().register_action_template("move-to-ball", "ReachBall", [])
     ActionRegistry().register_action_template("pass-ball-to-jolly" ,"Kick", ["jolly_position"])
     ActionRegistry().register_action_template("kick-to-goal", "Kick", ["goal_position"])
@@ -123,27 +119,27 @@ def initialize_registries():
     def is_obstacle_right(obstacle_position,field_sideline):
         return obstacle_position[1] < 0 and obstacle_position[1] > -field_sideline
 
-    def is_striker_obstacle_blocking_goal(striker_position, striker_obstacles, field_sideline):
+    def obstacle_blocking_goal(striker_position, striker_obstacles, field_sideline):
         for obstacle_position in striker_obstacles:
             if is_obstacle_blocking(striker_position, obstacle_position, target_position=(4500,0)):
                 return True
         return False
 
-    FluentRegistry().add_function(is_striker_obstacle_blocking_goal, aliases=["fluent-is-striker-obstacle-blocking-goal"])
+    FluentRegistry().add_function(obstacle_blocking_goal, aliases=["fluent-obstacle-blocking-goal"])
 
-    def is_jolly_available(striker_position, jolly_position):
+    def jolly_available(striker_position, jolly_position):
         return jolly_position[0] > striker_position[0]
 
-    def is_jolly_in_position(jolly_position, jolly_receiving_position):
-        return linear_distance(jolly_position, jolly_receiving_position) < 500
+    def jolly_in_position(jolly_position, jolly_pass_position):
+        return linear_distance(jolly_position, jolly_pass_position) < 500
 
-    def is_jolly_aligned_to_striker(jolly_position, jolly_receiving_position):
-        return angular_distance_in_degrees(jolly_position, jolly_receiving_position) < 10
+    def jolly_aligned(jolly_position, jolly_pass_position):
+        return angular_distance_in_degrees(jolly_position, jolly_pass_position) < 10
 
 
-    FluentRegistry().add_function(is_jolly_available, aliases=["fluent-is-jolly-available"], default_value_if_not_evaluable=False)
-    FluentRegistry().add_function(is_jolly_in_position, aliases=["fluent-is-jolly-in-position"], default_value_if_not_evaluable = False)
-    FluentRegistry().add_function(is_jolly_aligned_to_striker, aliases=["fluent-is-jolly-aligned-to-striker"], default_value_if_not_evaluable = False)
+    FluentRegistry().add_function(jolly_available, aliases=["fluent-jolly-available"], default_value_if_not_evaluable=False)
+    FluentRegistry().add_function(jolly_in_position, aliases=["fluent-jolly-in-position"], default_value_if_not_evaluable = False)
+    FluentRegistry().add_function(jolly_aligned, aliases=["fluent-jolly-aligned-to-striker"], default_value_if_not_evaluable = False)
 
     
     ''' 
@@ -155,9 +151,6 @@ def initialize_registries():
     '''
 
 
-    ActionRegistry().register_action_template("move-to-receiving-position", "ReachPositionAndAngle", ["jolly_receiving_position"])
-    ActionRegistry().register_action_template("turn-to-striker", "ReachPositionAndAngle", ["jolly_receiving_position"])
+    ActionRegistry().register_action_template("move-to-receiving-position", "ReachPositionAndAngle", ["jolly_pass_position"])
+    ActionRegistry().register_action_template("turn-to-striker", "ReachPositionAndAngle", ["jolly_pass_position"])
     
-
-def setup():
-    return setup_FOND_policy_for_experiment(get_problem_name(), role_to_generation_data(), role_to_additional_constraints = {})

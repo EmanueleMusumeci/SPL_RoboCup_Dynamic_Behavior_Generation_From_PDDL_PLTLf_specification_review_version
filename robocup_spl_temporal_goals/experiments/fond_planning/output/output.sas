@@ -9,8 +9,8 @@ begin_variable
 var0
 -1
 2
-Atom fluent-is-striker-obstacle-blocking-goal()
-NegatedAtom fluent-is-striker-obstacle-blocking-goal()
+Atom fluent-obstacle-blocking-goal()
+NegatedAtom fluent-obstacle-blocking-goal()
 end_variable
 begin_variable
 var1

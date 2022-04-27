@@ -11,6 +11,7 @@ from lib.dfa.dfa import DFA
 class ExperimentType(Enum):
     DFA = 0
     POLICY = 1
+    CONSTRAINABLE_POLICY = 2
 
 def check_adjacency_ready_problem(problem_file_path):
     with open(problem_file_path, mode = "r") as f:
@@ -93,7 +94,6 @@ def setup_FOND_policy_for_experiment(problem_name : str, role_to_generation_data
 
     for role, generation_data in role_to_generation_data.items():
         
-        assert "goal" in generation_data.keys()        
         assert "pddl_domain_path" in generation_data.keys()        
         assert "pddl_problem_path" in generation_data.keys()        
         assert "pddl_mapping_path" in generation_data.keys()        

@@ -10,6 +10,7 @@ from lib.dfa.dfa_handler import DFAHandler
 from lib.plan.policy_handler import PolicyHandler
 
 from lib.constraints import ask_additional_constraints
+from lib.experiment import ExperimentType
 
 #from GUI.shell import InputShell
 
@@ -72,7 +73,7 @@ if __name__ == "__main__":
 
     additional_constraints = {}
     #Ask for additional constraints to the goal of each robot
-    if args.ask_constraints:
+    if args.ask_constraints and chosen_experiment.get_experiment_type() == ExperimentType.CONSTRAINABLE_POLICY:
 
         policy_generation_data = chosen_experiment.role_to_generation_data()
         

@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 from lib.experiment import setup_conditioned_FOND_policy_for_experiment, ExperimentType
 
 def get_experiment_type():
-    return ExperimentType.POLICY
+    return ExperimentType.CONSTRAINABLE_POLICY
 
 def get_problem_name():
     return "basic_striker_with_goal_conditioning"

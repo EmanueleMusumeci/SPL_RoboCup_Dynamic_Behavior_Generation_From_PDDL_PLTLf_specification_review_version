@@ -209,6 +209,9 @@ def ask_additional_constraints(role_to_generation_data : Dict[str, Dict[str, str
     additional_constraints = {}
     for role in role_to_generation_data.keys():
         
+        if "constrainable_predicates" not in role_to_generation_data[role] or "goal" not in role_to_generation_data[role]:
+            additional_constraints[role] = []
+            continue
         #Check that all conditionable predicates are lowercase (the PLTLf goal compiler accepts only lowercase predicates)
         for predicate in role_to_generation_data[role]["constrainable_predicates"]:
             assert predicate == predicate.lower(), "All conditionable predicates have to be lowercase (the PLTLf goal compiler accepts only lowercase predicates): predicate '"+predicate+"' is not."

@@ -5,9 +5,9 @@
 (define (domain jolly-robocup-fond)
   (:requirements :strips :non-deterministic)
   (:predicates 
-    (fluent-is-striker-obstacle-blocking-goal)
-    (fluent-is-jolly-in-position)
-    (fluent-is-jolly-aligned-to-striker)
+    (fluent-obstacle-blocking-goal)
+    (fluent-jolly-in-position)
+    (fluent-jolly-aligned-to-striker)
     (jolly-in-position)
     (jolly-aligned-to-striker)
     (jolly-available)
@@ -19,15 +19,15 @@
         (jolly-available)
        :effect
 	     	(oneof
-          (fluent-is-striker-obstacle-blocking-goal)
-          (when (not (fluent-is-striker-obstacle-blocking-goal)) (jolly-in-position))
+          (fluent-obstacle-blocking-goal)
+          (when (not (fluent-obstacle-blocking-goal)) (jolly-in-position))
         )
   )
   (:action move-to-receiving-position
 	     :parameters ()
 	     :precondition 
        (and
-          (fluent-is-striker-obstacle-blocking-goal)
+          (fluent-obstacle-blocking-goal)
           (not (jolly-in-position))
         )
        :effect
@@ -41,7 +41,7 @@
           (jolly-in-position)
           (or
             (not(jolly-aligned-to-striker))
-            (not(fluent-is-striker-obstacle-blocking-goal))
+            (not(fluent-obstacle-blocking-goal))
           )
        )
        :effect
@@ -56,7 +56,7 @@
        (not (jolly-position-ok))
        :effect
         (and
-          (when (fluent-is-jolly-in-position) (jolly-position-ok))
+          (when (fluent-jolly-in-position) (jolly-position-ok))
           (when (jolly-in-position) (jolly-position-ok))
         )
   )
@@ -67,7 +67,7 @@
        (not (jolly-rotation-ok))
        :effect
         (and
-          (when (fluent-is-jolly-aligned-to-striker) (jolly-rotation-ok))
+          (when (fluent-jolly-aligned-to-striker) (jolly-rotation-ok))
           (when (jolly-aligned-to-striker) (jolly-rotation-ok))
         )
   )
