@@ -23,23 +23,23 @@
 """Compiler from PDDL Domain and PLTLf into a new PDDL domain."""
 from typing import AbstractSet, Dict, Optional, Set, Tuple
 
-from pddl.core import Action, Domain, Problem, Requirements
-from pddl.logic import Constant
-from pddl.logic.base import And, Not
-from pddl.logic.effects import AndEffect, When
-from pddl.logic.predicates import DerivedPredicate, Predicate
+from third_party.pddl.pddl.core import Action, Domain, Problem, Requirements
+from third_party.pddl.pddl.logic import Constant
+from third_party.pddl.pddl.logic.base import And, Not
+from third_party.pddl.pddl.logic.effects import AndEffect, When
+from third_party.pddl.pddl.logic.predicates import DerivedPredicate, Predicate
 from pylogics.syntax.base import Formula, Logic
 from pylogics.syntax.pltl import Atomic as PLTLAtomic
 from pylogics.utils.to_string import to_string
 
-from planning_with_past.helpers.utils import (
+from third_party.planning_with_past.helpers.utils import (
     add_val_prefix,
     default_mapping,
     replace_symbols,
 )
-from planning_with_past.utils.derived_visitor import derived_predicates
-from planning_with_past.utils.predicates_visitor import predicates
-from planning_with_past.utils.val_predicates_visitor import val_predicates
+from third_party.planning_with_past.utils.derived_visitor import derived_predicates
+from third_party.planning_with_past.utils.predicates_visitor import predicates
+from third_party.planning_with_past.utils.val_predicates_visitor import val_predicates
 
 
 class Compiler:

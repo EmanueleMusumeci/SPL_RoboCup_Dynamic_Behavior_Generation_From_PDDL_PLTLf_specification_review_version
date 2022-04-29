@@ -25,13 +25,13 @@ from typing import Dict
 
 from lark import Lark, ParseError, Transformer
 
-from pddl.core import Problem, Requirements
-from pddl.logic.base import And, Not
-from pddl.logic.predicates import EqualTo, Predicate
-from pddl.logic.terms import Constant
-from pddl.parser import PARSERS_DIRECTORY, PROBLEM_GRAMMAR_FILE
-from pddl.parser.domain import DomainTransformer
-from pddl.parser.symbols import Symbols
+from third_party.pddl.pddl.core import Problem, Requirements
+from third_party.pddl.pddl.logic.base import And, Not
+from third_party.pddl.pddl.logic.predicates import EqualTo, Predicate
+from third_party.pddl.pddl.logic.terms import Constant
+from third_party.pddl.pddl.parser import PARSERS_DIRECTORY, PROBLEM_GRAMMAR_FILE
+from third_party.pddl.pddl.parser.domain import DomainTransformer
+from third_party.pddl.pddl.parser.symbols import Symbols
 
 
 class ProblemTransformer(Transformer):

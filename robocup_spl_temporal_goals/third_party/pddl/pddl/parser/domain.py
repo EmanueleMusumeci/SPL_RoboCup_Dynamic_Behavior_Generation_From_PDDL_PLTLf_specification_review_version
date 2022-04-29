@@ -25,15 +25,15 @@ from typing import Dict, Set
 
 from lark import Lark, ParseError, Transformer
 
-from pddl.core import Action, Domain, Requirements
-from pddl.exceptions import PDDLMissingRequirementError
-from pddl.helpers.base import assert_, safe_get, safe_index
-from pddl.logic.base import And, FalseFormula, Imply, Not, OneOf, Or
-from pddl.logic.effects import AndEffect, Forall, When
-from pddl.logic.predicates import DerivedPredicate, EqualTo, Predicate
-from pddl.logic.terms import Constant, Variable
-from pddl.parser import DOMAIN_GRAMMAR_FILE, PARSERS_DIRECTORY
-from pddl.parser.symbols import Symbols
+from third_party.pddl.pddl.core import Action, Domain, Requirements
+from third_party.pddl.pddl.exceptions import PDDLMissingRequirementError
+from third_party.pddl.pddl.helpers.base import assert_, safe_get, safe_index
+from third_party.pddl.pddl.logic.base import And, FalseFormula, Imply, Not, OneOf, Or
+from third_party.pddl.pddl.logic.effects import AndEffect, Forall, When
+from third_party.pddl.pddl.logic.predicates import DerivedPredicate, EqualTo, Predicate
+from third_party.pddl.pddl.logic.terms import Constant, Variable
+from third_party.pddl.pddl.parser import DOMAIN_GRAMMAR_FILE, PARSERS_DIRECTORY
+from third_party.pddl.pddl.parser.symbols import Symbols
 
 
 class DomainTransformer(Transformer):

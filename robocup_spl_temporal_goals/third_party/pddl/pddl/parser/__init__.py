@@ -22,7 +22,7 @@
 
 """This module contains the implementation of the parsers for the supported PDDL formalisms."""
 
-from pddl import _ROOT_PATH
+from third_party.pddl.pddl import _ROOT_PATH
 
 PARSERS_DIRECTORY = _ROOT_PATH / "parser"
 DOMAIN_GRAMMAR_FILE = PARSERS_DIRECTORY / "domain.lark"

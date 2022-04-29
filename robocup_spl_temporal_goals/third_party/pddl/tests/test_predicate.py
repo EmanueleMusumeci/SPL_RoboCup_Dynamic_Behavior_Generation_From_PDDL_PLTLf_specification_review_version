@@ -21,8 +21,8 @@
 #
 
 """This module contains tests for PDDL predicates."""
-from pddl.core import Predicate
-from pddl.logic.helpers import variables
+from third_party.pddl.pddl.core import Predicate
+from third_party.pddl.pddl.logic.helpers import variables
 
 
 class TestPredicateSimpleInitialisation:

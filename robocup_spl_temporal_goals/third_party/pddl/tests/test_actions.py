@@ -22,8 +22,8 @@
 
 """This module contains tests for PDDL actions."""
 
-from pddl.core import Action
-from pddl.logic.base import FalseFormula
+from third_party.pddl.pddl.core import Action
+from third_party.pddl.pddl.logic.base import FalseFormula
 
 
 class TestActionSimpleInitialization:

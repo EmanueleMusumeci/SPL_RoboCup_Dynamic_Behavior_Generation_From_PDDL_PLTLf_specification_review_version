@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 import math
 import json
+from typing import List
 
 import matplotlib
 from matplotlib import pyplot as plt
@@ -232,18 +233,24 @@ def plot(plot_title, plots_values : dict, subtitle : str = None, plot_colors : d
         plt.savefig(os.path.join(save_to_dir, plot_title+" "+subtitle), dpi = 300)
 
 
-def multi_plot(plot_title, plots_values : dict, subtitle : str = None, plot_colors : dict = None, x_axis_label = "", y_axis_label = "", save_to_dir = None, show = False, prevent_overlaying_tick_labels = True):
+def multi_plot(plot_title, plots_values : dict, subtitle : str = None, plot_colors : dict = None, x_axis_label = "", y_axis_label = "", save_to_dir = None, show = False, prevent_overlaying_tick_labels = True, plot_style : List[str] = None, font_size = 15):
     
+
     plt.clf()
 
     ax = plt.axes()
     
     if subtitle is not None:
-        plt.title(plot_title + "\n"+subtitle)
+        plt.title(plot_title + "\n"+subtitle, fontsize=font_size)
     else:
-        plt.title(plot_title)
+        plt.title(plot_title, fontsize=font_size)
 
-    for plot_name, plot_values in plots_values.items():
+    if plot_style is not None:
+        assert len(plot_style) == len(plots_values.keys())
+
+    plt.rcParams.update({'font.size': font_size})
+
+    for i, (plot_name, plot_values) in enumerate(plots_values.items()):
         plots_values_x = [] 
         plots_values_y = [] 
         for x, y in plot_values.items():
@@ -256,18 +263,18 @@ def multi_plot(plot_title, plots_values : dict, subtitle : str = None, plot_colo
             del xticks[-2]
             del xticklabels[-2]
             
-        plt.plot(plots_values_x, plots_values_y)
+        plt.plot(plots_values_x, plots_values_y, "k"+plot_style[i])
 
     ax.set_xticks(xticks)
-    ax.set_xticklabels(xticklabels)
+    ax.set_xticklabels(xticklabels, fontsize=font_size)
 
     if x_axis_label:
-        plt.xlabel(x_axis_label)
+        plt.xlabel(x_axis_label, fontsize=font_size)
 
     if y_axis_label:
-        plt.ylabel(y_axis_label)
+        plt.ylabel(y_axis_label, fontsize=font_size)
 
-    plt.legend(list(plots_values.keys()))
+    plt.legend(list(plots_values.keys()), prop={'size': font_size})
 
     if show:
         plt.show()

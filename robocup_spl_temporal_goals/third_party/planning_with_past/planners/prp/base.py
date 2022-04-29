@@ -28,12 +28,12 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Dict, Optional
 
-from pddl.core import Domain, Problem
-from pddl.formatter import domain_to_string, problem_to_string
+from third_party.pddl.pddl.core import Domain, Problem
+from third_party.pddl.pddl.formatter import domain_to_string, problem_to_string
 
-from planning_with_past import PACKAGE_ROOT
-from planning_with_past.planners.base import Planner
-from planning_with_past.plans import BasePlan, Plan
+from third_party.planning_with_past import PACKAGE_ROOT
+from third_party.planning_with_past.planners.base import Planner
+from third_party.planning_with_past.plans import BasePlan, Plan
 
 PRP_PLAN_OUTPUT_FILENAME = "sas_plan"
 

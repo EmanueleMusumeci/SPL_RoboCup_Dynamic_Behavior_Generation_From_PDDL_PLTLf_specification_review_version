@@ -27,9 +27,9 @@ from pathlib import Path
 
 import click
 
-from pddl.formatter import domain_to_string, problem_to_string
-from pddl.parser.domain import DomainParser
-from pddl.parser.problem import ProblemParser
+from third_party.pddl.pddl.formatter import domain_to_string, problem_to_string
+from third_party.pddl.pddl.parser.domain import DomainParser
+from third_party.pddl.pddl.parser.problem import ProblemParser
 
 
 @click.group()

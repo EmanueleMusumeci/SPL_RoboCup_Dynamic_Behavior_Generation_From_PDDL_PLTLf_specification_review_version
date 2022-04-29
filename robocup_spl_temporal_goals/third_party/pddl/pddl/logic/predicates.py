@@ -24,13 +24,13 @@
 import functools
 from typing import Sequence
 
-from pddl.custom_types import name as name_type
-from pddl.custom_types import namelike
-from pddl.helpers.base import assert_
-from pddl.helpers.cache_hash import cache_hash
-from pddl.logic.base import Atomic, Formula
-from pddl.logic.terms import Term
-from pddl.parser.symbols import Symbols
+from third_party.pddl.pddl.custom_types import name as name_type
+from third_party.pddl.pddl.custom_types import namelike
+from third_party.pddl.pddl.helpers.base import assert_
+from third_party.pddl.pddl.helpers.cache_hash import cache_hash
+from third_party.pddl.pddl.logic.base import Atomic, Formula
+from third_party.pddl.pddl.logic.terms import Term
+from third_party.pddl.pddl.parser.symbols import Symbols
 
 
 @cache_hash

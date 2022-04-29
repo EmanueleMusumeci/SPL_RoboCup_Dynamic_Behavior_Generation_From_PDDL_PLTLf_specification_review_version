@@ -24,9 +24,9 @@
 
 from typing import Collection, List, Optional
 
-from pddl.custom_types import namelike
-from pddl.helpers.base import ensure_set
-from pddl.logic.terms import Constant, Variable
+from third_party.pddl.pddl.custom_types import namelike
+from third_party.pddl.pddl.helpers.base import ensure_set
+from third_party.pddl.pddl.logic.terms import Constant, Variable
 
 
 def variables(s: str, types: Optional[Collection[namelike]] = None) -> List[Variable]:

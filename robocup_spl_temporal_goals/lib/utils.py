@@ -16,8 +16,8 @@ parentparentdir = os.path.dirname(parentdir)
 sys.path.insert(0, parentparentdir) 
 #print(sys.path)
 
-from pddl.logic import Predicate, constants
-from planning_with_past.utils.atoms_visitor import find_atoms
+from third_party.pddl.pddl.logic import Predicate, constants
+from third_party.planning_with_past.utils.atoms_visitor import find_atoms
 
 def find_similar_strings(string, list_of_strings):
     return difflib.get_close_matches(string, list_of_strings)

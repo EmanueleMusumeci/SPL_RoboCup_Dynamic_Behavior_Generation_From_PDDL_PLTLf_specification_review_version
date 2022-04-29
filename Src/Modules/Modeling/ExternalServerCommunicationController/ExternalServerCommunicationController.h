@@ -71,6 +71,8 @@ MODULE(ExternalServerCommunicationController,
 
       (bool) PRINT_SENT_MESSAGES,                   /** Print each message sent by this controller */
 
+      (bool) ONE_VS_ONE_MODE,                       /** In this mode, we're having two opponent robots play one against each other, so we'll have different ports to stream different behaviors */
+
     }),
 });
 

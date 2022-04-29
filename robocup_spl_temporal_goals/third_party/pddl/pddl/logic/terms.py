@@ -25,10 +25,10 @@ import functools
 from abc import ABC
 from typing import AbstractSet, Collection, Optional
 
-from pddl.custom_types import name as name_type
-from pddl.custom_types import namelike, to_names
-from pddl.helpers.base import ensure_set
-from pddl.helpers.cache_hash import cache_hash
+from third_party.pddl.pddl.custom_types import name as name_type
+from third_party.pddl.pddl.custom_types import namelike, to_names
+from third_party.pddl.pddl.helpers.base import ensure_set
+from third_party.pddl.pddl.helpers.cache_hash import cache_hash
 
 
 @cache_hash

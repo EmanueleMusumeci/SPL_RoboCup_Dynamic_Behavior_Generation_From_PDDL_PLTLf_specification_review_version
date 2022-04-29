@@ -25,7 +25,7 @@ import functools
 from functools import singledispatch
 from typing import Set
 
-from pddl.logic.predicates import Predicate
+from third_party.pddl.pddl.logic.predicates import Predicate
 from pylogics.syntax.base import And as PLTLAnd
 from pylogics.syntax.base import Formula
 from pylogics.syntax.base import Not as PLTLNot
@@ -35,7 +35,7 @@ from pylogics.syntax.pltl import Atomic as PLTLAtomic
 from pylogics.syntax.pltl import Before, Historically, Once, Since
 from pylogics.utils.to_string import to_string
 
-from planning_with_past.helpers.utils import replace_symbols
+from third_party.planning_with_past.helpers.utils import replace_symbols
 
 
 def predicates_binaryop(f: _BinaryOp):

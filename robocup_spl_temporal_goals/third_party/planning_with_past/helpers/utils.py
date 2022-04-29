@@ -27,11 +27,11 @@ from os import PathLike
 from pathlib import Path
 from typing import Dict, Generator
 
-from pddl.logic import Predicate, constants
+from third_party.pddl.pddl.logic import Predicate, constants
 from pylogics.syntax.base import Formula
 from pylogics.syntax.pltl import Atomic as PLTLAtomic
 
-from planning_with_past.utils.atoms_visitor import find_atoms
+from third_party.planning_with_past.utils.atoms_visitor import find_atoms
 
 
 @contextlib.contextmanager

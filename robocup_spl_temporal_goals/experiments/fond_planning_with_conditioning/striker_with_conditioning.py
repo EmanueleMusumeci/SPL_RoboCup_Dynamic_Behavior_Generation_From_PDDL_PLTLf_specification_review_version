@@ -60,8 +60,8 @@ def initialize_registries():
     ActionRegistry().register_action_template("kicktogoal", "CarryAndKickToGoal", [])
 
     #Ground :objects in ValueRegistry
-    ValueRegistry()["kickingposition"] = (2000, 0)
-    ValueRegistry()["goaltarget"] = (3000, 0)
+    ValueRegistry()["kickingposition"] = (3000, 0)
+    ValueRegistry()["goaltarget"] = (5100, 0)
     #Register aliases to map objects in the domain to actual values (not necessarily already in the registry)
     ValueRegistry().register_alias(item_name="striker_position", alias_name="strikercurrentposition")
     ValueRegistry().register_alias(item_name="last_ball_position", alias_name="ballcurrentposition")

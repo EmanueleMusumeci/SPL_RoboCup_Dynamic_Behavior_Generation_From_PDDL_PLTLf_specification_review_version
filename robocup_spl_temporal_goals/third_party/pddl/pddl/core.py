@@ -29,13 +29,13 @@ import functools
 from enum import Enum
 from typing import AbstractSet, Collection, Optional, Sequence, Set, cast
 
-from pddl.custom_types import name as name_type
-from pddl.custom_types import namelike, to_names
-from pddl.helpers.base import assert_, ensure, ensure_sequence, ensure_set
-from pddl.logic.base import FalseFormula, Formula, TrueFormula, is_literal
-from pddl.logic.predicates import DerivedPredicate, Predicate
-from pddl.logic.terms import Constant, Variable
-from pddl.parser.symbols import RequirementSymbols as RS
+from third_party.pddl.pddl.custom_types import name as name_type
+from third_party.pddl.pddl.custom_types import namelike, to_names
+from third_party.pddl.pddl.helpers.base import assert_, ensure, ensure_sequence, ensure_set
+from third_party.pddl.pddl.logic.base import FalseFormula, Formula, TrueFormula, is_literal
+from third_party.pddl.pddl.logic.predicates import DerivedPredicate, Predicate
+from third_party.pddl.pddl.logic.terms import Constant, Variable
+from third_party.pddl.pddl.parser.symbols import RequirementSymbols as RS
 
 
 class Domain:

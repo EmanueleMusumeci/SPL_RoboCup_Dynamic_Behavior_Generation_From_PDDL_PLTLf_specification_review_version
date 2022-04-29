@@ -26,8 +26,8 @@ from pathlib import Path
 import pytest
 from pytest import lazy_fixture  # type: ignore  # noqa
 
-# from pddl.core import Domain, Problem
-from pddl.core import Domain, Problem
+# from third_party.pddl.pddl.core import Domain, Problem
+from third_party.pddl.pddl.core import Domain, Problem
 from tests.conftest import (
     BLOCKSWORLD_FILES,
     DOMAIN_FILES,

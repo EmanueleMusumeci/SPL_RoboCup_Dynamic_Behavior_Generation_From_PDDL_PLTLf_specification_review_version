@@ -10,12 +10,19 @@ TEMPLATE_PARAMETER_TOKEN = "PARAMETER"
 
 def get_available_constraint_templates():
     return {
+        "formula" : {
+            "command_template" : ["KEYWORD_0", "PARAMETER_0"],
+            "keywords" : {
+                "KEYWORD_0" : ["formula", "form", "f", ".", "="]
+            },
+            "formula_template" : ["PARAMETER_0"],
+        },
         "never_something" : {
             "command_template" : ["KEYWORD_0", "PARAMETER_0"],
             "keywords" : {
                 "KEYWORD_0" : ["never", "avoid", "not once"]
             },
-            "formula_template" : ["H(!", "PARAMETER_0", ")"],
+            "formula_template" : ["!O(", "PARAMETER_0", ")"],
         },
         "something_at_least_once" : {
             "command_template" : ["KEYWORD_0", "PARAMETER_0"],
@@ -39,6 +46,14 @@ def get_available_constraint_templates():
             },
             "formula_template" : ["H(", "PARAMETER_0", ")"],
         },
+        "just_before_goal" : {
+            "command_template" : ["KEYWORD_0", "PARAMETER_0"],
+            "keywords" : {
+                "KEYWORD_0" : ["just before goal", "at last"]
+            },
+            "formula_template" : ["Y(", "PARAMETER_0", ")"],
+        },
+        
     }
 
 #Textual matching function (for now it's just simple string equality)
@@ -101,7 +116,7 @@ def replace_parameters(formula_template, parameters):
     return formula_result
 
 #All templates start with a keyword and then an alternating sequence of parameter and optionally another keyword and so on
-def match_string_with_constraint_template(input_string : str, conditionable_predicates : str):
+def match_string_with_constraint_template(input_string : str, conditionable_predicates : str, direct_formula_predicate = "formula"):
     split_string = [word for word in input_string.split(" ")]
     
     found_template = None
@@ -120,6 +135,9 @@ def match_string_with_constraint_template(input_string : str, conditionable_pred
     
     assert keyword is not None, "Could not match first keyword in any template"
 
+    #Special constraint for direct formula (starting with "formula" keyword)
+    if template == direct_formula_predicate:
+        return ("_").join(split_string[1:])
 
     template_parameters = {}
 
@@ -157,6 +175,7 @@ def match_string_with_constraint_template(input_string : str, conditionable_pred
 
     #Check that all parameters are in the set of conditionable predicates
     for teamplate_parameter_keyword, template_parameter in template_parameters.items():
+        
         if isinstance(template_parameter, list):
             if template_parameter[0] not in conditionable_predicates:
                 assert ("_").join(template_parameter) in conditionable_predicates, "Neither '"+template_parameter[0]+"' nor '"+("_").join(template_parameter[0])+"' are conditionable (conditionable predicates: "+str(conditionable_predicates)+")"
@@ -170,38 +189,33 @@ def match_string_with_constraint_template(input_string : str, conditionable_pred
 
 
 def ask_constraints_for_role(role : str, current_goal : str, conditionable_predicates : List[str]):
+    if not conditionable_predicates:
+        print("No conditionable predicate. No constraint can be specified.")
+        return []
     add_new_constraint = True
-    constraint_ok = False
     constraints = []
-    while not constraint_ok and add_new_constraint:
+    while add_new_constraint:
         input_string = input("Insert a single constraint for role %s with goal '%s' (conditionable predicates %s) and press ENTER. Press ENTER with an empty constraint to SKIP:\n" % (role, current_goal, str(conditionable_predicates)))
         if input_string.strip() == "":
             print("\tNo constraint inserted.\n")
-            return []
+            add_new_constraint = False
         else:
             try:
                 constraint = match_string_with_constraint_template(input_string, conditionable_predicates)
             except AssertionError as e:
                 print("String %s could not be recognized due to error %s" % (input_string, str(e)))
+                continue
             else:
                 print("Resulting constraint:\n\t%s" % (constraint))
         
-        constraint_ok_response = input("Accept constraint? [Y/N]").lower()
-        while constraint_ok_response.lower() not in ["y","n", "yes", "no"]:
-            constraint_ok_response = input("Accept constraint? [Y/N]")
-        
-        constraint_ok = (True if constraint_ok_response in ["y", "YES"] else False)
-        
-        if constraint_ok:
-            constraints.append(constraint)
-        else:
-            continue
-
-        add_new_constraint_response = input("Add new constraint? [Y/N]").lower()
-        while add_new_constraint_response.lower() not in ["y","n", "yes", "no"]:
-            add_new_constraint_response = input("Add new constraint? [Y/N]")
-        
-        add_new_constraint = (True if add_new_constraint_response in ["y", "YES"] else False)
+            constraint_ok_response = input("Accept constraint? [Y/N]").lower()
+            while constraint_ok_response.lower() not in ["y","n", "yes", "no"]:
+                constraint_ok_response = input("Accept constraint? [Y/N]")
+            
+            if constraint_ok_response:
+                constraints.append(constraint)
+            else:
+                continue
 
     return constraints
 

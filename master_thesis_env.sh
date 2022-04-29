@@ -33,7 +33,11 @@ alias ltl_fond_striker_with_obstacle="reset; cd $SPLSIM; ./SimRobot $SPLSCENES/f
 alias ltl_fond_striker_jolly_no_obstacle="reset; cd $SPLSIM; ./SimRobot $SPLSCENES/fond_striker_jolly_no_obstacle.ros2"
 alias ltl_fond_striker_jolly_with_obstacle="reset; cd $SPLSIM; ./SimRobot $SPLSCENES/fond_striker_jolly_with_obstacle.ros2"
 alias ltlsrotf="reset; cd $SPLSIM; ./SimRobot $SPLSCENES/OneTeamFast.ros2"
-alias ltlsrgfd="reset; cd $SPLSIM; ./SimRobot $SPLSCENES/GameFast-devel.ros2"
+alias ltlsrgf1v1="reset; cd $SPLSIM; ./SimRobot $SPLSCENES/GameFast1vs1.ros2"
+
+alias ltlstrategy0="reset; ltlre adversarial_experiment.adversarial_striker_A -l "
+alias ltlstrategy1="reset; ltlre adversarial_experiment.adversarial_striker_A -l -C striker 'at last ballkickedto goaltarget' striker 'once balldribbledto leftareaentrypoint'"
+alias ltlstrategy2="reset; ltlre adversarial_experiment.adversarial_striker_B -l -C striker 'at last balldribbledto goaltarget' striker 'once balldribbledto rightareaentrypoint'"
 
 alias srrr="cd $SPLSIM; ./SimRobot $SPLSCENES/RemoteRobot.ros2"
 

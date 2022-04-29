@@ -9,7 +9,7 @@ import experiments
 from lib.dfa.dfa_handler import DFAHandler
 from lib.plan.policy_handler import PolicyHandler
 
-from lib.constraints import ask_additional_constraints
+from lib.constraints import ask_additional_constraints, match_string_with_constraint_template
 from lib.experiment import ExperimentType
 
 #from GUI.shell import InputShell
@@ -32,7 +32,9 @@ if __name__ == "__main__":
     #parser.add_argument('--GUI', '-g', action="store_true", help='Use to tell if the graphical frontend is to be used.')
     #parser.add_argument('--shell', '-s', action="store_true", help='Use to launch a separate shell for interactive behavior conditioning through PLTLf constraints.')
     
+    parser.add_argument('--opponent_team', '-o', action="store_true", help='This server instance controls the opponent team of the GameFast1vs1.ros scenario.')
     parser.add_argument('--ask_constraints', '-c', action="store_true", help='Use to require constraints in advance for each role for interactive behavior conditioning through PLTLf constraints.')
+    parser.add_argument('--specify_constraints_by_role', '-C', nargs="+", help='Use to specify constraints in advance for each role for behavior conditioning through PLTLf constraints.')
 
     args = parser.parse_args()
     
@@ -71,13 +73,29 @@ if __name__ == "__main__":
     #Initialize registries with correct variables
     chosen_experiment.initialize_registries()
 
-    additional_constraints = {}
+
+        #for role_constraint_tuple in constraints_by_roles_tuples:
+        #    match_string_with_constraint_template()
+
     #Ask for additional constraints to the goal of each robot
-    if args.ask_constraints and chosen_experiment.get_experiment_type() == ExperimentType.CONSTRAINABLE_POLICY:
+    if chosen_experiment.get_experiment_type() == ExperimentType.CONSTRAINABLE_POLICY:
 
         policy_generation_data = chosen_experiment.role_to_generation_data()
-        
-        additional_constraints = ask_additional_constraints(role_to_generation_data = policy_generation_data)
+
+        additional_constraints = {}
+        if args.specify_constraints_by_role:
+            assert len(args.specify_constraints_by_role) % 2 == 0, "When specifying constraints by role, the constraints should be specified in tuples \"role, '<constraint>'\""
+            constraints_by_roles_tuples = zip(args.specify_constraints_by_role[::2], args.specify_constraints_by_role[1::2])
+            for role_constraint_tuple in constraints_by_roles_tuples:
+                assert role_constraint_tuple[0] in policy_generation_data.keys(), "No role "+role_constraint_tuple[0]+" featured in this experiment"
+                if role_constraint_tuple[0] not in additional_constraints:
+                    additional_constraints[role_constraint_tuple[0]] = [match_string_with_constraint_template(role_constraint_tuple[1], policy_generation_data[role_constraint_tuple[0]]["constrainable_predicates"])]
+                else:
+                    additional_constraints[role_constraint_tuple[0]].append(match_string_with_constraint_template(role_constraint_tuple[1], policy_generation_data[role_constraint_tuple[0]]["constrainable_predicates"]))
+                        
+        if args.ask_constraints:
+            for role, constraints in ask_additional_constraints(role_to_generation_data = policy_generation_data).items():
+                additional_constraints[role].extend(constraints)
         
         plan_handlers = chosen_experiment.setup(additional_constraints)
 
@@ -103,9 +121,13 @@ if __name__ == "__main__":
 
     #frontend = args.frontend or args.GUI
     #behavior_controller = setup(robot_formation, localhost, frontend)
+    
+    base_framework_port = 65000
+    if args.opponent_team:
+        base_framework_port = 64000
 
     #Setup behavior controller and pass policy handler
-    behavior_controller = setup(robot_formation, localhost)
+    behavior_controller = setup(robot_formation, BASE_FRAMEWORK_UDP_PORT = base_framework_port, USE_LOCALHOST = localhost)
 
     #if args.shell or args.constraints:
     #    shell = InputShell()

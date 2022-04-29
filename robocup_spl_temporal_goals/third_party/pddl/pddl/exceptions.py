@@ -22,7 +22,7 @@
 
 """Custom Exception classes."""
 
-from pddl.core import Requirements
+from third_party.pddl.pddl.core import Requirements
 
 
 class PDDLError(Exception):

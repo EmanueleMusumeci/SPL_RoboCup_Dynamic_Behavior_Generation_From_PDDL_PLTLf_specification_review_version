@@ -23,7 +23,7 @@
 """Test the cache hash class decorator."""
 import pickle
 
-from pddl.helpers.cache_hash import cache_hash
+from third_party.pddl.pddl.helpers.cache_hash import cache_hash
 
 
 @cache_hash

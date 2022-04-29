@@ -46,6 +46,9 @@ def initialize_registries():
 
     ActionRegistry(robot_idle_skill="Idle")
 
+    ValueRegistry()["kickingposition"] = (3000, 0)
+    ValueRegistry()["goaltarget"] = (4500, 0)
+
     #Ground actions to robot skills
     #Create ActionTemplates by specifying:
     #Argument 1: ActionTemplate name (all actions created from this template will have this as a base name plus a uuid)
@@ -58,7 +61,6 @@ def initialize_registries():
     ActionRegistry().register_action_template("kicktogoal", "CarryAndKickToGoal", [])
 
     #Ground :objects in ValueRegistry
-    ValueRegistry()["kickingposition"] = (2000, 0)
     #Register aliases to map objects in the domain to actual values (not necessarily already in the registry)
     ValueRegistry().register_alias(item_name="striker_position", alias_name="strikercurrentposition")
     ValueRegistry().register_alias(item_name="last_ball_position", alias_name="ballcurrentposition")

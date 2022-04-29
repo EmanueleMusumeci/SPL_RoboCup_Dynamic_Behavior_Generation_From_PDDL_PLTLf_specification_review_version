@@ -24,8 +24,8 @@
 from textwrap import indent
 from typing import Callable, Collection
 
-from pddl.core import Domain, Problem
-from pddl.logic.base import TRUE
+from third_party.pddl.pddl.core import Domain, Problem
+from third_party.pddl.pddl.logic.base import TRUE
 
 
 def _remove_empty_lines(s: str) -> str:

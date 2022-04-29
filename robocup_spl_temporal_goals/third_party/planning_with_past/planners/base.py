@@ -25,7 +25,7 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Dict
 
-from planning_with_past.plans import BasePlan
+from third_party.planning_with_past.plans import BasePlan
 
 
 class Planner(ABC):  # pylint: disable=too-few-public-methods

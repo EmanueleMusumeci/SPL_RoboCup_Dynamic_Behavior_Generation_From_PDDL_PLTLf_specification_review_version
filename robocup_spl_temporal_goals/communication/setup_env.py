@@ -10,8 +10,12 @@ from communication.communication_manager import BehaviorControlMode, Communicati
 
 def setup(
     robot_formation : Dict, 
+
+    BASE_FRAMEWORK_UDP_PORT,
+
     USE_LOCALHOST : bool = False, 
     #USE_FRONTEND : bool = False,
+
 
     WEBSOCKET_INTERFACE_IP = "127.0.0.1",
     FRONTEND_SOCKET_IP = "127.0.0.1",
@@ -48,10 +52,10 @@ def setup(
 
     '''
 
-    WEB_CLIENT_READ_PORT = 65300
-    WEB_CLIENT_WRITE_PORT = 65400
-    WEB_CLIENT_REMOTE_READ_PORT = 65301
-    WEB_CLIENT_REMOTE_WRITE_PORT = 65401
+    WEB_CLIENT_READ_PORT = 64300
+    WEB_CLIENT_WRITE_PORT = 64400
+    WEB_CLIENT_REMOTE_READ_PORT = 64301
+    WEB_CLIENT_REMOTE_WRITE_PORT = 64401
     #-----------------------------------------------------------------
 
     ''' 
@@ -98,9 +102,9 @@ def setup(
     # - the DEST_PORTs here have to be the READ_PORTs on the robots
     # - the READ_PORTs here have to be the DEST_PORTs on the robots
     # - the WRITE_PORTs here have to be different from those of the robots
-    UDP_BASE_READ_PORT = 65100 #Listening port for incoming messages from robots
-    UDP_BASE_WRITE_PORT = 65200  #Socket port of outgoing messages for each robot (each message will be sent to 127.0.0.1:UDP_BASE_WRITE_PORT+<robot_number>)
-    UDP_BASE_DEST_PORT = 65000 #Destination port of outgoing messages (each message will be sent to 127.0.0.1:UDP_BASE_WRITE_PORT+<robot_number>)
+    UDP_BASE_READ_PORT = BASE_FRAMEWORK_UDP_PORT + 100 #Listening port for incoming messages from robots
+    UDP_BASE_WRITE_PORT = BASE_FRAMEWORK_UDP_PORT + 200  #Socket port of outgoing messages for each robot (each message will be sent to 127.0.0.1:UDP_BASE_WRITE_PORT+<robot_number>)
+    UDP_BASE_DEST_PORT = BASE_FRAMEWORK_UDP_PORT + 000 #Destination port of outgoing messages (each message will be sent to 127.0.0.1:UDP_BASE_WRITE_PORT+<robot_number>)
     #-----------------------------------------------------------------
 
 

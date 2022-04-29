@@ -26,7 +26,7 @@ import logging
 import pytest
 from click.testing import CliRunner
 
-from pddl.__main__ import cli
+from third_party.pddl.pddl.__main__ import cli
 from tests.conftest import DOMAIN_FILES, PROBLEM_FILES
 
 

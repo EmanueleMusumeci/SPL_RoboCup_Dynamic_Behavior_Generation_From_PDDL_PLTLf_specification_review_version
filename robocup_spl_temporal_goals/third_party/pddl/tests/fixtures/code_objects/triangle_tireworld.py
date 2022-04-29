@@ -23,10 +23,10 @@
 """This test module contains the fixtures for 'triangle-tireworld' domain and problem."""
 import pytest
 
-from pddl.core import Action, Domain, Problem, Requirements
-from pddl.logic.base import And, OneOf
-from pddl.logic.helpers import constants, variables
-from pddl.logic.predicates import Predicate
+from third_party.pddl.pddl.core import Action, Domain, Problem, Requirements
+from third_party.pddl.pddl.logic.base import And, OneOf
+from third_party.pddl.pddl.logic.helpers import constants, variables
+from third_party.pddl.pddl.logic.predicates import Predicate
 
 
 @pytest.fixture(scope="session")

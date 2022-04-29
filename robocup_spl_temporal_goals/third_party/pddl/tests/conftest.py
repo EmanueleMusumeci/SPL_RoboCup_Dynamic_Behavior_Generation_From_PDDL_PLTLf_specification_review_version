@@ -28,8 +28,8 @@ import mistune
 import pytest
 
 import pddl
-from pddl.parser.domain import DomainParser
-from pddl.parser.problem import ProblemParser
+from third_party.pddl.pddl.parser.domain import DomainParser
+from third_party.pddl.pddl.parser.problem import ProblemParser
 
 _current_filepath = inspect.getframeinfo(inspect.currentframe()).filename  # type: ignore
 TEST_DIRECTORY = Path(_current_filepath).absolute().parent

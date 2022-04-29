@@ -302,14 +302,14 @@ def plot_benchmarks(save_to_dir : str):
         {
             "w. position constraint" : benchmarks["with_diagonal_adjacency_with_position_constraints"],
             "w/o position constraint" : benchmarks["with_diagonal_adjacency"]
-        }, subtitle="(with diagonal adjacency)", x_axis_label="Planning depth", y_axis_label="Planning time [s]", save_to_dir = save_to_dir)
+        }, subtitle="(with diagonal adjacency)", x_axis_label="Planning depth", y_axis_label="Planning time [s]", save_to_dir = save_to_dir, plot_style=["--", ":"])
 
     benchmarks["without_diagonal_adjacency"].pop("3")
     multi_plot("Comparison of benchmarks at increasing planning depth", 
         {
             "w. position constraint" : benchmarks["without_diagonal_adjacency_with_position_constraints"],
             "w/o position constraint" : benchmarks["without_diagonal_adjacency"]
-        }, subtitle="(without diagonal adjacency)", x_axis_label="Planning depth", y_axis_label="Planning time [s]", save_to_dir = save_to_dir)
+        }, subtitle="(without diagonal adjacency)", x_axis_label="Planning depth", y_axis_label="Planning time [s]", save_to_dir = save_to_dir, plot_style=["--",":"])
     
 def perform_benchmarks(benchmark_name, benchmark_generation_data, benchmark_name_to_additional_constraints : Dict[str, List[str]] = {}, save_to_dir : str = None):
     problems_dir, problems_base_name = generate_problems()

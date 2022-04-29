@@ -24,7 +24,7 @@
 
 import pytest
 
-from pddl.custom_types import name
+from third_party.pddl.pddl.custom_types import name
 
 
 def test_name_string():

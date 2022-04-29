@@ -21,9 +21,9 @@
 #
 """This module contains tests for a PDDL action."""
 
-from pddl.core import Action
-from pddl.logic import Predicate, Variable, variables
-from pddl.logic.base import FalseFormula, Imply, OneOf
+from third_party.pddl.pddl.core import Action
+from third_party.pddl.pddl.logic import Predicate, Variable, variables
+from third_party.pddl.pddl.logic.base import FalseFormula, Imply, OneOf
 
 
 class TestActionEmpty:

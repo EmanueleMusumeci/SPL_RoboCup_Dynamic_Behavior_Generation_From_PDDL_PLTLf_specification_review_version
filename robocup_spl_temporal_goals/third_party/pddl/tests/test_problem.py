@@ -23,10 +23,10 @@
 """This module contains tests for a PDDL problem."""
 from unittest.mock import MagicMock
 
-from pddl.core import Domain, Problem
-from pddl.logic.base import Not, TrueFormula
-from pddl.logic.helpers import constants, variables
-from pddl.logic.predicates import Predicate
+from third_party.pddl.pddl.core import Domain, Problem
+from third_party.pddl.pddl.logic.base import Not, TrueFormula
+from third_party.pddl.pddl.logic.helpers import constants, variables
+from third_party.pddl.pddl.logic.predicates import Predicate
 
 
 class TestProblemEmpty:

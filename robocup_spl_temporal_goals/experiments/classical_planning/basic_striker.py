@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 
 from lib.plan.policy_handler import PolicyHandler
 
-from lib.experiment import setup_conditioned_FOND_policy_for_experiment, ExperimentType
+from lib.experiment import setup_FOND_policy_for_experiment, ExperimentType
 
 def get_experiment_type():
     return ExperimentType.POLICY
@@ -64,4 +64,4 @@ def initialize_registries():
     ValueRegistry().register_alias(item_name="last_ball_position", alias_name="ball-current-position")
 
 def setup():
-    return setup_FOND_policy_for_experiment(get_problem_name(), role_to_generation_data(), role_to_additional_constraints = {})
+    return setup_FOND_policy_for_experiment(get_problem_name(), role_to_generation_data())

@@ -86,14 +86,33 @@ ExternalServerCommunicationController::ExternalServerCommunicationController(){
     std::cout<<"#################################\n\n# TARGET INTERFACE IP: "<<TARGET_IP_ADDRESS<<" #\n\n#################################"<<std::endl;
 
     //Setup the WRITE socket (for outgoing messages)
-    int write_port_number = CONTROL_DEVICE_COMMUNICATION_WRITE_PORT_BASE + theRobotInfo.number-1;
+    int write_port_number;
+    DEBUG_NUMB(true, "theOwnTeamInfo.teamColor: "<<std::to_string(theOwnTeamInfo.teamColor));    
+    DEBUG_NUMB(true, "theOwnTeamInfo.teamColor == 3: "<<std::to_string(theOwnTeamInfo.teamColor == 3));    
+    if(ONE_VS_ONE_MODE && theOwnTeamInfo.teamColor == 3)
+    {
+        write_port_number = CONTROL_DEVICE_COMMUNICATION_WRITE_PORT_BASE + theRobotInfo.number-1;
+    }
+    else
+    {
+        write_port_number = CONTROL_DEVICE_COMMUNICATION_WRITE_PORT_BASE + theRobotInfo.number-1 - 1000;
+    }
     DEBUG_NUMB(true, "Trying to setup write socket with target address: "<<TARGET_IP_ADDRESS<<":"<<write_port_number);
     this->udp_write_socket.setTarget(TARGET_IP_ADDRESS.c_str(), write_port_number);
     this->udp_write_socket.setBlocking(false);
     DEBUG_NUMB(true, "Write socket set with target address: "<<TARGET_IP_ADDRESS<<":"<<write_port_number);
 
     //Setup the READ socket (for incoming messages)
-    int read_port_number = CONTROL_DEVICE_COMMUNICATION_READ_PORT_BASE + theRobotInfo.number-1;
+
+    int read_port_number;
+    if(ONE_VS_ONE_MODE && theOwnTeamInfo.teamColor == 3)
+    {
+        read_port_number = CONTROL_DEVICE_COMMUNICATION_READ_PORT_BASE + theRobotInfo.number-1;
+    }
+    else
+    {
+        read_port_number = CONTROL_DEVICE_COMMUNICATION_READ_PORT_BASE + theRobotInfo.number-1 - 1000;
+    }
     DEBUG_NUMB(true, "Trying to bind read socket on address: "<<READ_IP_ADDRESS<<":"<<read_port_number);
     if(!this->udp_read_socket.bind(READ_IP_ADDRESS.c_str(), read_port_number))
     {

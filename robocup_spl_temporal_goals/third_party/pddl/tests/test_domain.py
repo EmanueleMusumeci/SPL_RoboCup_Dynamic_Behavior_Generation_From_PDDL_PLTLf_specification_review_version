@@ -21,10 +21,10 @@
 #
 
 """This module contains tests for a PDDL domain."""
-from pddl.core import Action, Domain
-from pddl.logic.base import Not
-from pddl.logic.helpers import constants, variables
-from pddl.logic.predicates import Predicate
+from third_party.pddl.pddl.core import Action, Domain
+from third_party.pddl.pddl.logic.base import Not
+from third_party.pddl.pddl.logic.helpers import constants, variables
+from third_party.pddl.pddl.logic.predicates import Predicate
 
 
 class TestDomainEmpty:

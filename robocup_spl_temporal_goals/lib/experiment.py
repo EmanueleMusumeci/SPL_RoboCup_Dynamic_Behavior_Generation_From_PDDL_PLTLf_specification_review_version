@@ -64,7 +64,6 @@ def setup_conditioned_FOND_policy_for_experiment(problem_name : str, role_to_gen
             for constraint in role_to_additional_constraints[role]:
                 goal += " && "+constraint
 
-
         print("Creating FOND Policy for '%s' role from domain file: %s with problem file %s, conditioned by PLTLf formula '%s'\n" % (role, domain_path, problem_path, goal))
         try:
             role_to_handler[role] = PolicyHandler.create_FOND_policy_with_PLTLf(

@@ -24,11 +24,11 @@
 import functools
 from typing import AbstractSet, Collection, Generic, Optional, Sequence, TypeVar, Union
 
-from pddl.helpers.base import ensure_set
-from pddl.helpers.cache_hash import cache_hash
-from pddl.logic import Variable
-from pddl.logic.base import Atomic, Formula, Not, OneOf, MonotoneOp, BinaryOp
-from pddl.parser.symbols import Symbols
+from third_party.pddl.pddl.helpers.base import ensure_set
+from third_party.pddl.pddl.helpers.cache_hash import cache_hash
+from third_party.pddl.pddl.logic import Variable
+from third_party.pddl.pddl.logic.base import Atomic, Formula, Not, OneOf, MonotoneOp, BinaryOp
+from third_party.pddl.pddl.parser.symbols import Symbols
 
 EffectType = TypeVar("EffectType")
 

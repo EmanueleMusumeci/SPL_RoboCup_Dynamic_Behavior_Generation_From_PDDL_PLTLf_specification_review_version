@@ -1,12 +1,12 @@
 (define (domain robocupdeterministic)
     (:requirements :conditional-effects :derived-predicates :negative-preconditions :strips :typing)
     (:types location movable)
-    (:predicates (goalscored) (highbatteryconsumption) (isat ?mov ?loc) (isball ?mov) (isrobot ?mov) (val_isat_ball_goaltarget))
+    (:predicates (goalscored) (isat ?mov ?loc) (isball ?mov) (isrobot ?mov) (val_isat_ball_goaltarget))
     (:derived (val_isat_ball_goaltarget) (isat ball goaltarget))
     (:action carryball
         :parameters (?rob ?b ?from ?to)
         :precondition (and (isball ?b) (isrobot ?rob) (isat ?rob ?from) (not (isat ?rob ?to)) (isat ?b ?from) (not (isat ?b ?to)))
-        :effect (and (and (not (isat ?rob ?from)) (isat ?rob ?to) (not (isat ?b ?from)) (isat ?b ?to) (highbatteryconsumption)))
+        :effect (and (and (not (isat ?rob ?from)) (isat ?rob ?to) (not (isat ?b ?from)) (isat ?b ?to)))
     )
      (:action kickball
         :parameters (?rob ?b ?from ?to)
