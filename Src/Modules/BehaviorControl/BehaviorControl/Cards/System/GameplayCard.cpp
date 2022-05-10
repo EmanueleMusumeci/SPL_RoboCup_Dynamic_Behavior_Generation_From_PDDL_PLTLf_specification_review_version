@@ -15,7 +15,7 @@
 #include "Representations/BehaviorControl/Role.h"
 #include "Representations/BehaviorControl/Skills.h"
 #include "Representations/Sensing/FallDownState.h"
-#include "Representations/HRI/TaskController.h"
+#include "Representations/BehaviorControl/TasksProvider/TaskController.h"
 
 CARD(GameplayCard,
 {,

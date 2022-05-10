@@ -19,7 +19,7 @@
 #include "Tools/BehaviorControl/Framework/Card/CabslCard.h"
 #include "Representations/BehaviorControl/Libraries/LibCheck.h"
 
-#include "Representations/HRI/TaskController.h"
+#include "Representations/BehaviorControl/TasksProvider/TaskController.h"
 
 #include "Representations/Communication/RobotInfo.h"
 

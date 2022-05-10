@@ -9,8 +9,8 @@
 #include "Representations/spqr_representations/OurDefinitions.h"
 #include "Representations/BehaviorControl/FieldBall.h"
 #include "Representations/Modeling/RobotPose.h"
-#include "Representations/HRI/TaskController.h"
-#include "Representations/HRI/BooleanRegistry.h"
+#include "Representations/BehaviorControl/TasksProvider/TaskController.h"
+#include "Representations/BehaviorControl/TasksProvider/BooleanRegistry.h"
 #include "Representations/Communication/RobotInfo.h"
 #include "Representations/Communication/TeamData.h"
 #include "Representations/Communication/TeamInfo.h"
@@ -23,7 +23,7 @@
 #include "Representations/BehaviorControl/Role.h"
 #include "Tools/Math/Pose2f.h"
 
-#include "Representations/Modeling/ExternalServerCommunicationController/ExternalServerCommunicationControl.h"
+#include "Representations/Communication/ExternalServerCommunicationController/ExternalServerCommunicationControl.h"
 
 #include "Representations/BehaviorControl/Libraries/LibCheck.h"
 

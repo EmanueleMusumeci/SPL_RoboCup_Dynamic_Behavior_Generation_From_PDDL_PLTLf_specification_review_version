@@ -21,7 +21,7 @@
 
 #include "Representations/Communication/RobotInfo.h"
 
-#include "Representations/HRI/TaskController.h"
+#include "Representations/BehaviorControl/TasksProvider/TaskController.h"
 
 #include "Tools/Math/BHMath.h"
 #include "Platform/SystemCall.h"

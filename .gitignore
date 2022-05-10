@@ -2,8 +2,6 @@ Build/
 
 Util/alcommon/include
 
-# Util/boost/  # TODO FIX VINCENZO
-
 # Prerequisites
 *.d
 
@@ -69,6 +67,9 @@ Install/naoqi-sdk-2.8.5.10-linux64.tar.gz
 *~
 \#*\#
 .\#
+*.OLD
+*.UNUSED
+*.UNFINISHED
 *.backup
 *.bak
 *.pyc

@@ -16,7 +16,7 @@
 #include "Tools/BehaviorControl/Framework/Card/CabslCard.h"
 #include "Representations/BehaviorControl/Libraries/LibCheck.h"
 
-#include "Representations/HRI/TaskController.h"
+#include "Representations/BehaviorControl/TasksProvider/TaskController.h"
 
 #include "Tools/Math/BHMath.h"
 #include "Platform/SystemCall.h"

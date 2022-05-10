@@ -1,2 +1,0 @@
-netstat -nutap | grep -F "127.0.0.1" | awk ' (index($NF, "python") != 0) {p=index($NF, "/");print substr($NF, 0, p-1); system("kill " substr($NF, 0, p-1))} '
-netstat -nutap | grep -F "node" | awk ' (index($NF, "node") != 0) {p=index($NF, "/");print substr($NF, 0, p-1); system("kill " substr($NF, 0, p-1))} '

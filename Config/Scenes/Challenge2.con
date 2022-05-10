@@ -1,4 +1,0 @@
-#call Includes/Normal
-call Includes/Fast
-gc ballPassingChallenge2021RandomPlacement
-gc playing

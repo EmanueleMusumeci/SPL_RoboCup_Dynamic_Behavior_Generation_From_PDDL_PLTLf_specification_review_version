@@ -1,5 +1,5 @@
 #include "ExternalServerCommunicationController.h"
-#include "Modules/Modeling/HRI/TaskControllerProvider.h"
+#include "Modules/BehaviorControl/TasksProvider/TaskControllerProvider.h"
 #include "Tools/Modeling/Obstacle.h"
 #include "Platform/SystemCall.h"
 #include <unistd.h>
@@ -73,11 +73,7 @@ ExternalServerCommunicationController::ExternalServerCommunicationController(){
     ASSERT(this->READ_IP_ADDRESS.length()>0);
 
     //IF on the robot, make this print well visible in the log
-    if(SystemCall::getMode() == SystemCall::Mode::physicalRobot)
-    {
-        READ_IP_ADDRESS = SystemCall::getHostAddr();
-    }
-    else
+    if(SystemCall::getMode() == SystemCall::Mode::simulatedRobot)
     {
         READ_IP_ADDRESS = std::string("127.0.0.1");
         TARGET_IP_ADDRESS = std::string("127.0.0.1");

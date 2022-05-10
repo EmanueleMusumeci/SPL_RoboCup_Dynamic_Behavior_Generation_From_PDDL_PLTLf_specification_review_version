@@ -29,7 +29,7 @@ sudo apt install build-essential cmake clang make qtbase5-dev libqt5opengl5-dev 
 <br>
 
 
-### Update and upgrade your pc and reboot.
+### Update and upgrade your pc and reboot
 ```
 sudo apt-get update
 sudo apt-get upgrade
@@ -37,7 +37,7 @@ sudo reboot
 ```
 <br>
 
-### Install the SPQR Team RoboCup framework:
+### Clone the SPQR Team RoboCup framework:
 Clone the repository (need to have permissions on GitHub) 
 ```
 mkdir RoboCup
@@ -115,7 +115,7 @@ sudo update-alternatives --config clang++
 To compile **(for all OS versions)**:
 Compile the code (move to the `Make/Linux` folder of the repo)
 ```
-cd RoboCup/master_thesis/spqrnao2021/Make/Linux
+cd <path of this repo>/spqrnao2021/Make/Linux
 make CONFIG=<Develop/Debug/Release>
 ```
 
@@ -172,9 +172,9 @@ Install latexmk:
 sudo apt-get install latexmk
 ```
 
-### Download and install the `planning-for-past-temporal-goals` repo from the [Whitemech research group](https://github.com/whitemech)
+<!--*### Download and install the `planning-for-past-temporal-goals` repo from the [Whitemech research group](https://github.com/whitemech)
 Follow the [install guide for this repo](https://github.com/whitemech/planning-for-past-temporal-goals/tree/benchmark)
-<!--* Clone the repo (anywhere):
+ Clone the repo (anywhere):
 ```
 git clone -b benchmark https://github.com/whitemech/planning-for-past-temporal-goals
 ```
@@ -208,7 +208,7 @@ cd ..
 
 ## Running
 
-The network infrastructure is set to run on localhost. Make sure you're connected to a network anyway, even if not connected to the internet (to have the loopback work anyway)
+The network infrastructure is set to run on localhost. Make sure you're connected to a network anyway, even if not connected to the internet (required by SimRobot)
 
 <!--
 ### Task-based controller
@@ -250,14 +250,16 @@ node clientUDP.js
 #### Open the GUI in the browser
 Open any browser and connect to 127.0.0.1:3000
 -->
+### Running experiments
 
-### Planning mode
-Any experiment can be run using the SimRobot utility from the B-Human framework, which will emulate the robot in a simulator.
+To run an experiment in the SimRobot simulator:
+1) Run SimRobot
+2) Run the Python server providing the plan
 
 #### Run SimRobot
 Move to `Develop/` folder
 ```
-cd RoboCup/master_thesis/spqrnao2021/Build/Linux/SimRobot/<Develop/Debug/Release>/
+cd spqrnao2021/Build/Linux/SimRobot/<Develop/Debug/Release>/
 ```
 
 Run SimRobot
@@ -265,35 +267,89 @@ Run SimRobot
 ./SimRobot
 ```
 
-Click on File->Open and then move to the `RoboCup/master_thesis/spqrnao2021/Config/Scenes` folder and open the `1vs3Dummies.ros2` scene. This scene features one playing robot and 3 draggable inactive robots acting as obstacles (NOTICE: you can specify the full path to the `.ros2` file to avoid navigating to it in SimRobot)
+Click on File->Open and then move to the `spqrnao2021/Config/Scenes` folder and open the required scene, which is a `.ros2`. 
+
+(NOTICE: you can specify the full path to the `.ros2` file to avoid navigating to it in SimRobot) 
+
+##### Available scenes
+* `fond_striker_no_obstacle.ros2` scene. This scene features one robot, in idle mode, waiting for plan commands. Used for the  `basic_striker`, `striker_with_battery_power_conditioning` and `striker_with_conditioning` experiments.
+* `fond_striker_with_obstacle.ros2` scene. This scene features one robot, in idle mode, waiting for plan commands. Used for the multi-robot `striker_with_pass` experiment (opponent present, no jolly available case).
+* `fond_striker_jolly_no_obstacle.ros2` scene. This scene features one striker and one jolly, in idle mode, waiting for plan commands. Used for the multi-robot `striker_with_pass` experiment (opponent not present, jolly available case).
+* `fond_striker_jolly_with_obstacle.ros2` scene. This scene features one striker and one jolly, in idle mode, waiting for plan commands. Used for the multi-robot `striker_with_pass` experiment (opponent present, jolly available case).
+* `GameFast1vs1.ros2` scene. This scene features two strikers of opposing teams, used in the qualitative experiments section of the paper to perform benchmarks (see below for the section about the adversarial example).
+
+
+If the experiment is being run on a physical robot, contact <suriani@diag.uniroma1.it> for the necessary instructions.
 
 #### Run the Python server with a specific experiment
-To run an experiment:
-  1) *[Skip this step if you want to run an existing experiment file]* 
-  Create an experiment file in a subfolder of the "experiments" folder:
-      The file has to contain a `setup_experiment()` function. This function
-      will have to setup the registries appropriately and build a plan/policy/DFA
-      for each required role, then return them in a dictionary like:
-
-          <robot_role> -> <plan/policy/DFA handler instance>
-  
-  2) The `__init__.py` file in the "experiments" folder, when imported, will dinamically
-      load all experiment files in the subfolders of the "experiments" folder and then
-      collect them as modules into an "experiments" list, from which they can be accessed
-      to run the setup_experiment() function
-  
-  3) Then the `setup()` method of the `setup_env` module will be called so that the network modules will be run.
-  
-  4) Finally plan/policy/DFA handlers will be passed to the CommunicationManager manager
-      through the update_plan() method
 
   To run an experiment execute the following command on a terminal:
 
   ```
-  python run_experiment.py <EXPERIMENT_SUBFOLDER.EXPERIMENT_NAME>
+  python run_experiment.py <EXPERIMENT_SUBFOLDER.EXPERIMENT_NAME> --localhost
   ```
 
   where:
   * The module run_experiment.py is located in the spqrnao2021/robocup_spl_temporal_goals folder
   * `EXPERIMENT_SUBFOLDER` is a subfolder of the "experiments" folder
-  * `EXPERIMENT_NAME` is the name of a file providing the `setup_experiment()` function
+  * `EXPERIMENT_NAME` is the name of the file containing the necessary methods to run the experiment
+
+
+##### Runnable experiments
+Experiments can be found in the directory `spqrnao2021/robocup_spl_temporal_goals/experiments/`. The available experiments are:
+* `classical_planning.basic_striker`, providing the simple single-agent scenario
+* `fond_planning_with_conditioning.striker_with_battery_power_conditioning`, providing the simple single-agent scenario with conditioning over battery power consumption
+* `fond_planning_with_conditioning.striker_with_conditioning`, providing the simple single-agent scenario with a `isat` conditionable predicate
+* `fond_planning.striker_with_pass`, providing the multi-agent scenario. (NOTICE: in this case, fluents depend on the selected SimRobot scene).
+
+
+#### Run the Python server with a specific experiment
+
+  To run an experiment, move to the `spqrnao2021/robocup_spl_temporal_goals` subdirectory and execute the following command on a terminal:
+
+  ```
+  python run_experiment.py <EXPERIMENT_SUBFOLDER.EXPERIMENT_NAME> --localhost
+  ```
+
+  where:
+  * `EXPERIMENT_SUBFOLDER` is a subfolder of the "experiments" folder
+  * `EXPERIMENT_NAME` is the name of the file containing the necessary methods to run the experiment
+
+  Use the `--ask_constraints` command-line argument in the scenarios with constrainable predicates to add constraints.
+
+  Just run:
+
+  ```
+  python run_experiment.py
+  ```
+  to have a full list of possible command-line arguments
+
+##### Runnable experiments
+Experiments can be found in the directory `spqrnao2021/robocup_spl_temporal_goals/experiments/`. The available experiments are:
+* `classical_planning.basic_striker`, providing the simple single-agent scenario
+* `fond_planning_with_conditioning.striker_with_battery_power_conditioning`, providing the simple single-agent scenario with conditioning over battery power consumption
+* `fond_planning_with_conditioning.striker_with_conditioning`, providing the simple single-agent scenario with a `isat` conditionable predicate
+* `fond_planning.striker_with_pass`, providing the multi-agent scenario. (NOTICE: in this case, fluents depend on the selected SimRobot scene).
+
+### Running benchmarks
+
+  To run a benchmark, move to the `spqrnao2021/robocup_spl_temporal_goals` subdirectory and execute the following command on a terminal:
+
+  ```
+  python run_benchmark.py <BENCHMARK_SUBFOLDER> --perform_benchmarks
+  ```
+
+  where:
+  * `BENCHMARK_SUBFOLDER` is a subfolder of the "experiments" folder
+
+  Use the `--ask_constraints` command-line argument in the scenarios with constrainable predicates to add constraints.
+
+  Just run:
+
+  ```
+  python run_benchmark.py
+  ```
+  to have a full list of possible command-line arguments
+
+##### Runnable benchmarks
+The only benchmark available is the one featured in the paper: `striker_with_waypoint_conditioning_with_increasing_size`, featuring a planning problems with a domain where the goal is to bring the ball to the goal and a grid of adjacent waypoints is modeled (in a case where adjacency is also diagonal and a case where it is not). This will automatically perform benchmarks for all scenarios described.

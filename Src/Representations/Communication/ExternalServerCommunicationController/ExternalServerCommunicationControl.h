@@ -13,7 +13,7 @@
 #include "Tools/Math/Eigen.h"
 #include "Tools/Math/Pose2f.h"
 
-#include "Representations/HRI/TaskController.h"
+#include "Representations/BehaviorControl/TasksProvider/TaskController.h"
 
 /**
  * @struct ExternalServerCommunicationControl

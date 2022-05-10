@@ -24,7 +24,7 @@
 #include "Representations/Communication/TeamData.h"
 #include "Tools/Math/BHMath.h"
 
-#include "Representations/HRI/TaskController.h"
+#include "Representations/BehaviorControl/TasksProvider/TaskController.h"
 
 #include "Platform/SystemCall.h"
 #include <string>

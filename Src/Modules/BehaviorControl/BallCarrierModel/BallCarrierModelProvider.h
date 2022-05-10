@@ -21,7 +21,7 @@
 #include "Representations/Configuration/FieldDimensions.h"
 #include "Representations/BehaviorControl/Libraries/LibCheck.h"
 #include "Representations/BehaviorControl/Libraries/LibPathPlanner.h"
-#include "Representations/HRI/TaskController.h"
+#include "Representations/BehaviorControl/TasksProvider/TaskController.h"
 #include <iostream>
 
 MODULE(BallCarrierModelProvider,

@@ -13,15 +13,15 @@
 #include "Representations/Modeling/RobotPose.h"
 #include "Representations/Modeling/BallModel.h"
 #include "Representations/Configuration/FieldDimensions.h"
-#include "Representations/HRI/TaskController.h"
-#include "Representations/Modeling/ExternalServerCommunicationController/ExternalServerCommunicationControl.h"
+#include "Representations/BehaviorControl/TasksProvider/TaskController.h"
+#include "Representations/Communication/ExternalServerCommunicationController/ExternalServerCommunicationControl.h"
 #include "Representations/Communication/GameInfo.h"
 #include "Representations/Communication/RobotInfo.h"
 #include "Representations/BehaviorControl/Role.h"
 #include "Representations/Configuration/BallSpecification.h"
 #include "Representations/BehaviorControl/Libraries/LibCheck.h"
 
-#include "Representations/HRI/TaskController.h"
+#include "Representations/BehaviorControl/TasksProvider/TaskController.h"
 
 #include "Platform/Linux/SoundPlayer.h"
 

@@ -370,7 +370,7 @@ class Policy:
         #Create Policy/Plan with the collected information
         policy = Policy(nodes, is_plan = True)
         return policy
-#TODO
+        
     @classmethod
     def build_policy_from_networkx_digraph(cls, networkx_digraph : networkx.classes.digraph.DiGraph):
         

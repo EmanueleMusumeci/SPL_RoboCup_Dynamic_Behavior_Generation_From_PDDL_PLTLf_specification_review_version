@@ -9,8 +9,8 @@
 #pragma once
 
 #include "Tools/Module/Module.h"
-#include "Representations/HRI/BooleanRegistry.h"
-#include "Representations/HRI/TaskController.h"
+#include "Representations/BehaviorControl/TasksProvider/BooleanRegistry.h"
+#include "Representations/BehaviorControl/TasksProvider/TaskController.h"
 #include "Representations/Communication/RobotInfo.h"
 #include "Representations/Infrastructure/RobotHealth.h"
 
