@@ -37,14 +37,6 @@ sudo reboot
 ```
 <br>
 
-### Clone the SPQR Team RoboCup framework:
-Clone the repository (need to have permissions on GitHub) 
-```
-mkdir RoboCup
-cd RoboCup
-git clone https://github.com/SPQRTeam/spqrnao2021.git
-```
-
 
 ### Install OpenCV3.1
 Dowload source of OpenCV:
@@ -98,6 +90,11 @@ The following errors may happen for some users, but not others. *If you incur in
 ```
 * **If you get errors related to libasound:** Install the corresponding headers with the command `sudo apt install libasound2-dev`
 
+### Clone this repo
+```
+git clone https://github.com/EmanueleMusumeci/SPL_RoboCup_Dynamic_Behavior_Generation_From_PDDL_PLTLf_specification.git
+```
+
 ### Compile the code 
 #### Ubuntu 16 or Mint 18 users
 Set Clang-6.0 before you compile: 
@@ -115,7 +112,7 @@ sudo update-alternatives --config clang++
 To compile **(for all OS versions)**:
 Compile the code (move to the `Make/Linux` folder of the repo)
 ```
-cd <path of this repo>/spqrnao2021/Make/Linux
+cd Make/Linux
 make CONFIG=<Develop/Debug/Release>
 ```
 
@@ -125,9 +122,24 @@ Install the ssl library:
 sudo apt-get install libssl-dev
 ```
 
-Using a python package manager install the `twisted` package and the `service_identity` package (e.g. `pip install twisted service_identity`)
+### Install the required Python packages
 
-### Install NodeJS dependencies
+Using a python package manager install the required packages using:
+```
+pip install -r requirements.tx
+```
+in the root dir of the repo. 
+
+This command will install the required packages:
+* numpy
+* twisted
+* ltlf2dfa
+* graphviz
+* pygraphviz
+* shortuuid
+* service_identity
+
+<!--### Install NodeJS dependencies
 * Install NodeJS
 * Using npm install the `websocket` package (e.g. `npm install websocket`)
 
@@ -157,22 +169,34 @@ then rebuild:
 ```
 sudo make install-strip
 ```
+-->
 
-### Install dependencies for next repo 
-Install OpenJDK 8 (NOTICE: the next repo can not be built with Java versions above 8):
+### Download and install the dependencies for the `planning-for-past-temporal-goals` repo 
+This repo is included in the current package and is provided by the [Whitemech research group](https://github.com/whitemech).
+* Install the dependencies required for pygraphviz: 
+```
+sudo apt-get install python3-dev graphviz libgraphviz-dev pkg-config
+```
+
+* Install the other required dependencies for these repos:
+```
+sudo apt-get install gcc-multilib g++-multilib
+```
+* Install OpenJDK 8 (NOTICE: the next repo can not be built with Java versions above 8):
 ```
 sudo apt-get install openjdk-8-jdk
 ```
-Install swig:
+* Install swig:
 ```
 sudo apt-get install swig3.0
 ```
-Install latexmk:
+* Install latexmk:
 ```
 sudo apt-get install latexmk
 ```
 
-<!--*### Download and install the `planning-for-past-temporal-goals` repo from the [Whitemech research group](https://github.com/whitemech)
+
+<!--### Download and install the `planning-for-past-temporal-goals` repo from the [Whitemech research group](https://github.com/whitemech)
 Follow the [install guide for this repo](https://github.com/whitemech/planning-for-past-temporal-goals/tree/benchmark)
  Clone the repo (anywhere):
 ```
@@ -208,48 +232,15 @@ cd ..
 
 ## Running
 
-The network infrastructure is set to run on localhost. Make sure you're connected to a network anyway, even if not connected to the internet (required by SimRobot)
+The network infrastructure is set to run on localhost. Make sure you're connected to a network anyway, even if not connected to the internet (required by SimRobot).
 
-<!--
-### Task-based controller
-#### Run SimRobot
-Move to `Develop/` folder
+NOTICE: source the aliases.sh file with:
 ```
-cd RoboCup/master_thesis/spqrnao2021/Build/Linux/SimRobot/<Develop/Debug/Release>/
+source aliases.sh
 ```
+ for some useful one-word aliases (look for comments in the file)
 
-Run SimRobot
-```
-./SimRobot
-```
 
-Click on File->Open and then move to the `RoboCup/master_thesis/spqrnao2021/Config/Scenes` folder and open the `1vs3Dummies.ros2` scene. This scene features one playing robot and 3 draggable inactive robots acting as obstacles.
-
-#### Run the python server
-Move to `robocup_spl_temporal_goals/` folder
-```
-cd RoboCup/master_thesis/spqrnao2021/robocup_spl_temporal_goals/
-```
-
-Run the python server 
-```
-python async_socket_NAO.py
-```
-
-#### Run the NodeJS server
-Move to `robocup_spl_temporal_goals/web_interface` folder
-```
-cd RoboCup/master_thesis/spqrnao2021/robocup_spl_temporal_goals/web_interface
-```
-
-Run the python server
-```
-node clientUDP.js
-```
-
-#### Open the GUI in the browser
-Open any browser and connect to 127.0.0.1:3000
--->
 ### Running experiments
 
 To run an experiment in the SimRobot simulator:
@@ -259,7 +250,7 @@ To run an experiment in the SimRobot simulator:
 #### Run SimRobot
 Move to `Develop/` folder
 ```
-cd spqrnao2021/Build/Linux/SimRobot/<Develop/Debug/Release>/
+cd Build/Linux/SimRobot/<Develop/Debug/Release>/
 ```
 
 Run SimRobot
@@ -267,7 +258,7 @@ Run SimRobot
 ./SimRobot
 ```
 
-Click on File->Open and then move to the `spqrnao2021/Config/Scenes` folder and open the required scene, which is a `.ros2`. 
+Click on File->Open and then move to the `Config/Scenes` folder and open the required scene, which is a `.ros2`. 
 
 (NOTICE: you can specify the full path to the `.ros2` file to avoid navigating to it in SimRobot) 
 
@@ -290,50 +281,39 @@ If the experiment is being run on a physical robot, contact <suriani@diag.unirom
   ```
 
   where:
-  * The module run_experiment.py is located in the spqrnao2021/robocup_spl_temporal_goals folder
+  * The module run_experiment.py is located in the repo root
   * `EXPERIMENT_SUBFOLDER` is a subfolder of the "experiments" folder
   * `EXPERIMENT_NAME` is the name of the file containing the necessary methods to run the experiment
 
+In order to be able to insert conditioning commands (which in the current version have to be inserted when the experiment is run, right before the plan is created), the `--ask_constraints` command-line argument has to be used.
 
 ##### Runnable experiments
-Experiments can be found in the directory `spqrnao2021/robocup_spl_temporal_goals/experiments/`. The available experiments are:
+Experiments can be found in the directory `robocup_spl_temporal_goals/experiments/`. The available experiments are:
 * `classical_planning.basic_striker`, providing the simple single-agent scenario
-* `fond_planning_with_conditioning.striker_with_battery_power_conditioning`, providing the simple single-agent scenario with conditioning over battery power consumption
+* `fond_planning_with_conditioning.striker_with_battery_power_conditioning`, providing the simple single-agent scenario with conditioning over battery power consumption using the `highBatteryConsumption` conditionable predicate, as well as the `isat` conditionable predicate
 * `fond_planning_with_conditioning.striker_with_conditioning`, providing the simple single-agent scenario with a `isat` conditionable predicate
 * `fond_planning.striker_with_pass`, providing the multi-agent scenario. (NOTICE: in this case, fluents depend on the selected SimRobot scene).
 
+#### Running the adversarial experiment
+We need to first run the `GameFast1vs1.ros2` scene in SimRobot, following the guide above.
 
-#### Run the Python server with a specific experiment
 
-  To run an experiment, move to the `spqrnao2021/robocup_spl_temporal_goals` subdirectory and execute the following command on a terminal:
+Then, run the following commands in two different terminals:
+First terminal:
+```
+python run_experiment.py adversarial_experiment.adversarial_striker_A --localhost
+```
+to run the first player.
 
-  ```
-  python run_experiment.py <EXPERIMENT_SUBFOLDER.EXPERIMENT_NAME> --localhost
-  ```
-
-  where:
-  * `EXPERIMENT_SUBFOLDER` is a subfolder of the "experiments" folder
-  * `EXPERIMENT_NAME` is the name of the file containing the necessary methods to run the experiment
-
-  Use the `--ask_constraints` command-line argument in the scenarios with constrainable predicates to add constraints.
-
-  Just run:
-
-  ```
-  python run_experiment.py
-  ```
-  to have a full list of possible command-line arguments
-
-##### Runnable experiments
-Experiments can be found in the directory `spqrnao2021/robocup_spl_temporal_goals/experiments/`. The available experiments are:
-* `classical_planning.basic_striker`, providing the simple single-agent scenario
-* `fond_planning_with_conditioning.striker_with_battery_power_conditioning`, providing the simple single-agent scenario with conditioning over battery power consumption
-* `fond_planning_with_conditioning.striker_with_conditioning`, providing the simple single-agent scenario with a `isat` conditionable predicate
-* `fond_planning.striker_with_pass`, providing the multi-agent scenario. (NOTICE: in this case, fluents depend on the selected SimRobot scene).
+Second terminal:
+```
+python run_experiment.py adversarial_experiment.adversarial_striker_B --localhost --opponent_team
+```
+to run the second player.
 
 ### Running benchmarks
 
-  To run a benchmark, move to the `spqrnao2021/robocup_spl_temporal_goals` subdirectory and execute the following command on a terminal:
+  To run a benchmark, move to the `robocup_spl_temporal_goals` subdirectory and execute the following command on a terminal:
 
   ```
   python run_benchmark.py <BENCHMARK_SUBFOLDER> --perform_benchmarks
@@ -349,7 +329,7 @@ Experiments can be found in the directory `spqrnao2021/robocup_spl_temporal_goal
   ```
   python run_benchmark.py
   ```
-  to have a full list of possible command-line arguments
+  to have a full list of possible command-line arguments.
 
 ##### Runnable benchmarks
 The only benchmark available is the one featured in the paper: `striker_with_waypoint_conditioning_with_increasing_size`, featuring a planning problems with a domain where the goal is to bring the ball to the goal and a grid of adjacent waypoints is modeled (in a case where adjacency is also diagonal and a case where it is not). This will automatically perform benchmarks for all scenarios described.

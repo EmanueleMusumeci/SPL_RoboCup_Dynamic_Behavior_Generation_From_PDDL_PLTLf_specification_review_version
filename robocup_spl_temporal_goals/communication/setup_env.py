@@ -4,9 +4,9 @@ import signal
 from twisted.internet import reactor
 
 from communication.communication_manager import BehaviorControlMode, CommunicationManager
-#from GUI.web_frontend_controller import WebGUIController
-#from GUI.constraints_frontend_controller import ConstraintGUIController
-#from GUI.shell import ConstraintShell
+#from frontends.web_frontend_controller import WebGUIController
+#from frontends.constraints_frontend_controller import ConstraintGUIController
+#from frontends.shell import ConstraintShell
 
 def setup(
     robot_formation : Dict, 

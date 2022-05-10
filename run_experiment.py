@@ -3,7 +3,12 @@ import sys, os
 
 from twisted.internet import reactor
 
+
+#Set the python package root at the correct folder
+sys.path.insert(0, "robocup_spl_temporal_goals")
+
 #In case of ModuleNotFoundError: No module named 'lib.utils' check that your conda/python virtual environment contains all required packages for execution.
+#otherwise use the run_experiment file inside the robocup_spl_temporal_goals
 from lib.utils import find_similar_strings
 from communication.setup_env import setup
 import experiments

@@ -14,7 +14,7 @@ from lib.plan.policy_handler import PolicyHandler
 from lib.registries.literals import LiteralRegistry
 from lib.registries.values import ValueRegistry
 
-#from GUI.shell import InputShell
+#from frontends.shell import InputShell
 
 class BehaviorControlMode(Enum):
     TASK_MODE = 0

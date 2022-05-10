@@ -75,9 +75,9 @@ You can use the `pddl` package in two ways: as a library, and as a CLI tool.
 This is an example of how you can build a PDDL domain or problem 
 programmatically:
 ```python
-from third_party.pddl.pddl.logic import Predicate, constants, variables
-from third_party.pddl.pddl.core import Domain, Problem, Action, Requirements
-from third_party.pddl.pddl.formatter import domain_to_string, problem_to_string
+from robocup_spl_temporal_goals.third_party.pddl.pddl.logic import Predicate, constants, variables
+from robocup_spl_temporal_goals.third_party.pddl.pddl.core import Domain, Problem, Action, Requirements
+from robocup_spl_temporal_goals.third_party.pddl.pddl.formatter import domain_to_string, problem_to_string
 
 # set up variables and constants
 x, y, z = variables("x y z", types=["type_1"])

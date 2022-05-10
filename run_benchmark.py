@@ -2,6 +2,9 @@ import argparse
 import sys, os
 
 
+#Set the python package root at the correct folder
+sys.path.insert(0, "robocup_spl_temporal_goals")
+
 import inspect
 
 from lib.utils import find_similar_strings
