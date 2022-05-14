@@ -1,5 +1,11 @@
 # Dynamic Behaviors Generation in RoboCup SPL from PDDL+PLTLf formal specification
 
+## Abstract
+
+In the robot’s operating life, the agent is required to act in real environments dealing with rules and constraints that humans ask to satisfy. The set of rules specified by the human might influence the role of the agent without changing the goal or the current task. With similar constraints, a robotic agent in a RoboCup soccer match deals with a partially unobservable, unpredictable and dynamic scenario and can benefit from precise human indications that can condition the robot behavior before or during the time of the match. To this end, classical planning methodologies can be enriched with temporal goals and constraints that enforce non-Markovian properties on past traces. The proposed work aims at exploring the application of real-time dynamic generation of policies whose possible trajectories are compliant with a set of PPLTL rules, introducing novel human-robot interaction modalities for the high-level control of team strategies in RoboCup SPL matches.
+
+![Possible use case of this project, where a human conditions robot behaviors](/Intro_image.png "The human is now enabled to coach robots at a high-level, through textual or vocal commands, conditioning the generated policies with temporal goals over a pre-defined and context-specific set of conditionable predicates.")
+
 ## Installation
 
 ### Supported distros:
@@ -228,7 +234,9 @@ cd ..
 ```
 -->
 
+## Project structure
 
+The robot control framework code is contained in the Src and Config directories. The network infrastructure and planning facilities are instead contained in the robocup_spl_temporal_goals. In particular, all planning scenarios ("experiments") are contained in the "robocup_spl_temporal_goals/experiments" folder, while all benchmarks are contained in the "robocup_spl_temporal_goals/benchmarks" folder.
 
 ## Running
 
